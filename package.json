@@ -1,0 +1,15 @@
+{
+  "name": "fridge-ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.17.0",
+  "devDependencies": {
+    "dependency-cruiser": "^18.1.0",
+    "prettier": "^3.8.3"
+  }
+}
