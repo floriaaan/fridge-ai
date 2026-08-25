@@ -1,0 +1,6 @@
+# Overlay for local dev: only the DB runs in Docker (cf. `task dev`), backend
+# runs on the host with HMR.
+services:
+  db:
+    ports:
+      - '5432:5432'

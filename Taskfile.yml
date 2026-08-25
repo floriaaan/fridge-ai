@@ -1,0 +1,103 @@
+version: '3'
+
+vars:
+  BACKEND: fridge-ai-backend
+
+tasks:
+  setup:
+    desc: Install dependencies, copy .env files.
+    cmds:
+      - pnpm install
+      - cmd: cp -n .env.example .env
+        ignore_error: true
+      - cmd: cp -n backend/.env.example backend/.env
+        ignore_error: true
+
+  dev:
+    desc: Run the backend dev server locally (HMR), Postgres in Docker.
+    deps: [dev:db]
+    cmds:
+      - task: dev:back
+
+  dev:db:
+    desc: Start only the Postgres container.
+    cmds:
+      - docker compose -f compose.yml up -d db
+
+  dev:back:
+    desc: Run the backend dev server locally (HMR).
+    dir: backend
+    cmds:
+      - pnpm run dev
+
+  db:migrate:
+    desc: Run pending database migrations.
+    dir: backend
+    cmds:
+      - node ace migration:run
+
+  db:rollback:
+    desc: Roll back the last migration batch.
+    dir: backend
+    cmds:
+      - node ace migration:rollback
+
+  db:reset:
+    desc: Drop and re-migrate the database.
+    dir: backend
+    cmds:
+      - node ace migration:fresh
+
+  test:
+    desc: Run backend tests (Japa).
+    dir: backend
+    cmds:
+      - pnpm run test
+
+  lint:
+    desc: Lint the backend.
+    cmds:
+      - pnpm --filter {{.BACKEND}} run lint
+
+  format:
+    desc: Format the backend.
+    cmds:
+      - pnpm --filter {{.BACKEND}} run format
+
+  typecheck:
+    desc: Type-check the backend.
+    cmds:
+      - pnpm --filter {{.BACKEND}} run typecheck
+
+  boundaries:
+    desc: Enforce the domain/application/infrastructure/presentation dependency rule.
+    cmds:
+      - pnpm --filter {{.BACKEND}} run boundaries
+
+  check:
+    desc: The CI command — lint + typecheck + tests + boundary lint.
+    cmds:
+      - task: lint
+      - task: typecheck
+      - task: test
+      - task: boundaries
+
+  build:
+    desc: Build the backend.
+    cmds:
+      - pnpm --filter {{.BACKEND}} run build
+
+  up:
+    desc: Start the production-like stack.
+    cmds:
+      - docker compose -f compose.yml up -d --build
+
+  down:
+    desc: Stop the stack.
+    cmds:
+      - docker compose -f compose.yml down
+
+  logs:
+    desc: Tail logs for the whole stack.
+    cmds:
+      - docker compose -f compose.yml logs -f

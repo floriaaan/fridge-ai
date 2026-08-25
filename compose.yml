@@ -1,0 +1,56 @@
+networks:
+  internal:
+
+volumes:
+  pgdata:
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fridge_ai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fridge_ai}
+      POSTGRES_DB: ${POSTGRES_DB:-fridge_ai}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-fridge_ai} -d ${POSTGRES_DB:-fridge_ai}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3333
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL:-http://localhost:3333}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-fridge_ai}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-fridge_ai}
+      DB_DATABASE: ${POSTGRES_DB:-fridge_ai}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      POCKETID_ISSUER_URL: ${POCKETID_ISSUER_URL:-}
+      POCKETID_CLIENT_ID: ${POCKETID_CLIENT_ID:-}
+      POCKETID_CLIENT_SECRET: ${POCKETID_CLIENT_SECRET:-}
+      DISABLE_PASSWORD_LOGIN: ${DISABLE_PASSWORD_LOGIN:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '${BACKEND_PORT:-3333}:3333'
+    networks:
+      - internal
