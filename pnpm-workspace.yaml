@@ -1,3 +1,5 @@
 packages:
   - backend
   - mobile
+allowBuilds:
+  '@swc/core': true
