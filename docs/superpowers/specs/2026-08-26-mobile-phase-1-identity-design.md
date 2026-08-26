@@ -46,19 +46,20 @@ export interface FridgeConnector {
 
 Chaque phase mobile suivante étend cette interface (et les deux implémentations) avec les méthodes de son propre bounded context — même discipline que les `providers/*_provider.ts` du backend, un fichier par contexte, jamais un binding fourre-tout. Pas de méthode `throw new Error('not implemented')` pour un contexte pas encore construit : YAGNI, cohérent avec ADR-0010.
 
-## 3. Session côté React Native — pas de `document.cookie`
+## 3. Session côté React Native — plugin officiel `@better-auth/expo`, pas une implémentation maison
 
-Le backend authentifie par cookie de session (better-auth). React Native n'a pas de `document.cookie` / jar de cookies automatique comme un navigateur classique.
+**Révisé après recherche** (la version précédente de cette section proposait un stockage `expo-secure-store` fait main — remplacé par la solution officielle, trouvée après écriture de la première version de ce document, avant tout code) : better-auth publie un plugin serveur/client dédié à Expo qui résout exactement ce problème.
 
-**Décision :** `HttpFridgeConnector` extrait le cookie `Set-Cookie` de la réponse HTTP de sign-in/sign-up/callback OIDC, le stocke via `expo-secure-store` (chiffré, adapté à un token de session), et le réinjecte manuellement en header `Cookie` sur chaque requête suivante. Pas de lib de cookie-jar tierce — le protocole est simple (un seul cookie de session, pas de multi-domaine), donc une implémentation maison de quelques lignes dans `http-client.ts` suffit et reste auditable.
+- **Backend** (`backend/src/infrastructure/auth/better-auth/instance.ts`) : ajouter `expo()` (import `@better-auth/expo`) au tableau `plugins` existant, à côté de `genericOAuth(...)`. `trustedOrigins` (déjà construit depuis `CORS_ORIGIN`, cf. code existant) doit inclure le scheme mobile — documenté en variable d'env (`CORS_ORIGIN` doit lister `fridgeai://` en prod, `exp://` en dev), aucun changement de code au-delà de l'ajout du plugin.
+- **Mobile** : `createAuthClient` (`better-auth/react`) + plugin `expoClient({ scheme: 'fridgeai', storage: SecureStore, storagePrefix: 'fridgeai' })`. Le plugin gère lui-même : le jar de cookies virtuel (stocké via `expo-secure-store`), le cache de session (offline-friendly), et la conversion des callbacks OAuth relatifs en deep links.
+- **`HttpFridgeConnector`** enveloppe ce `authClient` pour les méthodes identity (`signInEmail` → `authClient.signIn.email(...)`, `signInSocial` → `authClient.signIn.social({ provider: 'pocketid', callbackURL: '/(tabs)' })`, etc.), traduit son résultat en `Result<Session, ApiError>` — la façade `FridgeConnector` reste la même abstraction domaine, seule l'implémentation change en dessous. `FakeFridgeConnector` n'a besoin d'aucune de ces libs — fixtures pures en mémoire.
+- Web (Expo web) : `expoClient` ne s'active que sur native ; sur web, `createAuthClient` retombe sur son comportement cookie-navigateur standard (`credentials: 'include'`) sans configuration supplémentaire — pas de branchement `Platform.OS` à écrire à la main.
 
-Web (Expo web) est un cas à part : le navigateur gère `document.cookie` nativement pour les requêtes `fetch` same-origin/CORS avec `credentials: 'include'` — `http-client.ts` détecte la plateforme (`Platform.OS === 'web'`) et laisse le navigateur faire le travail plutôt que de dupliquer la logique `expo-secure-store` qui n'existe pas là.
+Dépendances mobile ajoutées : `better-auth`, `@better-auth/expo`, `expo-secure-store`, `expo-linking`, `expo-web-browser`, `expo-constants`, `expo-network` (toutes listées comme requises par le plugin).
 
 ## 4. PocketID (OIDC) côté mobile
 
-`expo-web-browser`'s `openAuthSessionAsync(authUrl, redirectUrl)` ouvre `GET {API_URL}/api/auth/sign-in/social?provider=pocketid&callbackURL={redirectUrl}` dans un onglet navigateur système (pas de WebView embarquée — meilleure sécurité, partage la session du navigateur système, pattern recommandé Expo/OAuth). Le callback OIDC du backend (`GET /api/auth/callback/pocketid`, déjà câblé côté backend depuis Phase 1) redirige vers un deep link enregistré dans `app.json` (`scheme: "fridgeai"`), que `expo-web-browser` intercepte et referme automatiquement.
-
-Le cookie de session posé par le backend pendant ce flow doit être récupéré côté app après le retour du navigateur système — `openAuthSessionAsync`'s callback URL ne porte pas le `Set-Cookie` (le navigateur système, pas l'app, a reçu la réponse HTTP). **Décision :** après le retour du deep link, l'app appelle `GET /api/session` (déjà exposé, pas de foyer requis) pour vérifier si une session a été établie côté serveur — mais ce endpoint dépend lui-même du cookie envoyé par le client, qu'on n'a justement pas. Résolu en configurant le backend pour que le callback OIDC redirige avec le token de session en paramètre de query du deep link (`fridgeai://auth-callback?token=...`), que l'app échange contre le cookie en le stockant directement — **écart par rapport au flow web pur cookie-only**, documenté ici plutôt que découvert en implémentation. Nécessite un petit ajustement backend (le callback better-auth redirige déjà vers une URL configurable ; on pointe cette URL vers le deep link avec le token en query param, une convention standard pour les apps mobiles OAuth).
+Géré entièrement par `@better-auth/expo` (cf. section 3) — `authClient.signIn.social({ provider: 'pocketid', callbackURL: '/(tabs)' })` déclenche le flow : ouverture du navigateur système (le plugin utilise `expo-web-browser` en interne), redirection vers `GET /api/auth/callback/pocketid` (backend, déjà câblé depuis Phase 1), conversion automatique du `callbackURL` relatif en deep link (`fridgeai://(tabs)`), fermeture automatique du navigateur au retour, session restaurée depuis `SecureStore`. Aucune logique de token-en-query-param à écrire côté backend ni côté app — c'est précisément ce que le plugin encapsule.
 
 ## 5. Fichiers de cette phase
 
@@ -92,7 +93,8 @@ mobile/
       shared/{connector-context.tsx,define-query.ts,define-mutation.ts,use-domain-query.ts,use-domain-mutation.ts}
       identity/{session.query.ts,auth-methods.query.ts,sign-in.mutation.ts,sign-up.mutation.ts,sign-out.mutation.ts}
     infrastructure/
-      http/{http-fridge-connector.ts,http-client.ts,session-storage.ts}
+      auth/auth-client.ts           # createAuthClient + expoClient plugin (better-auth/react)
+      http/{http-fridge-connector.ts,http-client.ts}
       fake/{fake-fridge-connector.ts,fixtures/session.fixture.ts}
     presentation/
       identity/{login-form.tsx,signup-form.tsx,auth-method-buttons.tsx}
@@ -105,6 +107,8 @@ mobile/
   __tests__/                     # jest-expo, un dossier par couche testée
 ```
 
+Backend : un seul fichier modifié, `backend/src/infrastructure/auth/better-auth/instance.ts` — ajout de `expo()` au tableau `plugins` existant (cf. section 3).
+
 ## 6. Testing
 
 `jest-expo` (préréglage Jest officiel Expo) + `@testing-library/react-native`. Pas de convention mobile existante dans ce repo — cette phase l'établit :
@@ -113,9 +117,18 @@ mobile/
 - `src/presentation/**` : tests de rendu (`@testing-library/react-native`) sur les formulaires (sign-in, sign-up) avec le connector fake.
 - Pas de test e2e (Detox/Maestro) dans cette phase — hors scope, potentiellement une phase dédiée plus tard si besoin.
 
-## 7. Versions à vérifier avant de démarrer
+## 7. Versions vérifiées (2026-08-26)
 
-Phase 0 flague ces versions comme non vérifiées (contrairement au socle backend, déjà vérifié via `arr`) : Expo SDK courant, `expo-router`, `@tanstack/react-query` (version mobile), `tamagui`, `expo-web-browser`, `expo-secure-store`. À faire en tout premier lieu du plan d'implémentation (souvent un simple `npx create-expo-app` + `npx expo install` pointe déjà vers les bonnes versions compatibles entre elles).
+Phase 0 flaguait ces versions comme non vérifiées (contrairement au socle backend, déjà vérifié via `arr`) — vérifiées ici par recherche avant écriture du plan :
+
+- **Expo SDK** : 57 (React Native 0.86)
+- **expo-router** : 57.x (suit la version du SDK)
+- **@tanstack/react-query** : 5.102.x
+- **tamagui** : 2.7.x (v2, stable — v1 existe encore mais v2 est la branche active)
+- **expo-web-browser** : 57.x · **expo-secure-store** : 57.x (toutes deux suivent le SDK, gérées par `expo install`)
+- **better-auth** : déjà fixé côté backend à 1.6.x (cf. phase-0) — le mobile utilise `@better-auth/expo` en version compatible, résolue par `expo install`/`pnpm add` au moment du plan.
+
+Le plan d'implémentation doit tout de même lancer `npx create-expo-app@latest` puis `npx expo install <pkg>` pour chaque dépendance plutôt que d'épingler ces numéros à la main — `expo install` résout les versions mutuellement compatibles pour le SDK installé, plus fiable qu'une liste figée qui peut driftée entre l'écriture de ce document et l'exécution du plan.
 
 ## 8. Enveloppe d'erreur
 
