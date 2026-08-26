@@ -2,9 +2,13 @@ import { Link, router } from 'expo-router'
 import { Text, YStack } from '../../presentation/shared/tamagui-typed.js'
 import { LoginForm } from '../../presentation/identity/login-form.js'
 import { AuthMethodButtons } from '../../presentation/identity/auth-method-buttons.js'
+import { useSessionQuery } from '../../application/identity/session.query.js'
 
 export default function SignInScreen() {
-  function handleSuccess() {
+  const session = useSessionQuery()
+
+  async function handleSuccess() {
+    await session.refetch()
     router.replace('/(tabs)')
   }
 
