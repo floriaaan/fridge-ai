@@ -9,11 +9,16 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   invalid_credentials: 401,
   already_in_household: 409,
   invalid_invite_code: 404,
-  no_household: 404,
+  no_household: 403,
   not_owner: 403,
   cannot_remove_owner: 409,
   not_a_member: 404,
   owner_cannot_leave: 409,
+  provider_not_configured: 422,
+  product_not_found: 404,
+  image_not_found: 404,
+  receipt_not_found: 404,
+  extraction_failed: 422,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -25,6 +30,11 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   cannot_remove_owner: 'Le propriétaire ne peut pas être retiré.',
   not_a_member: "Cet utilisateur n'est pas membre du foyer.",
   owner_cannot_leave: 'Le propriétaire doit supprimer le foyer plutôt que le quitter.',
+  provider_not_configured: 'Ce provider IA ne dispose pas des identifiants nécessaires.',
+  product_not_found: 'Produit introuvable.',
+  image_not_found: 'Image introuvable.',
+  receipt_not_found: 'Ticket introuvable.',
+  extraction_failed: "L'extraction du ticket a échoué — réessayez avec une photo plus nette.",
 }
 
 function isValidationError(error: unknown): error is ValidationError {

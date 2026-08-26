@@ -42,7 +42,9 @@ export default class HouseholdController {
     }
 
     const members = await userDirectory.findByIds([user.id])
-    return ctx.response.status(201).json({ household: toHouseholdDto(result.value, user.id, members) })
+    return ctx.response
+      .status(201)
+      .json({ household: toHouseholdDto(result.value, user.id, members) })
   }
 
   async join(ctx: HttpContext) {

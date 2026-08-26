@@ -19,6 +19,9 @@ export default defineConfig({
     () => import('@adonisjs/cors/cors_provider'),
     () => import('#providers/shared_provider'),
     () => import('#providers/identity_provider'),
+    () => import('#providers/settings_provider'),
+    () => import('#providers/fridge_provider'),
+    () => import('#providers/receipt_provider'),
   ],
 
   preloads: [
@@ -52,6 +55,10 @@ export default defineConfig({
 
   hooks: {
     init: [
+      // @ts-expect-error — @adonisjs/core's `indexEntities()` hook type
+      // doesn't cover the `CodeGen` build phase in this installed version
+      // (upstream typing gap between @adonisjs/core and @adonisjs/assembler,
+      // not an application bug); the hook itself runs correctly at runtime.
       indexEntities({
         transformers: { enabled: true },
       }),

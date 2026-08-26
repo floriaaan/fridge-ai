@@ -37,12 +37,7 @@ export class InviteCode extends ValueObject<InviteCodeProps> {
    * the id's random bits.
    */
   static generate(idGenerator: IdGenerator): InviteCode {
-    const raw = idGenerator
-      .next()
-      .replace(/-/g, '')
-      .toUpperCase()
-      .slice(12, 20)
-      .padEnd(8, '0')
+    const raw = idGenerator.next().replace(/-/g, '').toUpperCase().slice(12, 20).padEnd(8, '0')
     return new InviteCode({ value: raw })
   }
 

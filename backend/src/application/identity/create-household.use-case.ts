@@ -14,9 +14,10 @@ export interface CreateHouseholdInput {
 
 export type CreateHouseholdError = 'already_in_household'
 
-export class CreateHousehold
-  implements UseCase<CreateHouseholdInput, ResultType<Household, CreateHouseholdError>>
-{
+export class CreateHousehold implements UseCase<
+  CreateHouseholdInput,
+  ResultType<Household, CreateHouseholdError>
+> {
   constructor(
     private readonly households: HouseholdRepository,
     private readonly idGenerator: IdGenerator,

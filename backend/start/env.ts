@@ -30,4 +30,15 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Frontend/app origin(s) the client actually calls the API from — used by
   // better-auth's trustedOrigins check (cf. instance.ts), comma-separated.
   CORS_ORIGIN: Env.schema.string.optional(),
+
+  // AI provider (settings, cf. docs/adr/0007) — optional, EnvAiSettingsProvider
+  // falls back to a hardcoded default if unset.
+  AI_PROVIDER: Env.schema.enum.optional(['gemini', 'openai', 'ollama'] as const),
+  GEMINI_API_KEY: Env.schema.string.optional(),
+  OPENAI_API_KEY: Env.schema.string.optional(),
+  OLLAMA_BASE_URL: Env.schema.string.optional({ format: 'url', tld: false }),
+  OLLAMA_VISION_MODEL: Env.schema.string.optional(),
+
+  // Root directory for locally-stored images (receipts, products) — cf. ADR-0009.
+  STORAGE_ROOT: Env.schema.string.optional(),
 })

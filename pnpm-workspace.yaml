@@ -2,5 +2,7 @@ packages:
   - backend
   - mobile
 allowBuilds:
-  '@embedded-postgres/linux-x64': set this to true or false
+  '@embedded-postgres/linux-x64': false
+  '@google/genai': false
   '@swc/core': true
+  protobufjs: false

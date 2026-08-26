@@ -9,14 +9,12 @@ export interface RemoveHouseholdMemberInput {
 }
 
 export type RemoveHouseholdMemberError =
-  | 'no_household'
-  | 'not_owner'
-  | 'cannot_remove_owner'
-  | 'not_a_member'
+  'no_household' | 'not_owner' | 'cannot_remove_owner' | 'not_a_member'
 
-export class RemoveHouseholdMember
-  implements UseCase<RemoveHouseholdMemberInput, ResultType<void, RemoveHouseholdMemberError>>
-{
+export class RemoveHouseholdMember implements UseCase<
+  RemoveHouseholdMemberInput,
+  ResultType<void, RemoveHouseholdMemberError>
+> {
   constructor(private readonly households: HouseholdRepository) {}
 
   async execute(

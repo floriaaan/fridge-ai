@@ -1,0 +1,21 @@
+meta {
+  name: Update product
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/products/{{productId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+    "name": "Lait entier"
+  }
+}

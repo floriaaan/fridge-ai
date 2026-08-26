@@ -1,0 +1,26 @@
+meta {
+  name: Set active AI provider
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/api/settings/ai
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+    "provider": "gemini"
+  }
+}
+
+docs {
+  Owner only — 403 not_owner otherwise. 422 provider_not_configured if the
+  chosen provider has no credentials in the backend's .env.
+}

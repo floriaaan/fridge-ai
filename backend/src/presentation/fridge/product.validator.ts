@@ -1,0 +1,53 @@
+import vine from '@vinejs/vine'
+
+const quantitySchema = vine.object({
+  amount: vine.number().positive(),
+  unit: vine.string().trim().minLength(1),
+})
+const locationSchema = vine.enum(['fridge', 'freezer', 'pantry'] as const)
+// `formats: { utc: true }` accepts ISO-8601 UTC strings (e.g. `Date#toISOString()`
+// output) — vine.date()'s default formats otherwise reject them outright.
+const dateSchema = vine.date({ formats: { utc: true } })
+
+export const createProductValidator = vine.compile(
+  vine.object({
+    name: vine.string().trim().minLength(1).maxLength(120),
+    quantity: quantitySchema,
+    location: locationSchema,
+    category: vine.string().trim().minLength(1).maxLength(80),
+    expiresAt: dateSchema.optional(),
+    openedAt: dateSchema.optional(),
+    openfoodfactId: vine.string().trim().optional(),
+    categories: vine.array(vine.string().trim()).optional(),
+    price: vine.number().positive().optional(),
+  }),
+)
+
+export const updateProductValidator = vine.compile(
+  vine.object({
+    name: vine.string().trim().minLength(1).maxLength(120).optional(),
+    quantity: quantitySchema.optional(),
+    location: locationSchema.optional(),
+    category: vine.string().trim().minLength(1).maxLength(80).optional(),
+    expiresAt: dateSchema.optional().nullable(),
+    openedAt: dateSchema.optional().nullable(),
+    openfoodfactId: vine.string().trim().optional().nullable(),
+    categories: vine.array(vine.string().trim()).optional().nullable(),
+    price: vine.number().positive().optional().nullable(),
+  }),
+)
+
+export const listProductsValidator = vine.compile(
+  vine.object({
+    location: locationSchema.optional(),
+    expiringWithinDays: vine.number().positive().optional(),
+  }),
+)
+
+export const expiringSoonValidator = vine.compile(
+  vine.object({ days: vine.number().positive().optional() }),
+)
+
+export const lookupProductValidator = vine.compile(
+  vine.object({ barcode: vine.string().trim().minLength(1) }),
+)

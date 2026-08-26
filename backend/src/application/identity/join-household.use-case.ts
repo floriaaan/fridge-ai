@@ -2,7 +2,7 @@ import type { UseCase } from '#application/shared/use-case'
 import type { HouseholdRepository } from '#domain/identity/interfaces/household-repository.interface'
 import type { IdGenerator } from '#domain/shared/id-generator.interface'
 import type { Clock } from '#domain/shared/clock.interface'
-import { Household } from '#domain/identity/household.aggregate'
+import { type Household } from '#domain/identity/household.aggregate'
 import { InviteCode } from '#domain/identity/invite-code.vo'
 import { Result } from '#domain/shared/result'
 import type { Result as ResultType } from '#domain/shared/result'
@@ -14,9 +14,10 @@ export interface JoinHouseholdInput {
 
 export type JoinHouseholdError = 'already_in_household' | 'invalid_invite_code'
 
-export class JoinHousehold
-  implements UseCase<JoinHouseholdInput, ResultType<Household, JoinHouseholdError>>
-{
+export class JoinHousehold implements UseCase<
+  JoinHouseholdInput,
+  ResultType<Household, JoinHouseholdError>
+> {
   constructor(
     private readonly households: HouseholdRepository,
     private readonly idGenerator: IdGenerator,

@@ -85,6 +85,66 @@ export class HouseholdMemberSchema extends BaseModel {
   declare userId: string
 }
 
+export class ProductSchema extends BaseModel {
+  static $columns = ['categories', 'category', 'createdAt', 'expiresAt', 'householdId', 'id', 'imageKey', 'location', 'name', 'openedAt', 'openfoodfactId', 'price', 'quantity', 'receiptId', 'unit', 'updatedAt'] as const
+  $columns = ProductSchema.$columns
+  @column()
+  declare categories: any | null
+  @column()
+  declare category: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare expiresAt: DateTime | null
+  @column()
+  declare householdId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare imageKey: string | null
+  @column()
+  declare location: string
+  @column()
+  declare name: string
+  @column.dateTime()
+  declare openedAt: DateTime | null
+  @column()
+  declare openfoodfactId: string | null
+  @column()
+  declare price: string | null
+  @column()
+  declare quantity: number
+  @column()
+  declare receiptId: string | null
+  @column()
+  declare unit: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class ReceiptSchema extends BaseModel {
+  static $columns = ['createdAt', 'householdId', 'id', 'imageKey', 'itemsCount', 'scannedAt', 'storeName', 'totalAmount', 'updatedAt'] as const
+  $columns = ReceiptSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare householdId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare imageKey: string | null
+  @column()
+  declare itemsCount: number
+  @column.dateTime()
+  declare scannedAt: DateTime
+  @column()
+  declare storeName: string
+  @column()
+  declare totalAmount: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class SessionSchema extends BaseModel {
   static $columns = ['createdAt', 'expiresAt', 'id', 'ipAddress', 'token', 'updatedAt', 'userAgent', 'userId'] as const
   $columns = SessionSchema.$columns
