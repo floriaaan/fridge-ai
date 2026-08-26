@@ -19,6 +19,7 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   image_not_found: 404,
   receipt_not_found: 404,
   extraction_failed: 422,
+  shopping_item_not_found: 404,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -35,6 +36,7 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   image_not_found: 'Image introuvable.',
   receipt_not_found: 'Ticket introuvable.',
   extraction_failed: "L'extraction du ticket a échoué — réessayez avec une photo plus nette.",
+  shopping_item_not_found: 'Article introuvable.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {
