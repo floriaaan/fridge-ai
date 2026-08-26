@@ -8,6 +8,7 @@
     "@tamagui/babel-plugin": "^2.7.7",
     "@tamagui/config": "^2.7.7",
     "@tamagui/metro-plugin": "^2.7.7",
+    "@tanstack/react-query": "^5.102.4",
     "better-auth": "^1.7.1",
     "expo": "~57.0.17",
     "expo-constants": "~57.0.15",
