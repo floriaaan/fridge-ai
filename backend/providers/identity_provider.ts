@@ -3,6 +3,7 @@ import type { UserDirectory } from '#domain/identity/interfaces/user-directory.i
 import type { Authentication } from '#domain/identity/interfaces/authentication.interface'
 import type { Session } from '#domain/identity/interfaces/session.interface'
 import type { AuthMethodsProvider } from '#domain/identity/interfaces/auth-methods-provider.interface'
+import type { HouseholdRepository } from '#domain/identity/interfaces/household-repository.interface'
 
 export default class IdentityProvider {
   constructor(protected app: ApplicationService) {}
@@ -36,6 +37,13 @@ export default class IdentityProvider {
       const { auth } = await import('#infrastructure/auth/better-auth/instance')
       return (request: Request) => auth.handler(request)
     })
+
+    this.app.container.singleton('identity.households', async () => {
+      const { LucidHouseholdRepository } = await import(
+        '#infrastructure/database/identity/household.repository'
+      )
+      return new LucidHouseholdRepository()
+    })
   }
 }
 
@@ -46,5 +54,6 @@ declare module '@adonisjs/core/types' {
     'identity.session': Session
     'identity.authMethodsProvider': AuthMethodsProvider
     'identity.authHandler': (request: Request) => Promise<Response>
+    'identity.households': HouseholdRepository
   }
 }
