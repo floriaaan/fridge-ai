@@ -1,0 +1,20 @@
+meta {
+  name: Lookup product by barcode
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/products/lookup?barcode=3017620422003
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+docs {
+  Real OpenFoodFacts call — result may be null if the barcode isn't in their
+  catalog. Doesn't persist anything.
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Expiring soon
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/products/expiring-soon?days=3
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}

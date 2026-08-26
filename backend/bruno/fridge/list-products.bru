@@ -1,0 +1,15 @@
+meta {
+  name: List products
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/products
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}

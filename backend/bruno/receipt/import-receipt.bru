@@ -1,0 +1,40 @@
+meta {
+  name: Import receipt
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/receipts/import
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+    "storeName": "Carrefour",
+    "scannedAt": "2026-08-26T18:00:00Z",
+    "totalAmount": 4.8,
+    "items": [
+      {
+        "name": "Lait 1L",
+        "quantity": 2,
+        "unit": "piece",
+        "category": "Produits laitiers",
+        "price": 2.4,
+        "location": "fridge"
+      }
+    ]
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.receipt && body.receipt.id) {
+    bru.setVar("receiptId", body.receipt.id);
+  }
+}
