@@ -14,7 +14,11 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     if (result.ok) onSuccess()
   }
 
-  const error = signIn.data && !signIn.data.ok ? signIn.data.error.message : null
+  const error = signIn.error
+    ? 'Une erreur est survenue lors de la connexion.'
+    : signIn.data && !signIn.data.ok
+      ? signIn.data.error.message
+      : null
 
   return (
     <YStack gap="$3" padding="$4">

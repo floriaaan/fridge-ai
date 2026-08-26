@@ -15,7 +15,11 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
     if (result.ok) onSuccess()
   }
 
-  const error = signUp.data && !signUp.data.ok ? signUp.data.error.message : null
+  const error = signUp.error
+    ? "Une erreur est survenue lors de l'inscription."
+    : signUp.data && !signUp.data.ok
+      ? signUp.data.error.message
+      : null
 
   return (
     <YStack gap="$3" padding="$4">
