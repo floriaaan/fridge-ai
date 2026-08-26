@@ -21,6 +21,7 @@ export default defineConfig({
     () => import('#providers/identity_provider'),
     () => import('#providers/settings_provider'),
     () => import('#providers/fridge_provider'),
+    () => import('#providers/receipt_provider'),
   ],
 
   preloads: [

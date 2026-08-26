@@ -29,6 +29,11 @@ export class LucidProductRepository implements ProductRepository {
     return this.findByHousehold(householdId, { expiringWithinDays: withinDays })
   }
 
+  async findByReceiptId(receiptId: string): Promise<Product[]> {
+    const rows = await ProductModel.query().where('receipt_id', receiptId)
+    return rows.map(toDomain)
+  }
+
   async save(product: Product): Promise<void> {
     await ProductModel.updateOrCreate(
       { id: product.id },

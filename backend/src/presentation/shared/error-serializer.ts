@@ -17,6 +17,8 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   provider_not_configured: 422,
   product_not_found: 404,
   image_not_found: 404,
+  receipt_not_found: 404,
+  extraction_failed: 422,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -31,6 +33,8 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   provider_not_configured: 'Ce provider IA ne dispose pas des identifiants nécessaires.',
   product_not_found: 'Produit introuvable.',
   image_not_found: 'Image introuvable.',
+  receipt_not_found: 'Ticket introuvable.',
+  extraction_failed: "L'extraction du ticket a échoué — réessayez avec une photo plus nette.",
 }
 
 function isValidationError(error: unknown): error is ValidationError {
