@@ -7,10 +7,24 @@ export interface SerializedError {
 
 const STRING_ERROR_STATUS: Record<string, number> = {
   invalid_credentials: 401,
+  already_in_household: 409,
+  invalid_invite_code: 404,
+  no_household: 404,
+  not_owner: 403,
+  cannot_remove_owner: 409,
+  not_a_member: 404,
+  owner_cannot_leave: 409,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: 'Email ou mot de passe invalide.',
+  already_in_household: 'Vous appartenez déjà à un foyer.',
+  invalid_invite_code: "Code d'invitation invalide.",
+  no_household: "Vous n'appartenez à aucun foyer.",
+  not_owner: 'Seul le propriétaire du foyer peut faire cette action.',
+  cannot_remove_owner: 'Le propriétaire ne peut pas être retiré.',
+  not_a_member: "Cet utilisateur n'est pas membre du foyer.",
+  owner_cannot_leave: 'Le propriétaire doit supprimer le foyer plutôt que le quitter.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {
