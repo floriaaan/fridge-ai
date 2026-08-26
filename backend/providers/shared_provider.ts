@@ -1,6 +1,7 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 import type { Clock } from '#domain/shared/clock.interface'
 import type { IdGenerator } from '#domain/shared/id-generator.interface'
+import type { StorageService } from '#domain/shared/interfaces/storage.interface'
 
 /**
  * `Clock`/`IdGenerator` are stateless, dependency-free — this binding exists
@@ -22,6 +23,12 @@ export default class SharedProvider {
       const { UuidIdGenerator } = await import('#infrastructure/shared/uuid-id-generator')
       return new UuidIdGenerator()
     })
+
+    this.app.container.singleton('shared.storage', async () => {
+      const { LocalFilesystemStorage } = await import('#infrastructure/storage/local-filesystem-storage')
+      const env = (await import('#start/env')).default
+      return new LocalFilesystemStorage(env.get('STORAGE_ROOT', './data/storage'))
+    })
   }
 }
 
@@ -29,5 +36,6 @@ declare module '@adonisjs/core/types' {
   interface ContainerBindings {
     'shared.clock': Clock
     'shared.idGenerator': IdGenerator
+    'shared.storage': StorageService
   }
 }
