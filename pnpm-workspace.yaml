@@ -5,6 +5,7 @@ allowBuilds:
   '@embedded-postgres/linux-x64': false
   '@google/genai': false
   '@swc/core': true
+  esbuild: true
   protobufjs: false
   unrs-resolver: true
 minimumReleaseAgeExclude:
