@@ -3,4 +3,6 @@ packages:
   - mobile
 allowBuilds:
   '@embedded-postgres/linux-x64': set this to true or false
+  '@google/genai': false
   '@swc/core': true
+  protobufjs: false

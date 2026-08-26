@@ -37,6 +37,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   GEMINI_API_KEY: Env.schema.string.optional(),
   OPENAI_API_KEY: Env.schema.string.optional(),
   OLLAMA_BASE_URL: Env.schema.string.optional({ format: 'url', tld: false }),
+  OLLAMA_VISION_MODEL: Env.schema.string.optional(),
 
   // Root directory for locally-stored images (receipts, products) — cf. ADR-0009.
   STORAGE_ROOT: Env.schema.string.optional(),
