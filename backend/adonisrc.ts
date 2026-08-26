@@ -23,6 +23,7 @@ export default defineConfig({
     () => import('#providers/fridge_provider'),
     () => import('#providers/receipt_provider'),
     () => import('#providers/shopping_list_provider'),
+    () => import('#providers/recipe_provider'),
   ],
 
   preloads: [

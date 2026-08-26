@@ -2,6 +2,7 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import type { AiProviderSettingsRepository } from '#domain/settings/interfaces/ai-provider-settings-repository.interface'
 import type { AiSettingsProvider } from '#domain/settings/interfaces/ai-settings-provider.interface'
 import type { ReceiptExtractionPort } from '#domain/receipt/interfaces/receipt-extraction-port.interface'
+import type { RecipeGenerationPort } from '#domain/recipe/interfaces/recipe-generation-port.interface'
 
 export default class SettingsProvider {
   constructor(protected app: ApplicationService) {}
@@ -26,6 +27,13 @@ export default class SettingsProvider {
       const aiSettingsProvider = await this.app.container.make('settings.aiSettingsProvider')
       return () => resolveReceiptExtractionAdapter(aiSettingsProvider)
     })
+
+    this.app.container.singleton('settings.resolveRecipeGenerationPort', async () => {
+      const { resolveRecipeGenerationAdapter } =
+        await import('#infrastructure/settings/ai-provider-registry')
+      const aiSettingsProvider = await this.app.container.make('settings.aiSettingsProvider')
+      return () => resolveRecipeGenerationAdapter(aiSettingsProvider)
+    })
   }
 }
 
@@ -34,5 +42,6 @@ declare module '@adonisjs/core/types' {
     'settings.aiProviderSettingsRepository': AiProviderSettingsRepository
     'settings.aiSettingsProvider': AiSettingsProvider
     'settings.resolveReceiptExtractionPort': () => Promise<ReceiptExtractionPort>
+    'settings.resolveRecipeGenerationPort': () => Promise<RecipeGenerationPort>
   }
 }
