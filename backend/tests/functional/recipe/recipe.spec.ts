@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import db from '@adonisjs/lucid/services/db'
 import { __setRecipeGenerationOverrideForTests } from '#infrastructure/settings/ai-provider-registry'
 import type { RecipeGenerationPort } from '#domain/recipe/interfaces/recipe-generation-port.interface'
 
@@ -30,6 +31,11 @@ async function signUpWithHousehold(client: import('@japa/api-client').ApiClient,
 }
 
 test.group('recipe: generate, suggestions, save, list, detail, delete', (group) => {
+  group.each.setup(async () => {
+    await db.beginGlobalTransaction()
+  })
+  group.each.teardown(() => db.rollbackGlobalTransaction())
+
   group.each.setup(() => {
     __setRecipeGenerationOverrideForTests(fakeGeneration)
     return () => __setRecipeGenerationOverrideForTests(null)
