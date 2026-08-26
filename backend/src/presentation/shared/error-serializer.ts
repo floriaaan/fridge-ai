@@ -15,6 +15,8 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   not_a_member: 404,
   owner_cannot_leave: 409,
   provider_not_configured: 422,
+  product_not_found: 404,
+  image_not_found: 404,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -27,6 +29,8 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   not_a_member: "Cet utilisateur n'est pas membre du foyer.",
   owner_cannot_leave: 'Le propriétaire doit supprimer le foyer plutôt que le quitter.',
   provider_not_configured: 'Ce provider IA ne dispose pas des identifiants nécessaires.',
+  product_not_found: 'Produit introuvable.',
+  image_not_found: 'Image introuvable.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {
