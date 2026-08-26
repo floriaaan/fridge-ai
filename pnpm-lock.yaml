@@ -138,6 +138,9 @@ importers:
       '@tamagui/metro-plugin':
         specifier: ^2.7.7
         version: 2.7.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@10.2.2)
+      '@tanstack/react-query':
+        specifier: ^5.102.4
+        version: 5.102.4(react@19.2.3)
       better-auth:
         specifier: ^1.7.1
         version: 1.7.1(pg@8.23.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -2980,6 +2983,14 @@ packages:
     resolution: {integrity: sha512-HKzvfbvo/NsktWBCoIySQEE6Y35GzkCkgxLWp+sKW83c7iIgU0hnWsu1BvoyBDjIDf0wf2VyzoJVjrUPTxFkbQ==}
     peerDependencies:
       react: '>=19'
+
+  '@tanstack/query-core@5.102.4':
+    resolution: {integrity: sha512-6eXkL+KFyVAZdpKoThCjPQQylZK8/ZOMYTJEVoPtHLkLs2PYks6vUiim9qzgvFXakSkRIAZwAZTeZLIJmpgRpQ==}
+
+  '@tanstack/react-query@5.102.4':
+    resolution: {integrity: sha512-Cn6X2eqFHjCtA/sfM/3eiT6/YmcPqo30twNHUlqkfz9LBqRzdt8GN/mFMWXn/qTacYUo3d4nycMzn3LWZmJ7MQ==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@testing-library/react-native@14.0.1':
     resolution: {integrity: sha512-2r2e2y8SkUNRWKRXlUGqDYunB+AkbdXUPn49Bs5rpv9oxRb0K3USBVugbPbAKJjfj4w5Ba91NJ8LcQCZyopUZA==}
@@ -11524,6 +11535,13 @@ snapshots:
 
   '@tamagui/z-index-stack@2.7.7(react@19.2.3)':
     dependencies:
+      react: 19.2.3
+
+  '@tanstack/query-core@5.102.4': {}
+
+  '@tanstack/react-query@5.102.4(react@19.2.3)':
+    dependencies:
+      '@tanstack/query-core': 5.102.4
       react: 19.2.3
 
   '@testing-library/react-native@14.0.1(jest@29.7.0(@types/node@26.1.2)(supports-color@10.2.2))(react-native@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(test-renderer@1.2.0(@types/react@19.2.18)(react@19.2.3))':
