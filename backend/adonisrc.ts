@@ -20,6 +20,7 @@ export default defineConfig({
     () => import('#providers/shared_provider'),
     () => import('#providers/identity_provider'),
     () => import('#providers/settings_provider'),
+    () => import('#providers/fridge_provider'),
   ],
 
   preloads: [
