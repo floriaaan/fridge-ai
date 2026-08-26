@@ -105,6 +105,31 @@ test.group('recipe: generate, suggestions, save, list, detail, delete', (group) 
     response.assertStatus(422)
   })
 
+  test('accessing another household recipe returns 404, not a leak', async ({ client }) => {
+    const cookieA = await signUpWithHousehold(client, 'recipe-household-a@example.com')
+    const save = await client
+      .post('/api/recipes')
+      .headers({ cookie: cookieA })
+      .json({
+        title: 'Salade de tomates',
+        source: 'user',
+        instructions: 'Couper, assaisonner.',
+        ingredients: [{ label: 'Tomate', quantity: 3, unit: 'piece' }],
+      })
+    save.assertStatus(201)
+    const recipeId = save.body().recipe.id
+
+    const cookieB = await signUpWithHousehold(client, 'recipe-household-b@example.com')
+
+    const detail = await client.get(`/api/recipes/${recipeId}`).headers({ cookie: cookieB })
+    detail.assertStatus(404)
+    detail.assertBodyContains({ error: { type: 'recipe_not_found' } })
+
+    const destroy = await client.delete(`/api/recipes/${recipeId}`).headers({ cookie: cookieB })
+    destroy.assertStatus(404)
+    destroy.assertBodyContains({ error: { type: 'recipe_not_found' } })
+  })
+
   test('all recipe routes require a household', async ({ client }) => {
     const signUp = await client.post('/api/auth/sign-up/email').json({
       email: 'recipe-no-household@example.com',

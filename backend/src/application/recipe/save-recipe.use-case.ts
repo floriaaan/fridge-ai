@@ -1,5 +1,6 @@
 import type { UseCase } from '#application/shared/use-case'
 import type { RecipeRepository } from '#domain/recipe/interfaces/recipe-repository.interface'
+import type { ProductRepository } from '#domain/fridge/interfaces/product-repository.interface'
 import type { IdGenerator } from '#domain/shared/id-generator.interface'
 import type { Clock } from '#domain/shared/clock.interface'
 import { Recipe } from '#domain/recipe/recipe.aggregate'
@@ -29,6 +30,7 @@ export interface SaveRecipeInput {
 export class SaveRecipe implements UseCase<SaveRecipeInput, ResultType<Recipe, ValidationError>> {
   constructor(
     private readonly recipes: RecipeRepository,
+    private readonly products: ProductRepository,
     private readonly idGenerator: IdGenerator,
     private readonly clock: Clock,
   ) {}
@@ -37,6 +39,19 @@ export class SaveRecipe implements UseCase<SaveRecipeInput, ResultType<Recipe, V
     const source = RecipeSource.create(input.source)
     if (!source.ok) return source
 
+    // A client-supplied `productId` reaches a real FK column
+    // (`recipe_ingredient.product_id` -> `product(id)`) — validate it
+    // exists and belongs to the caller's household before building the
+    // aggregate, rather than letting a bad id 500 on the FK violation or a
+    // valid-but-foreign id get silently persisted.
+    for (const ingredient of input.ingredients) {
+      if (!ingredient.productId) continue
+      const product = await this.products.findById(ingredient.productId)
+      if (!product || product.householdId !== input.householdId) {
+        return Result.err({ field: 'productId', message: 'Produit introuvable.' })
+      }
+    }
+
     const recipe = Recipe.create({
       id: this.idGenerator.next(),
       householdId: input.householdId,
@@ -44,7 +59,10 @@ export class SaveRecipe implements UseCase<SaveRecipeInput, ResultType<Recipe, V
       source: source.value,
       instructions: input.instructions,
       description: input.description ?? null,
-      preparationTime: input.preparationTime ?? null,
+      preparationTime:
+        input.preparationTime !== null && input.preparationTime !== undefined
+          ? Math.round(input.preparationTime)
+          : null,
       tags: input.tags ?? [],
       ingredients: input.ingredients.map((i) => ({
         id: this.idGenerator.next(),

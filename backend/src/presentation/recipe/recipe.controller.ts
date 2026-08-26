@@ -80,10 +80,11 @@ export default class RecipeController {
     requireAuthenticatedUser(ctx)
     const payload = await ctx.request.validateUsing(saveRecipeValidator)
     const recipes = await ctx.containerResolver.make('recipe.recipes')
+    const products = await ctx.containerResolver.make('fridge.products')
     const idGenerator = await ctx.containerResolver.make('shared.idGenerator')
     const clock = await ctx.containerResolver.make('shared.clock')
 
-    const result = await new SaveRecipe(recipes, idGenerator, clock).execute({
+    const result = await new SaveRecipe(recipes, products, idGenerator, clock).execute({
       householdId: ctx.household.id,
       ...payload,
     })

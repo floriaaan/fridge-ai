@@ -72,6 +72,31 @@ test.group('shopping-list: CRUD', (group) => {
     response.assertBodyContains({ error: { type: 'shopping_item_not_found' } })
   })
 
+  test('accessing another household item returns 404, not a leak', async ({ client }) => {
+    const cookieA = await signUpWithHousehold(client, 'shopping-household-a@example.com')
+    const create = await client
+      .post('/api/shopping-items')
+      .headers({ cookie: cookieA })
+      .json({ name: 'Farine', quantity: { amount: 1, unit: 'kg' }, source: 'manual' })
+    create.assertStatus(201)
+    const itemId = create.body().item.id
+
+    const cookieB = await signUpWithHousehold(client, 'shopping-household-b@example.com')
+
+    const patch = await client
+      .patch(`/api/shopping-items/${itemId}`)
+      .headers({ cookie: cookieB })
+      .json({ checked: true })
+    patch.assertStatus(404)
+    patch.assertBodyContains({ error: { type: 'shopping_item_not_found' } })
+
+    const destroy = await client
+      .delete(`/api/shopping-items/${itemId}`)
+      .headers({ cookie: cookieB })
+    destroy.assertStatus(404)
+    destroy.assertBodyContains({ error: { type: 'shopping_item_not_found' } })
+  })
+
   test('all shopping-item routes require a household', async ({ client }) => {
     const signUp = await client.post('/api/auth/sign-up/email').json({
       email: 'shopping-no-household@example.com',

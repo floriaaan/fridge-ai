@@ -61,7 +61,10 @@ function parseDraft(raw: unknown, index: number): RecipeDraft {
     title: record.title,
     description: typeof record.description === 'string' ? record.description : null,
     instructions: record.instructions,
-    preparationTime: typeof record.preparationTime === 'number' ? record.preparationTime : null,
+    // `recipe.preparation_time` is an INTEGER column (docs/phase-0/03) —
+    // round rather than reject a whole recipe over a fractional AI value.
+    preparationTime:
+      typeof record.preparationTime === 'number' ? Math.round(record.preparationTime) : null,
     tags: Array.isArray(record.tags)
       ? record.tags.filter((t): t is string => typeof t === 'string')
       : [],
