@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { genericOAuth } from 'better-auth/plugins'
+import { expo } from '@better-auth/expo'
 import { Kysely, PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
 import env from '#start/env'
@@ -95,24 +96,27 @@ export const auth = betterAuth({
       updatedAt: 'updated_at',
     },
   },
-  plugins: pocketIdConfigured
-    ? [
-        genericOAuth({
-          config: [
-            {
-              providerId: 'pocketid',
-              clientId: pocketIdClientId,
-              clientSecret: pocketIdClientSecret,
-              discoveryUrl: `${pocketIdIssuerUrl}/.well-known/openid-configuration`,
-              // Without this, better-auth defaults to `scopes: []` — an
-              // empty `scope=` param that PocketID rejects outright with
-              // access_denied rather than a scope-specific error.
-              scopes: ['openid', 'profile', 'email'],
-            },
-          ],
-        }),
-      ]
-    : [],
+  plugins: [
+    expo(),
+    ...(pocketIdConfigured
+      ? [
+          genericOAuth({
+            config: [
+              {
+                providerId: 'pocketid',
+                clientId: pocketIdClientId,
+                clientSecret: pocketIdClientSecret,
+                discoveryUrl: `${pocketIdIssuerUrl}/.well-known/openid-configuration`,
+                // Without this, better-auth defaults to `scopes: []` — an
+                // empty `scope=` param that PocketID rejects outright with
+                // access_denied rather than a scope-specific error.
+                scopes: ['openid', 'profile', 'email'],
+              },
+            ],
+          }),
+        ]
+      : []),
+  ],
 })
 
 export type Auth = typeof auth
