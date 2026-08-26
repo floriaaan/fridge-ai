@@ -14,8 +14,12 @@ export class LucidProductRepository implements ProductRepository {
     const query = ProductModel.query().where('household_id', householdId)
     if (filters.location) query.where('location', filters.location)
     if (filters.expiringWithinDays !== undefined) {
-      const threshold = new Date(Date.now() + filters.expiringWithinDays * 24 * 60 * 60 * 1000)
-      query.whereNotNull('expires_at').where('expires_at', '<=', threshold.toISOString())
+      const now = new Date()
+      const threshold = new Date(now.getTime() + filters.expiringWithinDays * 24 * 60 * 60 * 1000)
+      query
+        .whereNotNull('expires_at')
+        .where('expires_at', '>=', now.toISOString())
+        .where('expires_at', '<=', threshold.toISOString())
     }
     const rows = await query.orderBy('expires_at', 'asc')
     return rows.map(toDomain)

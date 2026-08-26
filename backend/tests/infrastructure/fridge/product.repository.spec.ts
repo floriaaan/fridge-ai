@@ -78,16 +78,18 @@ test.group('LucidProductRepository', (group) => {
     await createUser('u_3', 'owner3@example.com')
     await createHousehold('h_3', 'u_3')
 
+    const past = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
     const soon = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
     const far = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
     const repository = new LucidProductRepository()
-    await repository.save(buildProduct('p_4', 'h_3', { expiresAt: soon }))
-    await repository.save(buildProduct('p_5', 'h_3', { expiresAt: far }))
+    await repository.save(buildProduct('p_4', 'h_3', { expiresAt: past }))
+    await repository.save(buildProduct('p_5', 'h_3', { expiresAt: soon }))
+    await repository.save(buildProduct('p_6', 'h_3', { expiresAt: far }))
 
     const expiring = await repository.findExpiringSoon('h_3', 3)
     assert.lengthOf(expiring, 1)
-    assert.equal(expiring[0]?.id, 'p_4')
+    assert.equal(expiring[0]?.id, 'p_5')
   })
 
   test('delete() removes the row', async ({ assert }) => {
@@ -95,9 +97,9 @@ test.group('LucidProductRepository', (group) => {
     await createHousehold('h_4', 'u_4')
 
     const repository = new LucidProductRepository()
-    await repository.save(buildProduct('p_6', 'h_4'))
-    await repository.delete('p_6')
+    await repository.save(buildProduct('p_7', 'h_4'))
+    await repository.delete('p_7')
 
-    assert.isNull(await repository.findById('p_6'))
+    assert.isNull(await repository.findById('p_7'))
   })
 })
