@@ -1,0 +1,38 @@
+meta {
+  name: Save recipe
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/recipes
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+    "title": "Salade de tomates",
+    "source": "user",
+    "instructions": "Couper les tomates, assaisonner.",
+    "ingredients": [
+      { "label": "Tomate", "quantity": 3, "unit": "piece" }
+    ]
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.recipe && body.recipe.id) {
+    bru.setVar("recipeId", body.recipe.id);
+  }
+}
+
+docs {
+  No AI prerequisite — works with zero external credentials, unlike
+  Generate recipes/Recipe suggestions.
+}
