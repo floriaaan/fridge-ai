@@ -73,6 +73,32 @@ jobs:
       - name: Run checks (lint + typecheck + tests + boundary lint)
         run: task check
 
+  mobile-check:
+    name: Mobile — lint, typecheck, tests, boundaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run checks (lint + typecheck + tests + boundary lint)
+        run: task lint:mobile typecheck:mobile test:mobile boundaries:mobile
+
   build:
     name: Build
     runs-on: ubuntu-latest

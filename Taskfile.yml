@@ -2,6 +2,7 @@ version: '3'
 
 vars:
   BACKEND: fridge-ai-backend
+  MOBILE: fridge-ai-mobile
 
 tasks:
   setup:
@@ -74,13 +75,44 @@ tasks:
     cmds:
       - pnpm --filter {{.BACKEND}} run boundaries
 
+  dev:mobile:
+    desc: Run the Expo dev server.
+    dir: mobile
+    cmds:
+      - pnpm run start
+
+  lint:mobile:
+    desc: Lint the mobile app.
+    cmds:
+      - pnpm --filter {{.MOBILE}} run lint
+
+  typecheck:mobile:
+    desc: Typecheck the mobile app.
+    cmds:
+      - pnpm --filter {{.MOBILE}} run typecheck
+
+  test:mobile:
+    desc: Run mobile tests (Jest).
+    dir: mobile
+    cmds:
+      - pnpm run test
+
+  boundaries:mobile:
+    desc: Lint the mobile app's dependency boundaries.
+    cmds:
+      - pnpm --filter {{.MOBILE}} run boundaries
+
   check:
-    desc: The CI command — lint + typecheck + tests + boundary lint.
+    desc: The CI command — lint + typecheck + tests + boundary lint, both packages.
     cmds:
       - task: lint
       - task: typecheck
       - task: test
       - task: boundaries
+      - task: lint:mobile
+      - task: typecheck:mobile
+      - task: test:mobile
+      - task: boundaries:mobile
 
   build:
     desc: Build the backend.
