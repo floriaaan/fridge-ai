@@ -1035,7 +1035,9 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 test('useSessionQuery() resolves to null when the fake connector has no session', async () => {
-  const { result } = renderHook(() => useSessionQuery(), { wrapper })
+  // @testing-library/react-native v14: renderHook() is async, must be awaited
+  // (result.current itself stays synchronous once awaited — cf. Task 2's report).
+  const { result } = await renderHook(() => useSessionQuery(), { wrapper })
   await waitFor(() => expect(result.current.isSuccess).toBe(true))
   expect(result.current.data).toBeNull()
 })
@@ -1057,18 +1059,19 @@ git commit -m "feat(mobile): TanStack Query plumbing + identity queries/mutation
 
 ### Task 7: Presentation + screens
 
+**Note on paths:** the plan originally assumed root `mobile/app/` (matching `docs/phase-0/01-arborescence.md`). Task 1's live CLI scaffold (current Expo SDK 57 default) put routable files under `mobile/src/app/` instead, auto-detected by Expo Router — verified booting correctly. Ruling recorded in the SDD ledger: adapt to `src/app/` rather than fight the CLI default. Every path and relative import below already reflects that — `src/app/` is a sibling of `src/domain`/`src/application`/`src/infrastructure`/`src/presentation` inside `src/`, so imports from an `app/` file into `src/presentation/**` etc. need one fewer `../src/` segment than the original spec's root-`app/` assumption would have needed.
+
 **Files:**
 - Create: `mobile/src/presentation/shared/error-state.tsx`
 - Create: `mobile/src/presentation/identity/login-form.tsx`
 - Create: `mobile/src/presentation/identity/signup-form.tsx`
 - Create: `mobile/src/presentation/identity/auth-method-buttons.tsx`
-- Modify: `mobile/app/_layout.tsx`
-- Create: `mobile/app/(auth)/_layout.tsx`
-- Create: `mobile/app/(auth)/sign-in.tsx`
-- Create: `mobile/app/(auth)/sign-up.tsx`
-- Modify: `mobile/app/(tabs)/_layout.tsx`
-- Modify: `mobile/app/(tabs)/index.tsx`
-- Delete: any other demo screens/components the Task 1 template scaffolded that aren't listed above (e.g. `app/(tabs)/explore.tsx`, template demo components under `components/`)
+- Modify: `mobile/src/app/_layout.tsx`
+- Create: `mobile/src/app/(auth)/_layout.tsx`
+- Create: `mobile/src/app/(auth)/sign-in.tsx`
+- Create: `mobile/src/app/(auth)/sign-up.tsx`
+- Modify or create: `mobile/src/app/(tabs)/_layout.tsx`, `mobile/src/app/(tabs)/index.tsx` (Task 1's scaffold implemented tabs as a component, not an `app/(tabs)/` route group — create this route group fresh)
+- Delete: any other demo screens/components Task 1's scaffold left (e.g. `src/app/explore.tsx`, `src/components/app-tabs.tsx` / `.web.tsx`, and any other demo file under `src/app/`, `src/components/`, `src/hooks/` not listed in this task or earlier tasks — check `git show 76dd7de --stat` if unsure what Task 1 actually added)
 - Test: `mobile/src/presentation/identity/login-form.test.tsx`
 
 **Interfaces:**
@@ -1211,7 +1214,7 @@ export function AuthMethodButtons({ onSuccess }: { onSuccess: () => void }) {
 }
 ```
 
-- [ ] **Step 5: `mobile/app/_layout.tsx`**
+- [ ] **Step 5: `mobile/src/app/_layout.tsx`**
 
 Replaces the Task 1 CLI-generated demo root layout entirely.
 
@@ -1219,9 +1222,9 @@ Replaces the Task 1 CLI-generated demo root layout entirely.
 import { Slot } from 'expo-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
-import { ThemeProvider } from '../src/presentation/shared/theme-provider.js'
-import { ConnectorProvider } from '../src/application/shared/connector-context.js'
-import { createConnector } from '../providers/create-connector.js'
+import { ThemeProvider } from '../presentation/shared/theme-provider.js'
+import { ConnectorProvider } from '../application/shared/connector-context.js'
+import { createConnector } from '../../providers/create-connector.js'
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient())
@@ -1239,12 +1242,12 @@ export default function RootLayout() {
 }
 ```
 
-- [ ] **Step 6: `mobile/app/(auth)/_layout.tsx`, `sign-in.tsx`, `sign-up.tsx`**
+- [ ] **Step 6: `mobile/src/app/(auth)/_layout.tsx`, `sign-in.tsx`, `sign-up.tsx`**
 
 ```tsx
 // (auth)/_layout.tsx
 import { Redirect, Stack } from 'expo-router'
-import { useSessionQuery } from '../../src/application/identity/session.query.js'
+import { useSessionQuery } from '../../application/identity/session.query.js'
 
 export default function AuthLayout() {
   const session = useSessionQuery()
@@ -1260,8 +1263,8 @@ export default function AuthLayout() {
 // (auth)/sign-in.tsx
 import { Link, router } from 'expo-router'
 import { Text, YStack } from 'tamagui'
-import { LoginForm } from '../../src/presentation/identity/login-form.js'
-import { AuthMethodButtons } from '../../src/presentation/identity/auth-method-buttons.js'
+import { LoginForm } from '../../presentation/identity/login-form.js'
+import { AuthMethodButtons } from '../../presentation/identity/auth-method-buttons.js'
 
 export default function SignInScreen() {
   function handleSuccess() {
@@ -1286,7 +1289,7 @@ export default function SignInScreen() {
 // (auth)/sign-up.tsx
 import { router } from 'expo-router'
 import { YStack } from 'tamagui'
-import { SignupForm } from '../../src/presentation/identity/signup-form.js'
+import { SignupForm } from '../../presentation/identity/signup-form.js'
 
 export default function SignUpScreen() {
   function handleSuccess() {
@@ -1301,14 +1304,14 @@ export default function SignUpScreen() {
 }
 ```
 
-- [ ] **Step 7: `mobile/app/(tabs)/_layout.tsx`, `index.tsx`**
+- [ ] **Step 7: `mobile/src/app/(tabs)/_layout.tsx`, `index.tsx`**
 
-Replaces the Task 1 CLI-generated demo tabs layout/screen entirely — also delete any other demo screens under `app/(tabs)/` the template scaffolded (e.g. `explore.tsx`) since this phase has exactly one tab.
+Task 1's scaffold implemented tabs as a component (`src/components/app-tabs.tsx`), not an `app/(tabs)/` route group — create this route group fresh, and delete the scaffold's tab-related demo files (`src/components/app-tabs.tsx`/`.web.tsx`, `src/app/explore.tsx`, `src/app/index.tsx` if it's the CLI's demo home screen rather than this task's) once the new group is in place and verified booting — this phase has exactly one tab.
 
 ```tsx
 // (tabs)/_layout.tsx
 import { Redirect, Tabs } from 'expo-router'
-import { useSessionQuery } from '../../src/application/identity/session.query.js'
+import { useSessionQuery } from '../../application/identity/session.query.js'
 
 export default function TabsLayout() {
   const session = useSessionQuery()
@@ -1328,8 +1331,8 @@ export default function TabsLayout() {
 // (tabs)/index.tsx
 import { router } from 'expo-router'
 import { Button, Text, YStack } from 'tamagui'
-import { useSessionQuery } from '../../src/application/identity/session.query.js'
-import { useSignOutMutation } from '../../src/application/identity/sign-out.mutation.js'
+import { useSessionQuery } from '../../application/identity/session.query.js'
+import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
 
 export default function HomeScreen() {
   const session = useSessionQuery()
@@ -1364,6 +1367,9 @@ import { ConnectorProvider } from '../../application/shared/connector-context.js
 import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-connector.js'
 import { LoginForm } from './login-form.js'
 
+// @testing-library/react-native v14: render() AND fireEvent (press/changeText/
+// scroll) are async by default, both return a Promise — every call below must
+// be awaited (cf. Task 2's report; this bit the mobile test harness once already).
 function renderWithProviders(children: ReactNode) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const connector = new FakeFridgeConnector()
@@ -1376,21 +1382,21 @@ function renderWithProviders(children: ReactNode) {
 
 test('submitting valid credentials calls onSuccess', async () => {
   const onSuccess = jest.fn()
-  renderWithProviders(<LoginForm onSuccess={onSuccess} />)
+  await renderWithProviders(<LoginForm onSuccess={onSuccess} />)
 
-  fireEvent.changeText(screen.getByTestId('login-email'), 'a@b.com')
-  fireEvent.changeText(screen.getByTestId('login-password'), 'correct-horse-battery-staple')
-  fireEvent.press(screen.getByTestId('login-submit'))
+  await fireEvent.changeText(screen.getByTestId('login-email'), 'a@b.com')
+  await fireEvent.changeText(screen.getByTestId('login-password'), 'correct-horse-battery-staple')
+  await fireEvent.press(screen.getByTestId('login-submit'))
 
   await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
 })
 
 test('submitting an empty password shows an error, does not call onSuccess', async () => {
   const onSuccess = jest.fn()
-  renderWithProviders(<LoginForm onSuccess={onSuccess} />)
+  await renderWithProviders(<LoginForm onSuccess={onSuccess} />)
 
-  fireEvent.changeText(screen.getByTestId('login-email'), 'a@b.com')
-  fireEvent.press(screen.getByTestId('login-submit'))
+  await fireEvent.changeText(screen.getByTestId('login-email'), 'a@b.com')
+  await fireEvent.press(screen.getByTestId('login-submit'))
 
   await waitFor(() => expect(screen.getByText('Email ou mot de passe invalide.')).toBeTruthy())
   expect(onSuccess).not.toHaveBeenCalled()
@@ -1409,6 +1415,6 @@ Run: `cd mobile && EXPO_PUBLIC_CONNECTOR=fake npx expo start --web --non-interac
 Run: `task check` from the repo root (now covers both `backend` and `mobile` per Task 1's Taskfile wiring) — must be fully green.
 
 ```bash
-git add mobile/src/presentation mobile/app
+git add -A mobile/src
 git commit -m "feat(mobile): presentation + screens (sign-in, sign-up, session-gated tabs)"
 ```
