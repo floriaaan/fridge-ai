@@ -12,4 +12,11 @@ post {
 
 headers {
   Cookie: {{cookie}}
+  Origin: {{corsOrigin}}
+}
+
+docs {
+  better-auth requires Origin on cookie-authenticated mutations (CSRF
+  protection) and rejects a missing one with 403 MISSING_OR_NULL_ORIGIN.
+  {{corsOrigin}} must match backend/.env's CORS_ORIGIN.
 }
