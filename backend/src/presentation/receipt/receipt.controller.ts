@@ -13,8 +13,12 @@ import { ListReceipts } from '#application/receipt/list-receipts.use-case'
 export default class ReceiptController {
   async scan(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
-    const image = ctx.request.file('image')
+    const image = ctx.request.file('image', { extnames: ['jpg', 'jpeg', 'png', 'webp'], size: '10mb' })
     if (!image || !image.tmpPath) {
+      const { status, body } = serializeError('extraction_failed')
+      return ctx.response.status(status).json(body)
+    }
+    if (!image.isValid) {
       const { status, body } = serializeError('extraction_failed')
       return ctx.response.status(status).json(body)
     }
@@ -44,7 +48,9 @@ export default class ReceiptController {
       storeName: payload.storeName,
       scannedAt: payload.scannedAt,
       totalAmount: payload.totalAmount,
-      imageKey: payload.imageKey ?? null,
+      // imageKey is always server-generated (no phase-2 write path exists yet); never
+      // sourced from client input to avoid unsanitized data reaching filesystem paths.
+      imageKey: null,
       items: payload.items.map((item) => ({
         name: item.name,
         quantity: item.quantity,

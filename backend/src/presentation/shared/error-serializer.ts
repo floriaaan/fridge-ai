@@ -9,7 +9,7 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   invalid_credentials: 401,
   already_in_household: 409,
   invalid_invite_code: 404,
-  no_household: 404,
+  no_household: 403,
   not_owner: 403,
   cannot_remove_owner: 409,
   not_a_member: 404,

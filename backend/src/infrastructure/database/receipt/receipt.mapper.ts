@@ -6,7 +6,7 @@ export function toDomain(row: ReceiptModel): Receipt {
     householdId: row.householdId,
     storeName: row.storeName,
     scannedAt: row.scannedAt.toJSDate(),
-    totalAmount: row.totalAmount,
+    totalAmount: Number(row.totalAmount),
     imageKey: row.imageKey,
     itemsCount: row.itemsCount,
     createdAt: row.createdAt.toJSDate(),

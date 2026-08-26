@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import type { Household } from '#domain/identity/household.aggregate'
 import { requireAuthenticatedUser } from '#presentation/shared/auth-context'
+import { serializeError } from '#presentation/shared/error-serializer'
 
 declare module '@adonisjs/core/http' {
   interface HttpContext {
@@ -22,9 +23,8 @@ export default class HouseholdRequiredMiddleware {
     const household = await households.findByUserId(user.id)
 
     if (!household) {
-      ctx.response.status(403).json({
-        error: { type: 'no_household', message: "Vous n'appartenez à aucun foyer." },
-      })
+      const { status, body } = serializeError('no_household')
+      ctx.response.status(status).json(body)
       return
     }
 

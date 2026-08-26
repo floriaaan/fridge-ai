@@ -21,7 +21,7 @@ export function toDomain(row: ProductModel): Product {
     category: row.category,
     openfoodfactId: row.openfoodfactId,
     categories: row.categories,
-    price: row.price,
+    price: row.price === null ? null : Number(row.price),
     imageKey: row.imageKey,
     createdAt: row.createdAt.toJSDate(),
     updatedAt: row.updatedAt.toJSDate(),

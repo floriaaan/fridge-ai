@@ -10,7 +10,6 @@ export const importReceiptValidator = vine.compile(
     storeName: vine.string().trim().minLength(1).maxLength(120),
     scannedAt: dateSchema,
     totalAmount: vine.number().positive(),
-    imageKey: vine.string().trim().optional(),
     items: vine
       .array(
         vine.object({

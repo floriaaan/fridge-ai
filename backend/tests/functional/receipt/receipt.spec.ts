@@ -9,6 +9,13 @@ const fakeDraft = {
   items: [{ name: 'Lait 1L', quantity: 2, unit: 'piece', category: 'Produits laitiers', price: 2.4 }],
 }
 
+// Minimal valid 1x1 PNG — the scan endpoint validates real file content (magic
+// bytes), not just the filename extension, so arbitrary bytes are rejected.
+const fakePngBytes = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAIAAAUAAen63NgAAAAASUVORK5CYII=',
+  'base64',
+)
+
 const fakeExtraction: ReceiptExtractionPort = {
   async extract() {
     return fakeDraft
@@ -36,7 +43,7 @@ test.group('receipt: scan, import, list, detail', (group) => {
     const response = await client
       .post('/api/receipts/scan')
       .headers({ cookie })
-      .file('image', Buffer.from('fake-jpeg-bytes'), { filename: 'ticket.jpg' })
+      .file('image', fakePngBytes, { filename: 'ticket.png' })
     response.assertStatus(200)
     response.assertBodyContains({ draft: { storeName: 'Carrefour', totalAmount: 4.8 } })
   })
@@ -80,6 +87,7 @@ test.group('receipt: scan, import, list, detail', (group) => {
 
     const detail = await client.get(`/api/receipts/${receiptId}`).headers({ cookie })
     detail.assertBodyContains({ receipt: { storeName: 'Carrefour' } })
+    assert.isNumber(detail.body().receipt.totalAmount)
     assert.lengthOf(detail.body().products, 1)
     assert.equal(detail.body().products[0].receiptId, receiptId)
 
