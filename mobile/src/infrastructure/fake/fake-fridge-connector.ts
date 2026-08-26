@@ -21,7 +21,7 @@ export class FakeFridgeConnector implements FridgeConnector {
   }
 
   async signInEmail(email: string, password: string): Promise<Result<Session, ApiError>> {
-    if (!password) {
+    if (!email || !password) {
       return Result.err({ type: 'invalid_credentials', message: 'Email ou mot de passe invalide.' })
     }
     this.session = { user: { ...fakeSession.user, email } }
