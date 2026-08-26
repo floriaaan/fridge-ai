@@ -1,0 +1,21 @@
+meta {
+  name: Toggle shopping item
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/shopping-items/{{itemId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+    "checked": true
+  }
+}

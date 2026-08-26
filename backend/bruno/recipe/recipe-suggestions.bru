@@ -1,0 +1,20 @@
+meta {
+  name: Recipe suggestions
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/recipes/suggestions
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+docs {
+  Same AI prerequisite as Generate recipes. Does not persist — nothing shows
+  up in List recipes afterwards unless you Save recipe explicitly.
+}

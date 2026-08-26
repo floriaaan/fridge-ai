@@ -38,5 +38,13 @@ repo root, or `pnpm run dev` in `backend/`).
     hand-editable, matching what the app would send after the user reviews/edits
     the scanned draft.
 
-Covers Phase 2 (`fridge`, `receipt`, `settings`) on top of Phase 1
-(`identity`, `household`). `recipe`/`shopping-list` remain a later phase.
+15. **shopping-list/Create shopping item** captures `{{itemId}}`, used by
+    **Toggle/Delete shopping item**.
+16. **recipe/Generate recipes** and **recipe/Recipe suggestions** need a real
+    AI provider configured (see step 10) — **recipe/Save recipe** works with
+    zero external credentials and also captures `{{recipeId}}`, used by
+    **Get/Delete recipe**.
+
+Covers Phase 3 (`shopping-list`, `recipe`) on top of Phase 1 (`identity`,
+`household`) and Phase 2 (`fridge`, `receipt`, `settings`) — the full MVP v1
+scope from `docs/phase-0/00-overview-et-points-a-valider.md`.

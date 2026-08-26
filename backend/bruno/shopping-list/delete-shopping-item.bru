@@ -1,0 +1,15 @@
+meta {
+  name: Delete shopping item
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/shopping-items/{{itemId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get recipe
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/recipes/{{recipeId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}

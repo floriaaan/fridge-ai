@@ -19,6 +19,9 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   image_not_found: 404,
   receipt_not_found: 404,
   extraction_failed: 422,
+  shopping_item_not_found: 404,
+  recipe_not_found: 404,
+  generation_failed: 422,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -35,6 +38,9 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   image_not_found: 'Image introuvable.',
   receipt_not_found: 'Ticket introuvable.',
   extraction_failed: "L'extraction du ticket a échoué — réessayez avec une photo plus nette.",
+  shopping_item_not_found: 'Article introuvable.',
+  recipe_not_found: 'Recette introuvable.',
+  generation_failed: 'La génération de recette a échoué — réessayez, ou reformulez votre demande.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {
