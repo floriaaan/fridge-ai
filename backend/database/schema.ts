@@ -145,6 +145,50 @@ export class ReceiptSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class RecipeSchema extends BaseModel {
+  static $columns = ['createdAt', 'description', 'householdId', 'id', 'imageKey', 'instructions', 'preparationTime', 'source', 'tags', 'title'] as const
+  $columns = RecipeSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column()
+  declare householdId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare imageKey: string | null
+  @column()
+  declare instructions: string
+  @column()
+  declare preparationTime: number | null
+  @column()
+  declare source: string
+  @column()
+  declare tags: any
+  @column()
+  declare title: string
+}
+
+export class RecipeIngredientSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'label', 'productId', 'quantity', 'recipeId', 'unit'] as const
+  $columns = RecipeIngredientSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare label: string
+  @column()
+  declare productId: string | null
+  @column()
+  declare quantity: number | null
+  @column()
+  declare recipeId: string
+  @column()
+  declare unit: string | null
+}
+
 export class SessionSchema extends BaseModel {
   static $columns = ['createdAt', 'expiresAt', 'id', 'ipAddress', 'token', 'updatedAt', 'userAgent', 'userId'] as const
   $columns = SessionSchema.$columns
@@ -164,6 +208,29 @@ export class SessionSchema extends BaseModel {
   declare userAgent: string | null
   @column()
   declare userId: string
+}
+
+export class ShoppingItemSchema extends BaseModel {
+  static $columns = ['checked', 'createdAt', 'householdId', 'id', 'name', 'quantity', 'source', 'unit', 'updatedAt'] as const
+  $columns = ShoppingItemSchema.$columns
+  @column()
+  declare checked: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare householdId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare name: string
+  @column()
+  declare quantity: number
+  @column()
+  declare source: string
+  @column()
+  declare unit: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class UserSchema extends BaseModel {
