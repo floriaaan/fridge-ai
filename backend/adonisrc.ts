@@ -19,6 +19,7 @@ export default defineConfig({
     () => import('@adonisjs/cors/cors_provider'),
     () => import('#providers/shared_provider'),
     () => import('#providers/identity_provider'),
+    () => import('#providers/settings_provider'),
   ],
 
   preloads: [

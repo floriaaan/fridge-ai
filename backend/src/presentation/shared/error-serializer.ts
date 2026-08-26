@@ -14,6 +14,7 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   cannot_remove_owner: 409,
   not_a_member: 404,
   owner_cannot_leave: 409,
+  provider_not_configured: 422,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -25,6 +26,7 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   cannot_remove_owner: 'Le propriétaire ne peut pas être retiré.',
   not_a_member: "Cet utilisateur n'est pas membre du foyer.",
   owner_cannot_leave: 'Le propriétaire doit supprimer le foyer plutôt que le quitter.',
+  provider_not_configured: 'Ce provider IA ne dispose pas des identifiants nécessaires.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {
