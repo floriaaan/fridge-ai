@@ -2,4 +2,5 @@ packages:
   - backend
   - mobile
 allowBuilds:
+  '@embedded-postgres/linux-x64': set this to true or false
   '@swc/core': true
