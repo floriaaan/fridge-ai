@@ -1,0 +1,15 @@
+meta {
+  name: My household
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/households/mine
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}

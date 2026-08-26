@@ -1,0 +1,19 @@
+meta {
+  name: Delete household
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/households/mine
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+docs {
+  Owner only — 403 otherwise. Deletes the household and cascades its members.
+}

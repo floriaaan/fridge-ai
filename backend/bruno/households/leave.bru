@@ -1,0 +1,19 @@
+meta {
+  name: Leave household
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/households/leave
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+docs {
+  Member only — 409 owner_cannot_leave if run as the owner (use "Delete household" instead).
+}

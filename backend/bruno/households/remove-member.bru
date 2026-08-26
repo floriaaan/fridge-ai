@@ -1,0 +1,24 @@
+meta {
+  name: Remove member
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/households/members/:userId
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: replace-with-member-user-id
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+docs {
+  Owner only — 403 otherwise. Get the target userId from "My household"'s
+  members list run as the owner.
+}

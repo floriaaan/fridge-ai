@@ -1,0 +1,26 @@
+meta {
+  name: Sign up
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-up/email
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "alice@example.com",
+    "password": "correct-horse-battery-staple",
+    "name": "Alice"
+  }
+}
+
+script:post-response {
+  const setCookie = res.headers['set-cookie'];
+  if (setCookie) {
+    bru.setVar("cookie", Array.isArray(setCookie) ? setCookie[0] : setCookie);
+  }
+}

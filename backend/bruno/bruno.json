@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "Fridge AI Backend",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

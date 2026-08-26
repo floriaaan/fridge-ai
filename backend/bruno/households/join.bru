@@ -1,0 +1,28 @@
+meta {
+  name: Join household
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/households/join
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+    "inviteCode": "{{inviteCode}}"
+  }
+}
+
+docs {
+  Run "Sign up" as a second user first (a household owner can't join their
+  own household — they already have one). The {{cookie}} var holds whichever
+  user signed up/in last, so re-run "Sign up" with a different email before
+  this request.
+}

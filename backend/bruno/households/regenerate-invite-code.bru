@@ -1,0 +1,19 @@
+meta {
+  name: Regenerate invite code
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/households/invite-code/regenerate
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+docs {
+  Owner only — 403 otherwise.
+}
