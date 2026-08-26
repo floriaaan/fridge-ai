@@ -30,3 +30,4 @@ minimumReleaseAgeExclude:
   - expo-system-ui@57.0.3
   - expo@57.0.17
   - eslint-config-expo@57.0.2
+  - jest-expo@57.0.5
