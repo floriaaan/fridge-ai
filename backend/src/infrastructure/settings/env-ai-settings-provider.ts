@@ -17,7 +17,8 @@ export class EnvAiSettingsProvider implements AiSettingsProvider {
 
   async resolveEffective(): Promise<EffectiveAiSettings> {
     const stored = await this.repository.find()
-    const activeProvider = stored?.activeProvider ?? env.get('AI_PROVIDER', DEFAULT_PROVIDER) as AiProvider
+    const activeProvider =
+      stored?.activeProvider ?? (env.get('AI_PROVIDER', DEFAULT_PROVIDER) as AiProvider)
     const availableProviders = AI_PROVIDERS.filter((provider) => this.hasCredentials(provider))
 
     return {

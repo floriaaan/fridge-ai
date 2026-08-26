@@ -7,7 +7,9 @@ export class EnvAuthMethodsProvider implements AuthMethodsProvider {
     const methods: AuthMethod[] = []
 
     if (!env.get('DISABLE_PASSWORD_LOGIN', false)) {
-      methods.push(AuthMethod.create({ id: 'password', enabled: true, label: 'Email et mot de passe' }))
+      methods.push(
+        AuthMethod.create({ id: 'password', enabled: true, label: 'Email et mot de passe' }),
+      )
     }
 
     const pocketIdConfigured =

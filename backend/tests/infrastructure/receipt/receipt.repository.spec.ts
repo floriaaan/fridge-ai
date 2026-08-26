@@ -26,7 +26,9 @@ async function createHousehold(id: string, ownerId: string) {
 }
 
 test.group('LucidReceiptRepository', (group) => {
-  group.each.setup(() => db.beginGlobalTransaction())
+  group.each.setup(async () => {
+    await db.beginGlobalTransaction()
+  })
   group.each.teardown(() => db.rollbackGlobalTransaction())
 
   test('save() then findById()/findByHousehold() round-trip a receipt', async ({ assert }) => {

@@ -25,8 +25,10 @@ export default class SharedProvider {
     })
 
     this.app.container.singleton('shared.storage', async () => {
-      const { LocalFilesystemStorage } = await import('#infrastructure/storage/local-filesystem-storage')
-      const env = (await import('#start/env')).default
+      const { LocalFilesystemStorage } =
+        await import('#infrastructure/storage/local-filesystem-storage')
+      const envModule = await import('#start/env')
+      const env = envModule.default
       return new LocalFilesystemStorage(env.get('STORAGE_ROOT', './data/storage'))
     })
   }

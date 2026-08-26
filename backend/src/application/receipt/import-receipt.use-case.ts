@@ -45,9 +45,10 @@ export interface ImportReceiptOutput {
  * here rather than solved: acceptable for a single-instance self-hosted app,
  * revisit if this ever needs to be bulletproof.
  */
-export class ImportReceipt
-  implements UseCase<ImportReceiptInput, ResultType<ImportReceiptOutput, ValidationError>>
-{
+export class ImportReceipt implements UseCase<
+  ImportReceiptInput,
+  ResultType<ImportReceiptOutput, ValidationError>
+> {
   constructor(
     private readonly receipts: ReceiptRepository,
     private readonly products: ProductRepository,
@@ -55,7 +56,9 @@ export class ImportReceipt
     private readonly clock: Clock,
   ) {}
 
-  async execute(input: ImportReceiptInput): Promise<ResultType<ImportReceiptOutput, ValidationError>> {
+  async execute(
+    input: ImportReceiptInput,
+  ): Promise<ResultType<ImportReceiptOutput, ValidationError>> {
     const now = this.clock.now()
     const receipt = Receipt.create({
       id: this.idGenerator.next(),

@@ -47,7 +47,10 @@ export async function resolveReceiptExtractionAdapter(
 
   const effective = await settings.resolveEffective()
   if (!cached || cached.signature !== effective.activeProvider) {
-    cached = { adapter: buildAdapter(effective.activeProvider), signature: effective.activeProvider }
+    cached = {
+      adapter: buildAdapter(effective.activeProvider),
+      signature: effective.activeProvider,
+    }
   }
   return cached.adapter
 }

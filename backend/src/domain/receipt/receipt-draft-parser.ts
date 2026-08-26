@@ -11,7 +11,9 @@ interface RawReceiptDraft {
 /** Models sometimes wrap JSON in a ```json fenced block despite instructions — strip it. */
 function extractJsonBlock(text: string): string {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-  return fenced ? fenced[1].trim() : text.trim()
+  // noUncheckedIndexedAccess doesn't know group 1 is guaranteed once the
+  // regex (which has exactly one capture group) matches at all.
+  return fenced?.[1] ? fenced[1].trim() : text.trim()
 }
 
 function parseItem(item: unknown, index: number): ReceiptDraftItem {
@@ -19,7 +21,11 @@ function parseItem(item: unknown, index: number): ReceiptDraftItem {
     throw new ReceiptExtractionParseError(`item ${index} is not an object`)
   }
   const record = item as Record<string, unknown>
-  if (typeof record.name !== 'string' || typeof record.quantity !== 'number' || typeof record.unit !== 'string') {
+  if (
+    typeof record.name !== 'string' ||
+    typeof record.quantity !== 'number' ||
+    typeof record.unit !== 'string'
+  ) {
     throw new ReceiptExtractionParseError(`item ${index} is missing required fields`)
   }
   return {

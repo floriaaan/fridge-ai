@@ -16,7 +16,9 @@ async function createUser(id: string, email: string) {
 }
 
 test.group('LucidHouseholdRepository', (group) => {
-  group.each.setup(() => db.beginGlobalTransaction())
+  group.each.setup(async () => {
+    await db.beginGlobalTransaction()
+  })
   group.each.teardown(() => db.rollbackGlobalTransaction())
 
   test('save() then findByUserId() round-trips a household with its owner', async ({ assert }) => {

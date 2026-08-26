@@ -27,7 +27,11 @@ async function createHousehold(id: string, ownerId: string) {
   })
 }
 
-function buildProduct(id: string, householdId: string, overrides: Partial<{ location: string; expiresAt: Date | null }> = {}) {
+function buildProduct(
+  id: string,
+  householdId: string,
+  overrides: Partial<{ location: string; expiresAt: Date | null }> = {},
+) {
   const quantity = Quantity.create(1, 'L')
   const location = Location.create(overrides.location ?? 'fridge')
   if (!quantity.ok || !location.ok) throw new Error('unreachable')
@@ -45,7 +49,9 @@ function buildProduct(id: string, householdId: string, overrides: Partial<{ loca
 }
 
 test.group('LucidProductRepository', (group) => {
-  group.each.setup(() => db.beginGlobalTransaction())
+  group.each.setup(async () => {
+    await db.beginGlobalTransaction()
+  })
   group.each.teardown(() => db.rollbackGlobalTransaction())
 
   test('save() then findById() round-trips a product', async ({ assert }) => {

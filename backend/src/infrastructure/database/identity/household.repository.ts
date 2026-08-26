@@ -31,7 +31,11 @@ export class LucidHouseholdRepository implements HouseholdRepository {
     await db.transaction(async (trx) => {
       await HouseholdModel.updateOrCreate(
         { id: household.id },
-        { name: household.name, ownerId: household.ownerId, inviteCode: household.inviteCode.value },
+        {
+          name: household.name,
+          ownerId: household.ownerId,
+          inviteCode: household.inviteCode.value,
+        },
         { client: trx },
       )
 

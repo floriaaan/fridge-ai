@@ -1,7 +1,10 @@
 import { DateTime } from 'luxon'
 import ProductModel from './product.lucid.js'
 import { toDomain } from './product.mapper.js'
-import type { ProductRepository, ProductFilters } from '#domain/fridge/interfaces/product-repository.interface'
+import type {
+  ProductRepository,
+  ProductFilters,
+} from '#domain/fridge/interfaces/product-repository.interface'
 import type { Product } from '#domain/fridge/product.entity'
 
 export class LucidProductRepository implements ProductRepository {

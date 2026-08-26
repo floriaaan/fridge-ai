@@ -5,11 +5,13 @@ async function signUp(client: ApiClient, email: string, name: string) {
   const response = await client
     .post('/api/auth/sign-up/email')
     .json({ email, password: 'correct-horse-battery-staple', name })
-  return response.headers()['set-cookie']
+  const cookie = response.headers()['set-cookie']
+  if (!cookie) throw new Error('set-cookie header missing')
+  return cookie
 }
 
 test.group('household: create, join, manage members', () => {
-  test('a fresh user has no household', async ({ client, assert }) => {
+  test('a fresh user has no household', async ({ client }) => {
     const cookie = await signUp(client, 'nohousehold@example.com', 'Nobody')
     const response = await client.get('/api/households/mine').headers({ cookie })
     response.assertStatus(200)
@@ -19,7 +21,10 @@ test.group('household: create, join, manage members', () => {
   test('create → mine → invite code visible to owner', async ({ client, assert }) => {
     const cookie = await signUp(client, 'owner@example.com', 'Owner')
 
-    const create = await client.post('/api/households').headers({ cookie }).json({ name: 'Chez nous' })
+    const create = await client
+      .post('/api/households')
+      .headers({ cookie })
+      .json({ name: 'Chez nous' })
     create.assertStatus(201)
     const inviteCode = create.body().household.inviteCode
     assert.isString(inviteCode)
@@ -32,7 +37,10 @@ test.group('household: create, join, manage members', () => {
     const cookie = await signUp(client, 'owner2@example.com', 'Owner2')
     await client.post('/api/households').headers({ cookie }).json({ name: 'Foyer A' })
 
-    const second = await client.post('/api/households').headers({ cookie }).json({ name: 'Foyer B' })
+    const second = await client
+      .post('/api/households')
+      .headers({ cookie })
+      .json({ name: 'Foyer B' })
     second.assertStatus(409)
     second.assertBodyContains({ error: { type: 'already_in_household' } })
   })

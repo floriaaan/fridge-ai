@@ -11,13 +11,18 @@ async function signUpWithHousehold(client: import('@japa/api-client').ApiClient,
 }
 
 test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
-  test('create → show → update → delete', async ({ client, assert }) => {
+  test('create → show → update → delete', async ({ client }) => {
     const cookie = await signUpWithHousehold(client, 'fridge-crud@example.com')
 
     const create = await client
       .post('/api/products')
       .headers({ cookie })
-      .json({ name: 'Lait', quantity: { amount: 1, unit: 'L' }, location: 'fridge', category: 'Produits laitiers' })
+      .json({
+        name: 'Lait',
+        quantity: { amount: 1, unit: 'L' },
+        location: 'fridge',
+        category: 'Produits laitiers',
+      })
     create.assertStatus(201)
     const productId = create.body().product.id
 
@@ -42,7 +47,12 @@ test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
     const response = await client
       .post('/api/products')
       .headers({ cookie })
-      .json({ name: 'Farine', quantity: { amount: 0.5, unit: 'kg' }, location: 'pantry', category: 'Épicerie' })
+      .json({
+        name: 'Farine',
+        quantity: { amount: 0.5, unit: 'kg' },
+        location: 'pantry',
+        category: 'Épicerie',
+      })
     response.assertStatus(400)
   })
 
@@ -55,11 +65,23 @@ test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
     await client
       .post('/api/products')
       .headers({ cookie })
-      .json({ name: 'Yaourt', quantity: { amount: 1, unit: 'piece' }, location: 'fridge', category: 'Laitier', expiresAt: soon })
+      .json({
+        name: 'Yaourt',
+        quantity: { amount: 1, unit: 'piece' },
+        location: 'fridge',
+        category: 'Laitier',
+        expiresAt: soon,
+      })
     await client
       .post('/api/products')
       .headers({ cookie })
-      .json({ name: 'Conserve', quantity: { amount: 1, unit: 'piece' }, location: 'pantry', category: 'Épicerie', expiresAt: far })
+      .json({
+        name: 'Conserve',
+        quantity: { amount: 1, unit: 'piece' },
+        location: 'pantry',
+        category: 'Épicerie',
+        expiresAt: far,
+      })
 
     const response = await client.get('/api/products/expiring-soon?days=3').headers({ cookie })
     response.assertStatus(200)
@@ -71,14 +93,19 @@ test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = (async () =>
       new Response(
-        JSON.stringify({ status: 1, product: { product_name: 'Nutella', categories_tags: ['en:spreads'] } }),
+        JSON.stringify({
+          status: 1,
+          product: { product_name: 'Nutella', categories_tags: ['en:spreads'] },
+        }),
       )) as typeof fetch
     cleanup(() => {
       globalThis.fetch = originalFetch
     })
 
     const cookie = await signUpWithHousehold(client, 'fridge-lookup@example.com')
-    const response = await client.get('/api/products/lookup?barcode=3017620422003').headers({ cookie })
+    const response = await client
+      .get('/api/products/lookup?barcode=3017620422003')
+      .headers({ cookie })
     response.assertStatus(200)
     response.assertBodyContains({ result: { name: 'Nutella', openfoodfactId: '3017620422003' } })
   })
@@ -88,7 +115,12 @@ test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
     const create = await client
       .post('/api/products')
       .headers({ cookie })
-      .json({ name: 'Beurre', quantity: { amount: 1, unit: 'piece' }, location: 'fridge', category: 'Laitier' })
+      .json({
+        name: 'Beurre',
+        quantity: { amount: 1, unit: 'piece' },
+        location: 'fridge',
+        category: 'Laitier',
+      })
     const productId = create.body().product.id
 
     const response = await client.get(`/api/products/${productId}/image`).headers({ cookie })
@@ -96,10 +128,13 @@ test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
   })
 
   test('all product routes require a household', async ({ client }) => {
-    const signUp = await client
-      .post('/api/auth/sign-up/email')
-      .json({ email: 'fridge-no-household@example.com', password: 'correct-horse-battery-staple', name: 'Test' })
+    const signUp = await client.post('/api/auth/sign-up/email').json({
+      email: 'fridge-no-household@example.com',
+      password: 'correct-horse-battery-staple',
+      name: 'Test',
+    })
     const cookie = signUp.headers()['set-cookie']
+    if (!cookie) throw new Error('set-cookie header missing')
 
     const response = await client.get('/api/products').headers({ cookie })
     response.assertStatus(403)

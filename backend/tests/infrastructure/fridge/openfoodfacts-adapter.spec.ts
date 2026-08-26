@@ -13,7 +13,11 @@ test.group('OpenFoodFactsAdapter', (group) => {
       new Response(
         JSON.stringify({
           status: 1,
-          product: { product_name: 'Nutella', categories_tags: ['en:spreads'], image_url: 'https://x/img.jpg' },
+          product: {
+            product_name: 'Nutella',
+            categories_tags: ['en:spreads'],
+            image_url: 'https://x/img.jpg',
+          },
         }),
       )) as typeof fetch
 

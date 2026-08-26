@@ -12,9 +12,10 @@ export interface RegenerateInviteCodeInput {
 
 export type RegenerateInviteCodeError = 'no_household' | 'not_owner'
 
-export class RegenerateInviteCode
-  implements UseCase<RegenerateInviteCodeInput, ResultType<Household, RegenerateInviteCodeError>>
-{
+export class RegenerateInviteCode implements UseCase<
+  RegenerateInviteCodeInput,
+  ResultType<Household, RegenerateInviteCodeError>
+> {
   constructor(
     private readonly households: HouseholdRepository,
     private readonly idGenerator: IdGenerator,

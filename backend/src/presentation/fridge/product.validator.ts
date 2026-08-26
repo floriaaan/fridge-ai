@@ -1,6 +1,9 @@
 import vine from '@vinejs/vine'
 
-const quantitySchema = vine.object({ amount: vine.number().positive(), unit: vine.string().trim().minLength(1) })
+const quantitySchema = vine.object({
+  amount: vine.number().positive(),
+  unit: vine.string().trim().minLength(1),
+})
 const locationSchema = vine.enum(['fridge', 'freezer', 'pantry'] as const)
 // `formats: { utc: true }` accepts ISO-8601 UTC strings (e.g. `Date#toISOString()`
 // output) — vine.date()'s default formats otherwise reject them outright.
@@ -41,6 +44,10 @@ export const listProductsValidator = vine.compile(
   }),
 )
 
-export const expiringSoonValidator = vine.compile(vine.object({ days: vine.number().positive().optional() }))
+export const expiringSoonValidator = vine.compile(
+  vine.object({ days: vine.number().positive().optional() }),
+)
 
-export const lookupProductValidator = vine.compile(vine.object({ barcode: vine.string().trim().minLength(1) }))
+export const lookupProductValidator = vine.compile(
+  vine.object({ barcode: vine.string().trim().minLength(1) }),
+)

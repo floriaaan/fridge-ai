@@ -22,7 +22,10 @@ export interface CreateProductInput {
   price?: number | null
 }
 
-export class CreateProduct implements UseCase<CreateProductInput, ResultType<Product, ValidationError>> {
+export class CreateProduct implements UseCase<
+  CreateProductInput,
+  ResultType<Product, ValidationError>
+> {
   constructor(
     private readonly products: ProductRepository,
     private readonly idGenerator: IdGenerator,

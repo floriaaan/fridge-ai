@@ -1,5 +1,8 @@
 import type { UseCase } from '#application/shared/use-case'
-import type { ProductLookupPort, ProductLookupResult } from '#domain/fridge/interfaces/product-lookup-port.interface'
+import type {
+  ProductLookupPort,
+  ProductLookupResult,
+} from '#domain/fridge/interfaces/product-lookup-port.interface'
 
 export interface LookupProductInput {
   barcode: string

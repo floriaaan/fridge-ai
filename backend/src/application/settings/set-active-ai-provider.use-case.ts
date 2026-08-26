@@ -16,9 +16,10 @@ export interface SetActiveAiProviderInput {
 
 export type SetActiveAiProviderError = 'not_owner' | 'provider_not_configured'
 
-export class SetActiveAiProvider
-  implements UseCase<SetActiveAiProviderInput, ResultType<AiProviderSettings, SetActiveAiProviderError>>
-{
+export class SetActiveAiProvider implements UseCase<
+  SetActiveAiProviderInput,
+  ResultType<AiProviderSettings, SetActiveAiProviderError>
+> {
   constructor(
     private readonly repository: AiProviderSettingsRepository,
     private readonly settingsProvider: AiSettingsProvider,
@@ -40,7 +41,8 @@ export class SetActiveAiProvider
 
     const now = this.clock.now()
     const existing = await this.repository.find()
-    const settings = existing ?? AiProviderSettings.seedFromEnv(this.idGenerator.next(), input.provider, now)
+    const settings =
+      existing ?? AiProviderSettings.seedFromEnv(this.idGenerator.next(), input.provider, now)
     settings.changeProvider(input.provider, input.userId, now)
 
     await this.repository.save(settings)

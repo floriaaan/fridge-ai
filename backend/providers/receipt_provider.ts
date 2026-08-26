@@ -6,7 +6,8 @@ export default class ReceiptProvider {
 
   register() {
     this.app.container.singleton('receipt.receipts', async () => {
-      const { LucidReceiptRepository } = await import('#infrastructure/database/receipt/receipt.repository')
+      const { LucidReceiptRepository } =
+        await import('#infrastructure/database/receipt/receipt.repository')
       return new LucidReceiptRepository()
     })
   }

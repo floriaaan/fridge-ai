@@ -11,7 +11,9 @@ export class LucidReceiptRepository implements ReceiptRepository {
   }
 
   async findByHousehold(householdId: string): Promise<Receipt[]> {
-    const rows = await ReceiptModel.query().where('household_id', householdId).orderBy('scanned_at', 'desc')
+    const rows = await ReceiptModel.query()
+      .where('household_id', householdId)
+      .orderBy('scanned_at', 'desc')
     return rows.map(toDomain)
   }
 

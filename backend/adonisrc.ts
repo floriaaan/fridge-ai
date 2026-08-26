@@ -55,6 +55,10 @@ export default defineConfig({
 
   hooks: {
     init: [
+      // @ts-expect-error — @adonisjs/core's `indexEntities()` hook type
+      // doesn't cover the `CodeGen` build phase in this installed version
+      // (upstream typing gap between @adonisjs/core and @adonisjs/assembler,
+      // not an application bug); the hook itself runs correctly at runtime.
       indexEntities({
         transformers: { enabled: true },
       }),

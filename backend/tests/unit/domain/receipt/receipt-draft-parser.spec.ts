@@ -6,7 +6,9 @@ const VALID_JSON = JSON.stringify({
   storeName: 'Carrefour',
   scannedAt: '2026-08-26T18:00:00Z',
   totalAmount: 4.8,
-  items: [{ name: 'Lait 1L', quantity: 2, unit: 'piece', category: 'Produits laitiers', price: 2.4 }],
+  items: [
+    { name: 'Lait 1L', quantity: 2, unit: 'piece', category: 'Produits laitiers', price: 2.4 },
+  ],
 })
 
 test.group('parseReceiptDraftJson', () => {
@@ -28,10 +30,15 @@ test.group('parseReceiptDraftJson', () => {
   })
 
   test('throws ReceiptExtractionParseError when required fields are missing', ({ assert }) => {
-    assert.throws(() => parseReceiptDraftJson(JSON.stringify({ storeName: 'X' })), ReceiptExtractionParseError)
+    assert.throws(
+      () => parseReceiptDraftJson(JSON.stringify({ storeName: 'X' })),
+      ReceiptExtractionParseError,
+    )
   })
 
-  test('throws ReceiptExtractionParseError when an item is missing required fields', ({ assert }) => {
+  test('throws ReceiptExtractionParseError when an item is missing required fields', ({
+    assert,
+  }) => {
     const badItem = JSON.stringify({
       storeName: 'X',
       scannedAt: '2026-08-26T18:00:00Z',

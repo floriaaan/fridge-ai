@@ -13,7 +13,10 @@ import { ListReceipts } from '#application/receipt/list-receipts.use-case'
 export default class ReceiptController {
   async scan(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
-    const image = ctx.request.file('image', { extnames: ['jpg', 'jpeg', 'png', 'webp'], size: '10mb' })
+    const image = ctx.request.file('image', {
+      extnames: ['jpg', 'jpeg', 'png', 'webp'],
+      size: '10mb',
+    })
     if (!image || !image.tmpPath) {
       const { status, body } = serializeError('extraction_failed')
       return ctx.response.status(status).json(body)
@@ -24,7 +27,9 @@ export default class ReceiptController {
     }
 
     const buffer = await readFile(image.tmpPath)
-    const resolveExtraction = await ctx.containerResolver.make('settings.resolveReceiptExtractionPort')
+    const resolveExtraction = await ctx.containerResolver.make(
+      'settings.resolveReceiptExtractionPort',
+    )
     const extraction = await resolveExtraction()
 
     const result = await new ScanReceipt(extraction).execute({ image: buffer })

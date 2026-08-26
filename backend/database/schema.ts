@@ -8,7 +8,22 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class AccountSchema extends BaseModel {
-  static $columns = ['accessToken', 'accessTokenExpiresAt', 'accountId', 'createdAt', 'id', 'idToken', 'issuer', 'password', 'providerId', 'refreshToken', 'refreshTokenExpiresAt', 'scope', 'updatedAt', 'userId'] as const
+  static $columns = [
+    'accessToken',
+    'accessTokenExpiresAt',
+    'accountId',
+    'createdAt',
+    'id',
+    'idToken',
+    'issuer',
+    'password',
+    'providerId',
+    'refreshToken',
+    'refreshTokenExpiresAt',
+    'scope',
+    'updatedAt',
+    'userId',
+  ] as const
   $columns = AccountSchema.$columns
   @column()
   declare accessToken: string | null
@@ -86,7 +101,24 @@ export class HouseholdMemberSchema extends BaseModel {
 }
 
 export class ProductSchema extends BaseModel {
-  static $columns = ['categories', 'category', 'createdAt', 'expiresAt', 'householdId', 'id', 'imageKey', 'location', 'name', 'openedAt', 'openfoodfactId', 'price', 'quantity', 'receiptId', 'unit', 'updatedAt'] as const
+  static $columns = [
+    'categories',
+    'category',
+    'createdAt',
+    'expiresAt',
+    'householdId',
+    'id',
+    'imageKey',
+    'location',
+    'name',
+    'openedAt',
+    'openfoodfactId',
+    'price',
+    'quantity',
+    'receiptId',
+    'unit',
+    'updatedAt',
+  ] as const
   $columns = ProductSchema.$columns
   @column()
   declare categories: any | null
@@ -123,7 +155,17 @@ export class ProductSchema extends BaseModel {
 }
 
 export class ReceiptSchema extends BaseModel {
-  static $columns = ['createdAt', 'householdId', 'id', 'imageKey', 'itemsCount', 'scannedAt', 'storeName', 'totalAmount', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'householdId',
+    'id',
+    'imageKey',
+    'itemsCount',
+    'scannedAt',
+    'storeName',
+    'totalAmount',
+    'updatedAt',
+  ] as const
   $columns = ReceiptSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -146,7 +188,16 @@ export class ReceiptSchema extends BaseModel {
 }
 
 export class SessionSchema extends BaseModel {
-  static $columns = ['createdAt', 'expiresAt', 'id', 'ipAddress', 'token', 'updatedAt', 'userAgent', 'userId'] as const
+  static $columns = [
+    'createdAt',
+    'expiresAt',
+    'id',
+    'ipAddress',
+    'token',
+    'updatedAt',
+    'userAgent',
+    'userId',
+  ] as const
   $columns = SessionSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -167,7 +218,15 @@ export class SessionSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['createdAt', 'email', 'emailVerified', 'id', 'image', 'name', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'email',
+    'emailVerified',
+    'id',
+    'image',
+    'name',
+    'updatedAt',
+  ] as const
   $columns = UserSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

@@ -26,7 +26,9 @@ export class LocalFilesystemStorage implements StorageService {
     const filePath = this.resolve(key)
     try {
       const buffer = await readFile(filePath)
-      const meta = JSON.parse(await readFile(`${filePath}.meta.json`, 'utf-8')) as { contentType: string }
+      const meta = JSON.parse(await readFile(`${filePath}.meta.json`, 'utf-8')) as {
+        contentType: string
+      }
       return { buffer, contentType: meta.contentType }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null

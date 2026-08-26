@@ -1,4 +1,7 @@
-import type { ProductLookupPort, ProductLookupResult } from '#domain/fridge/interfaces/product-lookup-port.interface'
+import type {
+  ProductLookupPort,
+  ProductLookupResult,
+} from '#domain/fridge/interfaces/product-lookup-port.interface'
 
 const OPENFOODFACTS_BASE_URL = 'https://world.openfoodfacts.org/api/v2/product'
 

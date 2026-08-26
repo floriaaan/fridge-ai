@@ -9,7 +9,10 @@ export interface LeaveHouseholdInput {
 
 export type LeaveHouseholdError = 'no_household' | 'owner_cannot_leave'
 
-export class LeaveHousehold implements UseCase<LeaveHouseholdInput, ResultType<void, LeaveHouseholdError>> {
+export class LeaveHousehold implements UseCase<
+  LeaveHouseholdInput,
+  ResultType<void, LeaveHouseholdError>
+> {
   constructor(private readonly households: HouseholdRepository) {}
 
   async execute(input: LeaveHouseholdInput): Promise<ResultType<void, LeaveHouseholdError>> {

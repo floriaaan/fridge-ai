@@ -1,7 +1,7 @@
 import type { UseCase } from '#application/shared/use-case'
 import type { ProductRepository } from '#domain/fridge/interfaces/product-repository.interface'
 import type { Clock } from '#domain/shared/clock.interface'
-import { Product, type UpdateProductProps } from '#domain/fridge/product.entity'
+import { type Product, type UpdateProductProps } from '#domain/fridge/product.entity'
 import { Quantity } from '#domain/fridge/quantity.vo'
 import { Location } from '#domain/fridge/location.vo'
 import type { ValidationError } from '#domain/shared/validation-error'
@@ -24,7 +24,10 @@ export interface UpdateProductInput {
 
 export type UpdateProductError = 'product_not_found' | ValidationError
 
-export class UpdateProduct implements UseCase<UpdateProductInput, ResultType<Product, UpdateProductError>> {
+export class UpdateProduct implements UseCase<
+  UpdateProductInput,
+  ResultType<Product, UpdateProductError>
+> {
   constructor(
     private readonly products: ProductRepository,
     private readonly clock: Clock,
@@ -32,7 +35,8 @@ export class UpdateProduct implements UseCase<UpdateProductInput, ResultType<Pro
 
   async execute(input: UpdateProductInput): Promise<ResultType<Product, UpdateProductError>> {
     const product = await this.products.findById(input.productId)
-    if (!product || product.householdId !== input.householdId) return Result.err('product_not_found')
+    if (!product || product.householdId !== input.householdId)
+      return Result.err('product_not_found')
 
     const patch: UpdateProductProps = {}
     if (input.name !== undefined) patch.name = input.name

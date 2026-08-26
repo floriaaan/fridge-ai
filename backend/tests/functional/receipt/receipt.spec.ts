@@ -6,7 +6,9 @@ const fakeDraft = {
   storeName: 'Carrefour',
   scannedAt: new Date('2026-08-26T18:00:00Z'),
   totalAmount: 4.8,
-  items: [{ name: 'Lait 1L', quantity: 2, unit: 'piece', category: 'Produits laitiers', price: 2.4 }],
+  items: [
+    { name: 'Lait 1L', quantity: 2, unit: 'piece', category: 'Produits laitiers', price: 2.4 },
+  ],
 }
 
 // Minimal valid 1x1 PNG — the scan endpoint validates real file content (magic
@@ -38,7 +40,7 @@ test.group('receipt: scan, import, list, detail', (group) => {
     return () => __setReceiptExtractionOverrideForTests(null)
   })
 
-  test('scan returns the fake draft', async ({ client, assert }) => {
+  test('scan returns the fake draft', async ({ client }) => {
     const cookie = await signUpWithHousehold(client, 'receipt-scan@example.com')
     const response = await client
       .post('/api/receipts/scan')

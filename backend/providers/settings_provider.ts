@@ -8,20 +8,21 @@ export default class SettingsProvider {
 
   register() {
     this.app.container.singleton('settings.aiProviderSettingsRepository', async () => {
-      const { LucidAiProviderSettingsRepository } = await import(
-        '#infrastructure/database/settings/ai-provider-settings.repository'
-      )
+      const { LucidAiProviderSettingsRepository } =
+        await import('#infrastructure/database/settings/ai-provider-settings.repository')
       return new LucidAiProviderSettingsRepository()
     })
 
     this.app.container.singleton('settings.aiSettingsProvider', async () => {
-      const { EnvAiSettingsProvider } = await import('#infrastructure/settings/env-ai-settings-provider')
+      const { EnvAiSettingsProvider } =
+        await import('#infrastructure/settings/env-ai-settings-provider')
       const repository = await this.app.container.make('settings.aiProviderSettingsRepository')
       return new EnvAiSettingsProvider(repository)
     })
 
     this.app.container.singleton('settings.resolveReceiptExtractionPort', async () => {
-      const { resolveReceiptExtractionAdapter } = await import('#infrastructure/settings/ai-provider-registry')
+      const { resolveReceiptExtractionAdapter } =
+        await import('#infrastructure/settings/ai-provider-registry')
       const aiSettingsProvider = await this.app.container.make('settings.aiSettingsProvider')
       return () => resolveReceiptExtractionAdapter(aiSettingsProvider)
     })

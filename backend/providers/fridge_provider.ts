@@ -7,7 +7,8 @@ export default class FridgeProvider {
 
   register() {
     this.app.container.singleton('fridge.products', async () => {
-      const { LucidProductRepository } = await import('#infrastructure/database/fridge/product.repository')
+      const { LucidProductRepository } =
+        await import('#infrastructure/database/fridge/product.repository')
       return new LucidProductRepository()
     })
 

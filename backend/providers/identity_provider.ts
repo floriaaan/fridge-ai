@@ -10,16 +10,14 @@ export default class IdentityProvider {
 
   register() {
     this.app.container.singleton('identity.userDirectory', async () => {
-      const { BetterAuthUserDirectory } = await import(
-        '#infrastructure/database/identity/user-directory.repository'
-      )
+      const { BetterAuthUserDirectory } =
+        await import('#infrastructure/database/identity/user-directory.repository')
       return new BetterAuthUserDirectory()
     })
 
     this.app.container.singleton('identity.authentication', async () => {
-      const { BetterAuthAuthentication } = await import(
-        '#infrastructure/auth/better-auth/authentication.adapter'
-      )
+      const { BetterAuthAuthentication } =
+        await import('#infrastructure/auth/better-auth/authentication.adapter')
       return new BetterAuthAuthentication()
     })
 
@@ -39,9 +37,8 @@ export default class IdentityProvider {
     })
 
     this.app.container.singleton('identity.households', async () => {
-      const { LucidHouseholdRepository } = await import(
-        '#infrastructure/database/identity/household.repository'
-      )
+      const { LucidHouseholdRepository } =
+        await import('#infrastructure/database/identity/household.repository')
       return new LucidHouseholdRepository()
     })
   }

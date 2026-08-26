@@ -10,12 +10,16 @@ export interface DeleteProductInput {
 
 export type DeleteProductError = 'product_not_found'
 
-export class DeleteProduct implements UseCase<DeleteProductInput, ResultType<void, DeleteProductError>> {
+export class DeleteProduct implements UseCase<
+  DeleteProductInput,
+  ResultType<void, DeleteProductError>
+> {
   constructor(private readonly products: ProductRepository) {}
 
   async execute(input: DeleteProductInput): Promise<ResultType<void, DeleteProductError>> {
     const product = await this.products.findById(input.productId)
-    if (!product || product.householdId !== input.householdId) return Result.err('product_not_found')
+    if (!product || product.householdId !== input.householdId)
+      return Result.err('product_not_found')
     await this.products.delete(product.id)
     return Result.ok(undefined)
   }

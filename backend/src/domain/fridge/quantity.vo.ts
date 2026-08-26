@@ -20,7 +20,10 @@ export class Quantity extends ValueObject<QuantityProps> {
 
   static create(amount: number, unit: string): Result<Quantity, ValidationError> {
     if (!Number.isInteger(amount) || amount <= 0) {
-      return Result.err({ field: 'quantity', message: 'La quantité doit être un entier supérieur à 0.' })
+      return Result.err({
+        field: 'quantity',
+        message: 'La quantité doit être un entier supérieur à 0.',
+      })
     }
     const trimmedUnit = unit.trim()
     if (trimmedUnit.length === 0) {

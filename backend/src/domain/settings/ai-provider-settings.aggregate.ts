@@ -27,7 +27,11 @@ export class AiProviderSettings extends AggregateRoot<string> {
   }
 
   static seedFromEnv(id: string, defaultProvider: AiProvider, now: Date): AiProviderSettings {
-    return new AiProviderSettings(id, { activeProvider: defaultProvider, updatedBy: null, updatedAt: now })
+    return new AiProviderSettings(id, {
+      activeProvider: defaultProvider,
+      updatedBy: null,
+      updatedAt: now,
+    })
   }
 
   static reconstruct(id: string, props: AiProviderSettingsProps): AiProviderSettings {

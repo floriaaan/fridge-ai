@@ -5,7 +5,13 @@ export interface ReceiptDraftDto {
   storeName: string
   scannedAt: string
   totalAmount: number
-  items: { name: string; quantity: number; unit: string; category: string | null; price: number | null }[]
+  items: {
+    name: string
+    quantity: number
+    unit: string
+    category: string | null
+    price: number | null
+  }[]
 }
 
 export interface ReceiptDto {

@@ -22,7 +22,10 @@ export class OpenAiReceiptExtractionAdapter implements ReceiptExtractionPort {
           role: 'user',
           content: [
             { type: 'text', text: EXTRACTION_PROMPT },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image.toString('base64')}` } },
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${image.toString('base64')}` },
+            },
           ],
         },
       ],
