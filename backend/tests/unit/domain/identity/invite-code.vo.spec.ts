@@ -18,4 +18,16 @@ test.group('InviteCode', () => {
     const code = InviteCode.generate(new UuidIdGenerator())
     assert.match(code.value, /^[A-Z0-9]{8}$/)
   })
+
+  test('generate() does not collide across codes generated in the same millisecond', ({
+    assert,
+  }) => {
+    // Regression test: UuidIdGenerator is backed by uuid's monotonic v7,
+    // which holds most of the id constant within a millisecond — slicing
+    // the wrong region of the id produces identical codes back-to-back.
+    // 50 calls execute well within a single millisecond on any real clock.
+    const idGenerator = new UuidIdGenerator()
+    const codes = new Set(Array.from({ length: 50 }, () => InviteCode.generate(idGenerator).value))
+    assert.equal(codes.size, 50)
+  })
 })
