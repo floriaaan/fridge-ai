@@ -5,6 +5,8 @@ import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.j
 import type { Session } from '../../domain/identity/session.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
+import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
+import type { Recipe } from '../../domain/recipe/recipe.js'
 
 function toSession(
   data: { user: { id: string; email: string; name: string; image?: string | null } } | null | undefined,
@@ -63,5 +65,23 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async signOut(): Promise<void> {
     await authClient.signOut()
+  }
+
+  async getShoppingItems(): Promise<ShoppingItem[]> {
+    const result = await apiFetch<{ items: ShoppingItem[] }>('/api/shopping-items')
+    return result.ok ? result.value.items : []
+  }
+
+  async toggleShoppingItem(itemId: string, checked: boolean): Promise<Result<ShoppingItem, ApiError>> {
+    const result = await apiFetch<{ item: ShoppingItem }>(`/api/shopping-items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ checked }),
+    })
+    return result.ok ? Result.ok(result.value.item) : Result.err(result.error)
+  }
+
+  async getRecipes(): Promise<Recipe[]> {
+    const result = await apiFetch<{ recipes: Recipe[] }>('/api/recipes')
+    return result.ok ? result.value.recipes : []
   }
 }

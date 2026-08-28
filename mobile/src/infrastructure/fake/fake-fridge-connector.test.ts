@@ -24,3 +24,33 @@ test('getAuthMethods() returns both methods enabled', async () => {
   expect(methods).toHaveLength(2)
   expect(methods.every((m) => m.enabled)).toBe(true)
 })
+
+test('getShoppingItems() returns the fixture list', async () => {
+  const connector = new FakeFridgeConnector()
+  const items = await connector.getShoppingItems()
+  expect(items.length).toBeGreaterThan(0)
+})
+
+test('toggleShoppingItem() flips checked and persists across calls', async () => {
+  const connector = new FakeFridgeConnector()
+  const [first] = await connector.getShoppingItems()
+  expect(first.checked).toBe(false)
+
+  const result = await connector.toggleShoppingItem(first.id, true)
+  expect(result.ok).toBe(true)
+
+  const [updated] = await connector.getShoppingItems()
+  expect(updated.checked).toBe(true)
+})
+
+test('toggleShoppingItem() rejects an unknown id', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.toggleShoppingItem('does-not-exist', true)
+  expect(result.ok).toBe(false)
+})
+
+test('getRecipes() returns the fixture list', async () => {
+  const connector = new FakeFridgeConnector()
+  const recipes = await connector.getRecipes()
+  expect(recipes.length).toBeGreaterThan(0)
+})
