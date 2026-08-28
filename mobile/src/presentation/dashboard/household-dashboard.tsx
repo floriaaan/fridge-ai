@@ -396,6 +396,7 @@ export interface HouseholdDashboardProps {
   signOutError: string | null
   onOpenRecettes: () => void
   onOpenCourses: () => void
+  onOpenFridge: () => void
 }
 
 const TABLET_BREAKPOINT = 768
@@ -406,6 +407,7 @@ export function HouseholdDashboard({
   signOutError,
   onOpenRecettes,
   onOpenCourses,
+  onOpenFridge,
 }: HouseholdDashboardProps) {
   const palette = useSoftPalette()
   const { width } = useWindowDimensions()
@@ -685,7 +687,7 @@ export function HouseholdDashboard({
                 Périme bientôt
               </Text>
               <Pressable
-                onPress={() => setHint('Voir tout le frigo — bientôt disponible')}
+                onPress={onOpenFridge}
                 onHoverIn={seeAllHover.onHoverIn}
                 onHoverOut={seeAllHover.onHoverOut}
                 onPressIn={seeAllHover.onPressIn}
