@@ -8,8 +8,10 @@ export default function TabsLayout() {
   if (!session.data) return <Redirect href="/(auth)/sign-in" />
 
   return (
-    <Tabs>
+    <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}>
       <Tabs.Screen name="index" options={{ title: 'Accueil' }} />
+      <Tabs.Screen name="recipes" options={{ title: 'Recettes' }} />
+      <Tabs.Screen name="shopping-list" options={{ title: 'Liste de courses' }} />
     </Tabs>
   )
 }
