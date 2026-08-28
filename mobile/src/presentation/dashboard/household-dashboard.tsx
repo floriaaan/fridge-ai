@@ -77,11 +77,17 @@
  * gamified badge) — flag before this ships past a design pass.
  */
 import { useEffect, useId, useMemo, useState } from 'react'
-import { Animated, Image, type ImageSourcePropType, Pressable, useWindowDimensions } from 'react-native'
+import {
+  Animated,
+  Image,
+  type ImageSourcePropType,
+  Pressable,
+  ScrollView,
+  useWindowDimensions,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { BlurView } from 'expo-blur'
 import { Defs, RadialGradient, Rect, Stop, Svg } from 'react-native-svg'
-import { ScrollView } from 'tamagui'
 import {
   ChefHatIcon,
   CircleCheckIcon,
