@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { Button, Input } from 'tamagui'
 import { YStack } from '../shared/tamagui-typed.js'
 import { useSignInEmailMutation } from '../../application/identity/sign-in.mutation.js'
-import { ErrorState } from '../shared/error-state.js'
+import { AuthButton, AuthError, AuthField } from './auth-ui.js'
 
 export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('')
@@ -21,26 +20,32 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       : null
 
   return (
-    <YStack gap="$3" padding="$4">
-      <Input
-        placeholder="Email"
+    <YStack gap="$3">
+      <AuthField
+        label="Email"
+        placeholder="toi@exemple.com"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
         testID="login-email"
       />
-      <Input
-        placeholder="Mot de passe"
+      <AuthField
+        label="Mot de passe"
+        placeholder="••••••••"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         testID="login-password"
       />
-      {error ? <ErrorState message={error} /> : null}
-      <Button onPress={handleSubmit} disabled={signIn.isPending} testID="login-submit">
-        {signIn.isPending ? 'Connexion...' : 'Se connecter'}
-      </Button>
+      {error ? <AuthError message={error} /> : null}
+      <AuthButton
+        label="Se connecter"
+        pendingLabel="Connexion..."
+        pending={signIn.isPending}
+        onPress={handleSubmit}
+        testID="login-submit"
+      />
     </YStack>
   )
 }

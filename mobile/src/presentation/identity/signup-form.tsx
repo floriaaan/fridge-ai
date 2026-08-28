@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { Button, Input } from 'tamagui'
 import { YStack } from '../shared/tamagui-typed.js'
 import { useSignUpMutation } from '../../application/identity/sign-up.mutation.js'
-import { ErrorState } from '../shared/error-state.js'
+import { AuthButton, AuthError, AuthField } from './auth-ui.js'
 
 export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
   const [name, setName] = useState('')
@@ -22,27 +21,33 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
       : null
 
   return (
-    <YStack gap="$3" padding="$4">
-      <Input placeholder="Nom" value={name} onChangeText={setName} testID="signup-name" />
-      <Input
-        placeholder="Email"
+    <YStack gap="$3">
+      <AuthField label="Nom" placeholder="Ton prénom" value={name} onChangeText={setName} testID="signup-name" />
+      <AuthField
+        label="Email"
+        placeholder="toi@exemple.com"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
         testID="signup-email"
       />
-      <Input
-        placeholder="Mot de passe"
+      <AuthField
+        label="Mot de passe"
+        placeholder="••••••••"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         testID="signup-password"
       />
-      {error ? <ErrorState message={error} /> : null}
-      <Button onPress={handleSubmit} disabled={signUp.isPending} testID="signup-submit">
-        {signUp.isPending ? 'Inscription...' : "S'inscrire"}
-      </Button>
+      {error ? <AuthError message={error} /> : null}
+      <AuthButton
+        label="S'inscrire"
+        pendingLabel="Inscription..."
+        pending={signUp.isPending}
+        onPress={handleSubmit}
+        testID="signup-submit"
+      />
     </YStack>
   )
 }

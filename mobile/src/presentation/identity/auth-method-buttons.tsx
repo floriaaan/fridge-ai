@@ -1,8 +1,8 @@
-import { Button } from 'tamagui'
 import { YStack } from '../shared/tamagui-typed.js'
 import { useAuthMethodsQuery } from '../../application/identity/auth-methods.query.js'
 import { useSignInSocialMutation } from '../../application/identity/sign-in.mutation.js'
-import { ErrorState } from '../shared/error-state.js'
+import { AuthButton, AuthDivider, AuthError } from './auth-ui.js'
+import { PocketIdIcon } from './pocket-id-icon.js'
 
 export function AuthMethodButtons({ onSuccess }: { onSuccess: () => void }) {
   const authMethods = useAuthMethodsQuery()
@@ -24,11 +24,18 @@ export function AuthMethodButtons({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <YStack padding="$4">
-      {error ? <ErrorState message={error} /> : null}
-      <Button onPress={handlePress} disabled={signInSocial.isPending} testID="signin-social-pocketid">
-        {pocketId.label}
-      </Button>
+    <YStack gap="$3">
+      <AuthDivider label="ou" />
+      {error ? <AuthError message={error} /> : null}
+      <AuthButton
+        label={pocketId.label}
+        pendingLabel="Connexion..."
+        pending={signInSocial.isPending}
+        onPress={handlePress}
+        variant="secondary"
+        icon={<PocketIdIcon size={18} />}
+        testID="signin-social-pocketid"
+      />
     </YStack>
   )
 }
