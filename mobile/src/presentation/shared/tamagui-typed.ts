@@ -1,5 +1,5 @@
 import type { ForwardRefExoticComponent, RefAttributes } from 'react'
-import { Text as UntypedText, YStack as UntypedYStack } from 'tamagui'
+import { Text as UntypedText, XStack as UntypedXStack, YStack as UntypedYStack } from 'tamagui'
 
 /**
  * tamagui@2.7.7's exported component types (YStack, Text, …) lose their style
@@ -21,8 +21,8 @@ import { Text as UntypedText, YStack as UntypedYStack } from 'tamagui'
  * `YStack`/`Text` from here instead of directly from `tamagui`, with the
  * JSX, props, and runtime behavior otherwise unchanged.
  *
- * Scope: only the two components actually used with style props in this
- * phase (YStack, Text). `Button`/`Input` are used here without style props
+ * Scope: only the components actually used with style props in this phase
+ * (YStack, XStack, Text). `Button`/`Input` are used here without style props
  * and are unaffected, so they're still imported directly from `tamagui`.
  * `padding`/`gap`/`margin` are widened to accept tamagui's `$`-prefixed
  * spacing tokens (e.g. `"$4"`) in addition to plain RN dimension values —
@@ -61,4 +61,5 @@ function retype<C>(component: C): ForwardRefExoticComponent<StyleProps<C> & RefA
 }
 
 export const YStack = retype(UntypedYStack)
+export const XStack = retype(UntypedXStack)
 export const Text = retype(UntypedText)
