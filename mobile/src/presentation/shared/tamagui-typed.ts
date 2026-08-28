@@ -24,20 +24,34 @@ import { Text as UntypedText, XStack as UntypedXStack, YStack as UntypedYStack }
  * Scope: only the components actually used with style props in this phase
  * (YStack, XStack, Text). `Button`/`Input` are used here without style props
  * and are unaffected, so they're still imported directly from `tamagui`.
- * `padding`/`gap`/`margin` are widened to accept tamagui's `$`-prefixed
- * spacing tokens (e.g. `"$4"`) in addition to plain RN dimension values —
- * other theme/shorthand/pseudo/media style props are not re-typed here and
- * would need extending this file if a later task starts using them.
+ * `padding`/`gap`/`margin` (and their directional/axis longhands) are
+ * widened to accept tamagui's `$`-prefixed spacing tokens (e.g. `"$4"`) in
+ * addition to plain RN dimension values — other theme/shorthand/pseudo/media
+ * style props are not re-typed here and would need extending this file if a
+ * later task starts using them.
  */
 type TamaTuple<C> = C extends { __tama: infer T } ? T : never
 
 type SpaceValue = `$${string}` | number | `${number}%`
 
-type WithSpaceTokens<T> = Omit<T, 'padding' | 'gap' | 'margin'> & {
-  padding?: SpaceValue
-  gap?: SpaceValue
-  margin?: SpaceValue
-}
+type SpaceProps =
+  | 'padding'
+  | 'paddingTop'
+  | 'paddingBottom'
+  | 'paddingLeft'
+  | 'paddingRight'
+  | 'paddingVertical'
+  | 'paddingHorizontal'
+  | 'gap'
+  | 'margin'
+  | 'marginTop'
+  | 'marginBottom'
+  | 'marginLeft'
+  | 'marginRight'
+  | 'marginVertical'
+  | 'marginHorizontal'
+
+type WithSpaceTokens<T> = Omit<T, SpaceProps> & { [K in SpaceProps]?: SpaceValue }
 
 type StyleProps<C> = TamaTuple<C> extends [
   unknown,

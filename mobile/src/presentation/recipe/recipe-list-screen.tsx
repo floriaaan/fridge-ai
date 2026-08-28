@@ -13,10 +13,9 @@
  * app rather than a dead control.
  */
 import { useState } from 'react'
-import { Animated, Pressable, useWindowDimensions } from 'react-native'
+import { Animated, Pressable, ScrollView, useWindowDimensions } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ScrollView } from 'tamagui'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { Sidebar } from '../shared/sidebar.js'

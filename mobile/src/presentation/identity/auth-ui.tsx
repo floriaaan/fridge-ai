@@ -9,10 +9,18 @@
  */
 import { useId, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Animated, Image, KeyboardAvoidingView, Platform, Pressable, TextInput, type TextInputProps } from 'react-native'
+import {
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  type TextInputProps,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Defs, RadialGradient, Rect, Stop, Svg } from 'react-native-svg'
-import { ScrollView } from 'tamagui'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
