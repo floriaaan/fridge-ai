@@ -4,6 +4,9 @@ import type { Session } from '../identity/session.js'
 import type { AuthMethod } from '../identity/auth-method.js'
 import type { ShoppingItem } from '../shopping-list/shopping-item.js'
 import type { Recipe } from '../recipe/recipe.js'
+import type { Product, CreateProductInput, UpdateProductInput } from '../fridge/product.js'
+import type { LocationValue } from '../fridge/location.js'
+import type { ProductLookupResult } from '../fridge/product-lookup-result.js'
 
 /**
  * The app's one abstraction boundary over the backend. Extended by one
@@ -20,4 +23,11 @@ export interface FridgeConnector {
   getShoppingItems(): Promise<ShoppingItem[]>
   toggleShoppingItem(itemId: string, checked: boolean): Promise<Result<ShoppingItem, ApiError>>
   getRecipes(): Promise<Recipe[]>
+  getProducts(params?: { location?: LocationValue; expiringWithinDays?: number }): Promise<Product[]>
+  getProduct(productId: string): Promise<Product | null>
+  createProduct(input: CreateProductInput): Promise<Result<Product, ApiError>>
+  updateProduct(productId: string, patch: UpdateProductInput): Promise<Result<Product, ApiError>>
+  deleteProduct(productId: string): Promise<Result<void, ApiError>>
+  getExpiringSoonProducts(days?: number): Promise<Product[]>
+  lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null>
 }
