@@ -26,6 +26,7 @@ export default function HomeScreen() {
       signOutError={error}
       onOpenRecettes={() => router.push('/(tabs)/recipes')}
       onOpenCourses={() => router.push('/(tabs)/shopping-list')}
+      onOpenFridge={() => router.push('/(tabs)/fridge')}
     />
   )
 }

@@ -10,6 +10,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}>
       <Tabs.Screen name="index" options={{ title: 'Accueil' }} />
+      <Tabs.Screen name="fridge" options={{ title: 'Frigo' }} />
       <Tabs.Screen name="recipes" options={{ title: 'Recettes' }} />
       <Tabs.Screen name="shopping-list" options={{ title: 'Liste de courses' }} />
     </Tabs>
