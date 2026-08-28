@@ -10,6 +10,8 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Res
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...init?.headers },
     })
+    // A 204 always means "success, no body" — nothing to parse.
+    if (response.status === 204) return Result.ok(undefined as T)
     const body = await response.json()
     if (!response.ok) return Result.err(body.error as ApiError)
     return Result.ok(body as T)
