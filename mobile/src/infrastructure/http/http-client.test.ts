@@ -1,13 +1,13 @@
 import { apiFetch } from './http-client.js'
 
-const originalFetch = (globalThis as any).fetch
+const originalFetch = globalThis.fetch
 
 afterEach(() => {
-  ;(globalThis as any).fetch = originalFetch
+  globalThis.fetch = originalFetch
 })
 
 test('apiFetch() resolves Result.ok(undefined) on a 204 response without parsing a body', async () => {
-  ;(globalThis as any).fetch = jest.fn().mockResolvedValue({
+  globalThis.fetch = jest.fn().mockResolvedValue({
     status: 204,
     ok: true,
     json: () => Promise.reject(new Error('should not be called on 204')),
@@ -19,7 +19,7 @@ test('apiFetch() resolves Result.ok(undefined) on a 204 response without parsing
 })
 
 test('apiFetch() still parses JSON on a normal 200 response', async () => {
-  ;(globalThis as any).fetch = jest.fn().mockResolvedValue({
+  globalThis.fetch = jest.fn().mockResolvedValue({
     status: 200,
     ok: true,
     json: () => Promise.resolve({ hello: 'world' }),
