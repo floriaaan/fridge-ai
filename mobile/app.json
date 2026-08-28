@@ -34,7 +34,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Fridge AI a besoin de la caméra pour scanner le code-barres d'un produit."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
