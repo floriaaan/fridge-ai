@@ -1,7 +1,9 @@
 import { YStack } from '../shared/tamagui-typed.js'
 import { useAuthMethodsQuery } from '../../application/identity/auth-methods.query.js'
 import { useSignInSocialMutation } from '../../application/identity/sign-in.mutation.js'
-import { AuthButton, AuthDivider, AuthError } from './auth-ui.js'
+import { AuthButton } from './auth-button.js'
+import { AuthDivider } from './auth-divider.js'
+import { AuthError } from './auth-error.js'
 import { PocketIdIcon } from './pocket-id-icon.js'
 
 export function AuthMethodButtons({ onSuccess }: { onSuccess: () => void }) {

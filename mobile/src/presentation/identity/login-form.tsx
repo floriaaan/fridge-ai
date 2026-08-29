@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { YStack } from '../shared/tamagui-typed.js'
 import { useSignInEmailMutation } from '../../application/identity/sign-in.mutation.js'
-import { AuthButton, AuthError, AuthField } from './auth-ui.js'
+import { AuthButton } from './auth-button.js'
+import { AuthError } from './auth-error.js'
+import { AuthField } from './auth-field.js'
 
 export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('')
