@@ -12,6 +12,18 @@ import { useScanReceiptMutation } from '../../application/receipt/scan-receipt.m
 import { useImportReceiptMutation } from '../../application/receipt/import-receipt.mutation.js'
 import type { ReceiptDraftItem } from '../../domain/receipt/receipt-draft.js'
 
+// Distinguishes "empty" from "invalid" from "valid" so callers can decide what
+// to do with each case without `new Date(...).toISOString()` throwing on an
+// unparseable string (e.g. "31/12/2026" produces an Invalid Date, and calling
+// `.toISOString()` on it throws a RangeError).
+function parseDateOrNull(value: string): string | null | 'invalid' {
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return null
+  const date = new Date(trimmed)
+  if (Number.isNaN(date.getTime())) return 'invalid'
+  return date.toISOString()
+}
+
 function toEditable(item: ReceiptDraftItem): EditableReceiptItem {
   return {
     name: item.name,
@@ -32,7 +44,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
 
   const [storeName, setStoreName] = useState('')
   const [scannedAt, setScannedAt] = useState('')
-  const [totalAmount, setTotalAmount] = useState(0)
+  const [totalAmount, setTotalAmount] = useState('')
   const [items, setItems] = useState<EditableReceiptItem[]>([])
   const [scanError, setScanError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -47,7 +59,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
     }
     setStoreName(result.value.storeName)
     setScannedAt(result.value.scannedAt.slice(0, 10))
-    setTotalAmount(result.value.totalAmount)
+    setTotalAmount(String(result.value.totalAmount))
     setItems(result.value.items.map(toEditable))
   }
 
@@ -64,6 +76,24 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
 
   async function handleSubmit() {
     setSubmitError(null)
+
+    if (items.length === 0) {
+      setSubmitError('Ajoute au moins un article avant d’importer.')
+      return
+    }
+
+    const parsedTotalAmount = Number(totalAmount)
+    if (!Number.isFinite(parsedTotalAmount) || parsedTotalAmount <= 0) {
+      setSubmitError('Le montant total doit être positif.')
+      return
+    }
+
+    const parsedScannedAt = parseDateOrNull(scannedAt)
+    if (parsedScannedAt === 'invalid') {
+      setSubmitError('Date du ticket invalide (attendu AAAA-MM-JJ).')
+      return
+    }
+
     const parsedItems = []
     for (const item of items) {
       const quantity = Number(item.quantity)
@@ -75,26 +105,46 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
         setSubmitError('Chaque article doit avoir un nom.')
         return
       }
+
+      let price: number | null = null
+      if (item.price.trim().length > 0) {
+        price = Number(item.price)
+        if (!Number.isFinite(price) || price <= 0) {
+          setSubmitError(`Prix invalide pour "${item.name}".`)
+          return
+        }
+      }
+
+      const parsedExpiresAt = parseDateOrNull(item.expiresAt)
+      if (parsedExpiresAt === 'invalid') {
+        setSubmitError(`Date invalide pour "${item.name}" (attendu AAAA-MM-JJ).`)
+        return
+      }
+
       parsedItems.push({
         name: item.name.trim(),
         quantity,
         unit: item.unit.trim(),
         category: item.category.trim().length > 0 ? item.category.trim() : null,
-        price: item.price.trim().length > 0 ? Number(item.price) : null,
+        price,
         location: item.location,
-        expiresAt: item.expiresAt.trim().length > 0 ? new Date(item.expiresAt.trim()).toISOString() : null,
+        expiresAt: parsedExpiresAt,
       })
     }
 
     const result = await importReceipt.mutateAsync({
       storeName: storeName.trim(),
-      scannedAt: scannedAt.trim().length > 0 ? new Date(scannedAt.trim()).toISOString() : new Date().toISOString(),
-      totalAmount,
+      scannedAt: parsedScannedAt ?? new Date().toISOString(),
+      totalAmount: parsedTotalAmount,
       items: parsedItems,
     })
 
     if (!result.ok) {
-      setSubmitError(result.error.message)
+      setSubmitError(
+        result.error.type === 'validation_failed'
+          ? 'Certains champs sont invalides. Vérifie les articles.'
+          : result.error.message,
+      )
       return
     }
 
@@ -123,7 +173,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
           </Text>
           <Pressable
             testID="receipt-review-retry"
-            onPress={runScan}
+            onPress={() => router.replace('/(tabs)/receipts/scan')}
             accessibilityRole="button"
             accessibilityLabel="Réessayer"
             style={pointerCursor}
@@ -154,9 +204,13 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
           onChangeText={setScannedAt}
           color={palette.ink}
         />
-        <Text fontSize={13} color={palette.inkSecondary} marginTop={4} marginBottom={12}>
-          Total : {totalAmount.toFixed(2)} €
-        </Text>
+        <FormField
+          testID="receipt-review-total-amount"
+          label="Total (€)"
+          value={totalAmount}
+          onChangeText={setTotalAmount}
+          color={palette.ink}
+        />
 
         {items.map((item, index) => (
           <ReceiptItemRow key={index} index={index} item={item} onChange={(next) => updateItem(index, next)} />

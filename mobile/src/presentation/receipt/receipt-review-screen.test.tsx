@@ -64,5 +64,8 @@ test('shows a retry hint when the scan fails', async () => {
   )
 
   await waitFor(() => expect(screen.getByText('Extraction impossible, réessaie ou vérifie ta photo.')).toBeTruthy())
-  expect(screen.getByTestId('receipt-review-retry')).toBeTruthy()
+
+  await fireEvent.press(screen.getByTestId('receipt-review-retry'))
+
+  expect(router.replace).toHaveBeenCalledWith('/(tabs)/receipts/scan')
 })
