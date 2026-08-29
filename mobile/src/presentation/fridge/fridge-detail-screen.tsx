@@ -15,20 +15,21 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
   const palette = useSoftPalette()
   const queryClient = useQueryClient()
   const product = useProductQuery(productId)
-  const deleteProduct = useDeleteProductMutation({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-    },
-  })
+  const deleteProduct = useDeleteProductMutation()
   const [confirming, setConfirming] = useState(false)
   const [deleted, setDeleted] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   async function handleDelete() {
+    setDeleteError(null)
     const result = await deleteProduct.mutateAsync(productId)
-    if (result.ok) {
-      setDeleted(true)
-      router.back()
+    if (!result.ok) {
+      setDeleteError(result.error.message)
+      return
     }
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    setDeleted(true)
+    router.back()
   }
 
   if (deleted) {
@@ -112,6 +113,12 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
               </YStack>
             </Pressable>
           )}
+
+          {deleteError ? (
+            <Text testID="fridge-detail-delete-error" fontSize={13} color={palette.expiredText}>
+              {deleteError}
+            </Text>
+          ) : null}
         </YStack>
       </YStack>
     </SafeAreaView>

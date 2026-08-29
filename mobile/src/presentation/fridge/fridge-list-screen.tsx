@@ -15,10 +15,20 @@ import type { Product } from '../../domain/fridge/product.js'
 const TABLET_BREAKPOINT = 768
 const FILTER_LABELS: Record<LocationValue, string> = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' }
 
-function isExpiringSoon(product: Product, withinDays = 3): boolean {
-  if (!product.expiresAt) return false
-  const days = (new Date(product.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
-  return days >= 0 && days <= withinDays
+function daysUntilExpiry(product: Product): number | null {
+  if (!product.expiresAt) return null
+  return (new Date(product.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+}
+
+// Exported for direct unit testing of the badge thresholds — see fridge-list-screen.test.tsx.
+export function isExpired(product: Product): boolean {
+  const days = daysUntilExpiry(product)
+  return days !== null && days < 0
+}
+
+export function isExpiringSoon(product: Product, withinDays = 3): boolean {
+  const days = daysUntilExpiry(product)
+  return days !== null && days >= 0 && days <= withinDays
 }
 
 function FilterChip({
@@ -90,7 +100,13 @@ function ProductRow({ product, palette }: { product: Product; palette: SoftPalet
             {product.quantity.amount} {product.quantity.unit} · {FILTER_LABELS[product.location]}
           </Text>
         </YStack>
-        {isExpiringSoon(product) ? (
+        {isExpired(product) ? (
+          <XStack backgroundColor={palette.expiredBg} borderRadius={999} paddingVertical="$1" paddingHorizontal="$2.5">
+            <Text fontSize={11} fontWeight="700" color={palette.expiredText}>
+              Périmé
+            </Text>
+          </XStack>
+        ) : isExpiringSoon(product) ? (
           <XStack backgroundColor={palette.soonBg} borderRadius={999} paddingVertical="$1" paddingHorizontal="$2.5">
             <Text fontSize={11} fontWeight="700" color={palette.soonText}>
               Bientôt périmé
@@ -153,7 +169,7 @@ export function FridgeListScreen() {
       <ScrollView style={{ marginTop: 16 }} showsVerticalScrollIndicator={false}>
         {products.data?.length === 0 ? (
           <Text fontSize={13} color={palette.inkSecondary} marginTop="$4">
-            Aucun produit ici pour l'instant.
+            Aucun produit ici pour l&apos;instant.
           </Text>
         ) : null}
         {products.data?.map((product) => (
