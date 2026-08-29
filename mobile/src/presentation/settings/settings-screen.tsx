@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQueryClient } from '@tanstack/react-query'
@@ -20,12 +21,18 @@ export function SettingsScreen() {
   const settings = useAiSettingsQuery()
   const setProvider = useSetActiveAiProviderMutation()
   const queryClient = useQueryClient()
+  const [providerError, setProviderError] = useState<string | null>(null)
 
   async function handleSelectProvider(provider: AiProvider) {
     if (settings.data?.activeProvider === provider) {
       return
     }
-    await setProvider.mutateAsync(provider)
+    setProviderError(null)
+    const result = await setProvider.mutateAsync(provider)
+    if (!result.ok) {
+      setProviderError(result.error.message)
+      return
+    }
     queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
   }
 
@@ -67,6 +74,16 @@ export function SettingsScreen() {
             {settings.data ? (
               <Text fontSize={12} color={palette.inkSecondary}>
                 {SOURCE_LABELS[settings.data.source]}
+              </Text>
+            ) : null}
+            {!settings.isPending && !settings.data ? (
+              <Text fontSize={13} color={palette.expiredText}>
+                Impossible de charger les réglages.
+              </Text>
+            ) : null}
+            {providerError ? (
+              <Text fontSize={13} color={palette.expiredText}>
+                {providerError}
               </Text>
             ) : null}
           </YStack>
