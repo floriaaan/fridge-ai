@@ -1,5 +1,5 @@
 import { authClient } from '../auth/auth-client.js'
-import { apiFetch } from './http-client.js'
+import { apiFetch, apiFetchMultipart } from './http-client.js'
 import { Result } from '../../domain/shared/result.js'
 import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.js'
 import type { Session } from '../../domain/identity/session.js'
@@ -10,6 +10,9 @@ import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../../domain/fridge/product.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ProductLookupResult } from '../../domain/fridge/product-lookup-result.js'
+import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
+import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.js'
+import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
 
 function toSession(
   data: { user: { id: string; email: string; name: string; image?: string | null } } | null | undefined,
@@ -134,5 +137,46 @@ export class HttpFridgeConnector implements FridgeConnector {
       `/api/products/lookup?barcode=${encodeURIComponent(barcode)}`,
     )
     return result.ok ? result.value.result : null
+  }
+
+  async scanReceipt(imageUri: string): Promise<Result<ReceiptDraft, ApiError>> {
+    const formData = new FormData()
+    // React Native's FormData accepts this { uri, name, type } shape for a file
+    // part — it isn't a real Blob/File, but that's the platform's documented
+    // multipart-upload convention, not a real DOM Blob.
+    formData.append('image', { uri: imageUri, name: 'receipt.jpg', type: 'image/jpeg' } as unknown as Blob)
+    const result = await apiFetchMultipart<{ draft: ReceiptDraft }>('/api/receipts/scan', formData)
+    return result.ok ? Result.ok(result.value.draft) : Result.err(result.error)
+  }
+
+  async importReceipt(input: ImportReceiptInput): Promise<Result<{ receipt: Receipt; products: Product[] }, ApiError>> {
+    const result = await apiFetch<{ receipt: Receipt; products: Product[] }>('/api/receipts/import', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+    return result.ok ? Result.ok(result.value) : Result.err(result.error)
+  }
+
+  async getReceipts(): Promise<Receipt[]> {
+    const result = await apiFetch<{ receipts: Receipt[] }>('/api/receipts')
+    return result.ok ? result.value.receipts : []
+  }
+
+  async getReceipt(receiptId: string): Promise<{ receipt: Receipt; products: Product[] } | null> {
+    const result = await apiFetch<{ receipt: Receipt; products: Product[] }>(`/api/receipts/${receiptId}`)
+    return result.ok ? result.value : null
+  }
+
+  async getAiSettings(): Promise<AiSettings | null> {
+    const result = await apiFetch<AiSettings>('/api/settings/ai')
+    return result.ok ? result.value : null
+  }
+
+  async setActiveAiProvider(provider: AiProvider): Promise<Result<AiSettings, ApiError>> {
+    const result = await apiFetch<AiSettings>('/api/settings/ai', {
+      method: 'PATCH',
+      body: JSON.stringify({ provider }),
+    })
+    return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 }

@@ -117,3 +117,77 @@ test('lookupProductByBarcode() returns null for an unknown barcode', async () =>
   const connector = new FakeFridgeConnector()
   expect(await connector.lookupProductByBarcode('0000000000000')).toBeNull()
 })
+
+test('scanReceipt() resolves with the fixture draft regardless of the imageUri', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.scanReceipt('file://anything.jpg')
+
+  expect(result.ok).toBe(true)
+  if (result.ok) expect(result.value.storeName).toBe('Carrefour')
+})
+
+test('importReceipt() creates a receipt and one product per item, linked by receiptId', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.importReceipt({
+    storeName: 'Monoprix',
+    scannedAt: '2026-08-29T09:00:00.000Z',
+    totalAmount: 10,
+    items: [{ name: 'Yaourts', quantity: 1, unit: 'pack', location: 'fridge' }],
+  })
+
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.value.receipt.storeName).toBe('Monoprix')
+  expect(result.value.products).toHaveLength(1)
+  expect(result.value.products[0].receiptId).toBe(result.value.receipt.id)
+
+  const receipts = await connector.getReceipts()
+  expect(receipts.some((r) => r.id === result.value.receipt.id)).toBe(true)
+})
+
+test('getReceipt() returns the receipt and its imported products', async () => {
+  const connector = new FakeFridgeConnector()
+  const imported = await connector.importReceipt({
+    storeName: 'Monoprix',
+    scannedAt: '2026-08-29T09:00:00.000Z',
+    totalAmount: 10,
+    items: [{ name: 'Yaourts', quantity: 1, unit: 'pack', location: 'fridge' }],
+  })
+  if (!imported.ok) throw new Error('setup failed')
+
+  const found = await connector.getReceipt(imported.value.receipt.id)
+
+  expect(found?.receipt.id).toBe(imported.value.receipt.id)
+  expect(found?.products).toHaveLength(1)
+})
+
+test('getReceipt() returns null for an unknown id', async () => {
+  const connector = new FakeFridgeConnector()
+  expect(await connector.getReceipt('missing')).toBeNull()
+})
+
+test('getAiSettings() returns the fixture settings', async () => {
+  const connector = new FakeFridgeConnector()
+  expect(await connector.getAiSettings()).toEqual({
+    activeProvider: 'gemini',
+    source: 'environment',
+    availableProviders: ['gemini', 'openai'],
+  })
+})
+
+test('setActiveAiProvider() switches the active provider when it is available', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.setActiveAiProvider('openai')
+
+  expect(result).toEqual({
+    ok: true,
+    value: { activeProvider: 'openai', source: 'environment', availableProviders: ['gemini', 'openai'] },
+  })
+})
+
+test('setActiveAiProvider() rejects a provider that is not in availableProviders', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.setActiveAiProvider('ollama')
+
+  expect(result.ok).toBe(false)
+})

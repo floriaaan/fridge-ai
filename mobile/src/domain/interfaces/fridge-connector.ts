@@ -7,6 +7,9 @@ import type { Recipe } from '../recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../fridge/product.js'
 import type { LocationValue } from '../fridge/location.js'
 import type { ProductLookupResult } from '../fridge/product-lookup-result.js'
+import type { ReceiptDraft } from '../receipt/receipt-draft.js'
+import type { Receipt, ImportReceiptInput } from '../receipt/receipt.js'
+import type { AiSettings, AiProvider } from '../settings/ai-settings.js'
 
 /**
  * The app's one abstraction boundary over the backend. Extended by one
@@ -30,4 +33,10 @@ export interface FridgeConnector {
   deleteProduct(productId: string): Promise<Result<void, ApiError>>
   getExpiringSoonProducts(days?: number): Promise<Product[]>
   lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null>
+  scanReceipt(imageUri: string): Promise<Result<ReceiptDraft, ApiError>>
+  importReceipt(input: ImportReceiptInput): Promise<Result<{ receipt: Receipt; products: Product[] }, ApiError>>
+  getReceipts(): Promise<Receipt[]>
+  getReceipt(receiptId: string): Promise<{ receipt: Receipt; products: Product[] } | null>
+  getAiSettings(): Promise<AiSettings | null>
+  setActiveAiProvider(provider: AiProvider): Promise<Result<AiSettings, ApiError>>
 }

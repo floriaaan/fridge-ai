@@ -4,6 +4,9 @@ import { fakeShoppingItems } from './fixtures/shopping-item.fixture.js'
 import { fakeRecipes } from './fixtures/recipe.fixture.js'
 import { fakeProducts } from './fixtures/product.fixture.js'
 import { fakeProductLookup } from './fixtures/product-lookup.fixture.js'
+import { fakeReceiptDraft } from './fixtures/receipt-draft.fixture.js'
+import { fakeReceipts } from './fixtures/receipt.fixture.js'
+import { fakeAiSettings } from './fixtures/ai-settings.fixture.js'
 import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.js'
 import type { Session } from '../../domain/identity/session.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
@@ -13,6 +16,9 @@ import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../../domain/fridge/product.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ProductLookupResult } from '../../domain/fridge/product-lookup-result.js'
+import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
+import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.js'
+import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
 
 /** In-memory only, resets on every reload — UI iteration without a running backend. */
 export class FakeFridgeConnector implements FridgeConnector {
@@ -20,6 +26,9 @@ export class FakeFridgeConnector implements FridgeConnector {
   private shoppingItems: ShoppingItem[] = fakeShoppingItems.map((item) => ({ ...item }))
   private products: Product[] = fakeProducts.map((p) => ({ ...p }))
   private nextProductId = 1
+  private receipts: Receipt[] = fakeReceipts.map((r) => ({ ...r }))
+  private nextReceiptId = 1
+  private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
 
   async getSession(): Promise<Session | null> {
     return this.session
@@ -126,5 +135,68 @@ export class FakeFridgeConnector implements FridgeConnector {
 
   async lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null> {
     return fakeProductLookup[barcode] ?? null
+  }
+
+  async scanReceipt(_imageUri: string): Promise<Result<ReceiptDraft, ApiError>> {
+    return Result.ok({ ...fakeReceiptDraft, items: fakeReceiptDraft.items.map((item) => ({ ...item })) })
+  }
+
+  async importReceipt(input: ImportReceiptInput): Promise<Result<{ receipt: Receipt; products: Product[] }, ApiError>> {
+    const now = new Date().toISOString()
+    const receipt: Receipt = {
+      id: `fake-receipt-new-${this.nextReceiptId++}`,
+      storeName: input.storeName,
+      scannedAt: input.scannedAt,
+      totalAmount: input.totalAmount,
+      imageKey: null,
+      itemsCount: input.items.length,
+      createdAt: now,
+    }
+    this.receipts.push(receipt)
+
+    const products: Product[] = input.items.map((item) => {
+      const product: Product = {
+        id: `fake-product-from-receipt-${this.nextProductId++}`,
+        name: item.name,
+        quantity: { amount: item.quantity, unit: item.unit },
+        location: item.location,
+        category: item.category ?? 'Non classé',
+        expiresAt: item.expiresAt ?? null,
+        openedAt: null,
+        categories: null,
+        openfoodfactId: null,
+        receiptId: receipt.id,
+        price: item.price ?? null,
+        imageKey: null,
+        createdAt: now,
+        updatedAt: now,
+      }
+      this.products.push(product)
+      return product
+    })
+
+    return Result.ok({ receipt, products })
+  }
+
+  async getReceipts(): Promise<Receipt[]> {
+    return this.receipts
+  }
+
+  async getReceipt(receiptId: string): Promise<{ receipt: Receipt; products: Product[] } | null> {
+    const receipt = this.receipts.find((r) => r.id === receiptId)
+    if (!receipt) return null
+    return { receipt, products: this.products.filter((p) => p.receiptId === receiptId) }
+  }
+
+  async getAiSettings(): Promise<AiSettings | null> {
+    return this.aiSettings
+  }
+
+  async setActiveAiProvider(provider: AiProvider): Promise<Result<AiSettings, ApiError>> {
+    if (!this.aiSettings.availableProviders.includes(provider)) {
+      return Result.err({ type: 'provider_not_available', message: "Ce fournisseur n'est pas configuré." })
+    }
+    this.aiSettings = { ...this.aiSettings, activeProvider: provider }
+    return Result.ok(this.aiSettings)
   }
 }
