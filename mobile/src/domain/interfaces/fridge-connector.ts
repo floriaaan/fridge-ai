@@ -2,7 +2,7 @@ import type { Result } from '../shared/result.js'
 import type { ApiError } from '../shared/api-error.js'
 import type { Session } from '../identity/session.js'
 import type { AuthMethod } from '../identity/auth-method.js'
-import type { ShoppingItem } from '../shopping-list/shopping-item.js'
+import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../shopping-list/shopping-item.js'
 import type { Recipe } from '../recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../fridge/product.js'
 import type { LocationValue } from '../fridge/location.js'
@@ -24,7 +24,9 @@ export interface FridgeConnector {
   signInSocial(provider: 'pocketid'): Promise<Result<Session, ApiError>>
   signOut(): Promise<void>
   getShoppingItems(): Promise<ShoppingItem[]>
-  toggleShoppingItem(itemId: string, checked: boolean): Promise<Result<ShoppingItem, ApiError>>
+  createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>
+  updateShoppingItem(itemId: string, patch: UpdateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>
+  deleteShoppingItem(itemId: string): Promise<Result<void, ApiError>>
   getRecipes(): Promise<Recipe[]>
   getProducts(params?: { location?: LocationValue; expiringWithinDays?: number }): Promise<Product[]>
   getProduct(productId: string): Promise<Product | null>
