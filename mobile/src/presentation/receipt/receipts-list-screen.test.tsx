@@ -21,11 +21,11 @@ function renderWithProviders(children: ReactNode) {
 }
 
 test('lists the fixture receipts and navigates to the detail screen on tap', async () => {
-  renderWithProviders(<ReceiptsListScreen />)
+  await renderWithProviders(<ReceiptsListScreen />)
 
   await waitFor(() => expect(screen.getByText('Carrefour')).toBeTruthy())
 
-  fireEvent.press(screen.getByText('Carrefour'))
+  await fireEvent.press(screen.getByText('Carrefour'))
 
   expect(router.push).toHaveBeenCalledWith({ pathname: '/(tabs)/receipts/[id]', params: { id: 'fake-receipt-1' } })
 })

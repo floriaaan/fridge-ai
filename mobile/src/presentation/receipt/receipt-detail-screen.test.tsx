@@ -18,13 +18,13 @@ function renderWithProviders(children: ReactNode) {
 }
 
 test('shows the receipt header and its imported products', async () => {
-  renderWithProviders(<ReceiptDetailScreen receiptId="fake-receipt-1" />)
+  await renderWithProviders(<ReceiptDetailScreen receiptId="fake-receipt-1" />)
 
   await waitFor(() => expect(screen.getByText('Carrefour')).toBeTruthy())
 })
 
 test('shows a not-found message for an unknown receipt', async () => {
-  renderWithProviders(<ReceiptDetailScreen receiptId="missing" />)
+  await renderWithProviders(<ReceiptDetailScreen receiptId="missing" />)
 
   await waitFor(() => expect(screen.getByText('Ticket introuvable.')).toBeTruthy())
 })
