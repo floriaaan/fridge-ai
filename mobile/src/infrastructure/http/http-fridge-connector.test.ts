@@ -97,3 +97,131 @@ test('lookupProductByBarcode() returns null when the backend finds nothing', asy
 
   globalThis.fetch = originalFetch
 })
+
+test('scanReceipt() posts a multipart image and unwraps the draft', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    status: 200,
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        draft: { storeName: 'Carrefour', scannedAt: '2026-08-28T10:00:00.000Z', totalAmount: 24.5, items: [] },
+      }),
+  })
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.scanReceipt('file://receipt.jpg')
+
+  expect(result.ok).toBe(true)
+  if (result.ok) expect(result.value.storeName).toBe('Carrefour')
+  const [url, init] = fetchMock.mock.calls[0]
+  expect(url).toContain('/api/receipts/scan')
+  expect(init.body).toBeInstanceOf(FormData)
+
+  globalThis.fetch = originalFetch
+})
+
+test('scanReceipt() returns Result.err on an extraction failure', async () => {
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    status: 422,
+    ok: false,
+    json: () => Promise.resolve({ error: { type: 'extraction_failed', message: 'Extraction impossible.' } }),
+  }) as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.scanReceipt('file://receipt.jpg')
+
+  expect(result).toEqual({ ok: false, error: { type: 'extraction_failed', message: 'Extraction impossible.' } })
+
+  globalThis.fetch = originalFetch
+})
+
+test('importReceipt() posts the JSON payload and unwraps receipt + products', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    status: 201,
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        receipt: { id: 'r1', storeName: 'Carrefour', scannedAt: '2026-08-28T10:00:00.000Z', totalAmount: 24.5, imageKey: null, itemsCount: 1, createdAt: '2026-08-28T10:05:00.000Z' },
+        products: [],
+      }),
+  })
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.importReceipt({
+    storeName: 'Carrefour',
+    scannedAt: '2026-08-28T10:00:00.000Z',
+    totalAmount: 24.5,
+    items: [{ name: 'Lait', quantity: 1, unit: 'L', location: 'fridge' }],
+  })
+
+  expect(result.ok).toBe(true)
+  if (result.ok) expect(result.value.receipt.id).toBe('r1')
+  const [url, init] = fetchMock.mock.calls[0]
+  expect(url).toContain('/api/receipts/import')
+  expect(init.method).toBe('POST')
+
+  globalThis.fetch = originalFetch
+})
+
+test('getReceipts() returns [] when the request fails', async () => {
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    status: 500,
+    ok: false,
+    json: () => Promise.resolve({ error: { type: 'server_error', message: 'oops' } }),
+  }) as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  expect(await connector.getReceipts()).toEqual([])
+
+  globalThis.fetch = originalFetch
+})
+
+test('getReceipt() returns null when the backend finds nothing', async () => {
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    status: 404,
+    ok: false,
+    json: () => Promise.resolve({ error: { type: 'receipt_not_found', message: 'not found' } }),
+  }) as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  expect(await connector.getReceipt('missing')).toBeNull()
+
+  globalThis.fetch = originalFetch
+})
+
+test('getAiSettings() unwraps the settings object directly (no envelope key)', async () => {
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    status: 200,
+    ok: true,
+    json: () => Promise.resolve({ activeProvider: 'gemini', source: 'environment', availableProviders: ['gemini'] }),
+  }) as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const settings = await connector.getAiSettings()
+
+  expect(settings).toEqual({ activeProvider: 'gemini', source: 'environment', availableProviders: ['gemini'] })
+
+  globalThis.fetch = originalFetch
+})
+
+test('setActiveAiProvider() PATCHes the provider and returns Result.ok with the updated settings', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    status: 200,
+    ok: true,
+    json: () => Promise.resolve({ activeProvider: 'openai', source: 'database', availableProviders: ['gemini', 'openai'] }),
+  })
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.setActiveAiProvider('openai')
+
+  expect(result).toEqual({ ok: true, value: { activeProvider: 'openai', source: 'database', availableProviders: ['gemini', 'openai'] } })
+  const [url, init] = fetchMock.mock.calls[0]
+  expect(url).toContain('/api/settings/ai')
+  expect(init.method).toBe('PATCH')
+  expect(JSON.parse(init.body)).toEqual({ provider: 'openai' })
+
+  globalThis.fetch = originalFetch
+})
