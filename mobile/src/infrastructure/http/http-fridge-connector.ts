@@ -5,7 +5,7 @@ import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.j
 import type { Session } from '../../domain/identity/session.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
-import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
+import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
 import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../../domain/fridge/product.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
@@ -78,12 +78,25 @@ export class HttpFridgeConnector implements FridgeConnector {
     return result.ok ? result.value.items : []
   }
 
-  async toggleShoppingItem(itemId: string, checked: boolean): Promise<Result<ShoppingItem, ApiError>> {
-    const result = await apiFetch<{ item: ShoppingItem }>(`/api/shopping-items/${itemId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ checked }),
+  async createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>> {
+    const result = await apiFetch<{ item: ShoppingItem }>('/api/shopping-items', {
+      method: 'POST',
+      body: JSON.stringify(input),
     })
     return result.ok ? Result.ok(result.value.item) : Result.err(result.error)
+  }
+
+  async updateShoppingItem(itemId: string, patch: UpdateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>> {
+    const result = await apiFetch<{ item: ShoppingItem }>(`/api/shopping-items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    return result.ok ? Result.ok(result.value.item) : Result.err(result.error)
+  }
+
+  async deleteShoppingItem(itemId: string): Promise<Result<void, ApiError>> {
+    const result = await apiFetch<void>(`/api/shopping-items/${itemId}`, { method: 'DELETE' })
+    return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async getRecipes(): Promise<Recipe[]> {
