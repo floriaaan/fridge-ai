@@ -76,21 +76,12 @@
  * particular has no MVP concept behind it at all (invented to prove the
  * gamified badge) — flag before this ships past a design pass.
  */
-import { useEffect, useId, useMemo, useState } from 'react'
-import {
-  Animated,
-  Image,
-  type ImageSourcePropType,
-  Pressable,
-  ScrollView,
-  useWindowDimensions,
-} from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import { Animated, Image, type ImageSourcePropType, Pressable, ScrollView, useWindowDimensions } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { BlurView } from 'expo-blur'
-import { Defs, RadialGradient, Rect, Stop, Svg } from 'react-native-svg'
 import {
   ChefHatIcon,
-  CircleCheckIcon,
   CircleXIcon,
   FlameIcon,
   PackageIcon,
@@ -103,7 +94,12 @@ import {
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress, useReduceMotion } from '../shared/hover.js'
 import { Sidebar } from '../shared/sidebar.js'
-import { useSoftPalette, type SoftPalette } from './soft-palette.js'
+import { BlobBackground } from '../shared/blob-background.js'
+import { StatusChip } from './status-chip.js'
+import { StatCard } from './stat-card.js'
+import { HeroWarmGlow } from './hero-warm-glow.js'
+import { NavCard } from './nav-card.js'
+import { useSoftPalette } from './soft-palette.js'
 import { dashboardFixture, expiryLabel, type ProductStatus } from './dashboard.fixture.js'
 
 // Real 3D illustrations — Microsoft Fluent Emoji 3D (MIT license), bundled
@@ -113,282 +109,6 @@ import { dashboardFixture, expiryLabel, type ProductStatus } from './dashboard.f
 const carrotIllustration = require('../../../assets/illustrations/carrot-3d.png') as ImageSourcePropType
 const potOfFoodIllustration = require('../../../assets/illustrations/pot-of-food-3d.png') as ImageSourcePropType
 const shoppingCartIllustration = require('../../../assets/illustrations/shopping-cart-3d.png') as ImageSourcePropType
-
-function StatusIcon({ status, size, color }: { status: ProductStatus; size: number; color: string }) {
-  if (status === 'expired') return <CircleXIcon size={size} color={color} />
-  if (status === 'soon') return <TriangleAlertIcon size={size} color={color} />
-  return <CircleCheckIcon size={size} color={color} />
-}
-
-function statusLabel(status: ProductStatus): string {
-  return status === 'expired' ? 'Expiré' : status === 'soon' ? 'Bientôt' : 'Frais'
-}
-
-/** A small colored pill carrying the product's status as icon + word, not color alone. */
-function StatusChip({ status, bg, color }: { status: ProductStatus; bg: string; color: string }) {
-  return (
-    <XStack alignItems="center" gap="$1" backgroundColor={bg} borderRadius={999} paddingVertical="$0.5" paddingHorizontal="$2">
-      <StatusIcon status={status} size={11} color={color} />
-      <Text fontSize={10} fontWeight="700" color={color}>
-        {statusLabel(status)}
-      </Text>
-    </XStack>
-  )
-}
-
-function StatCard({
-  bg,
-  labelColor,
-  valueColor,
-  chipColor,
-  icon,
-  label,
-  value,
-  corner,
-  palette,
-}: {
-  bg: string
-  labelColor: string
-  valueColor: string
-  chipColor: string
-  icon: React.ReactNode
-  label: string
-  value: string
-  corner: 'a' | 'b' | 'c'
-  palette: SoftPalette
-}) {
-  // Three slightly different asymmetric corner sets so the row of pastel
-  // cards reads as expressive/organic rather than three identical stamps.
-  const radii =
-    corner === 'a'
-      ? { borderTopLeftRadius: 26, borderTopRightRadius: 14, borderBottomRightRadius: 26, borderBottomLeftRadius: 14 }
-      : corner === 'b'
-        ? { borderTopLeftRadius: 14, borderTopRightRadius: 26, borderBottomRightRadius: 14, borderBottomLeftRadius: 26 }
-        : { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomRightRadius: 14, borderBottomLeftRadius: 14 }
-
-  return (
-    <YStack
-      flex={1}
-      backgroundColor={bg}
-      padding="$4"
-      gap="$2"
-      style={{ ...radii, shadowColor: palette.shadowCool, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 3 }}
-    >
-      <YStack width={36} height={36} borderRadius={12} backgroundColor={chipColor} alignItems="center" justifyContent="center">
-        {icon}
-      </YStack>
-      <YStack>
-        <Text fontSize={12} fontWeight="500" color={labelColor}>
-          {label}
-        </Text>
-        <Text fontSize={22} fontWeight="800" color={valueColor} marginTop="$1">
-          {value}
-        </Text>
-      </YStack>
-    </YStack>
-  )
-}
-
-/**
- * The illustration area above each big tile's title — a soft blurred
- * radial-gradient glow (same technique as `BlobBackground`) behind either
- * a real 3D illustration (`imageSource`, a bundled asset) or, failing
- * that, a flat icon tagged as a placeholder. Real 3D renders: Microsoft's
- * Fluent Emoji 3D set (MIT-licensed) — see assets/illustrations/NOTICE.md.
- *
- * Clipping is belt-and-suspenders (`overflow` prop + `style.overflow` +
- * matching `style` border radius): react-native-web's default SVG root
- * doesn't always inherit a parent View's `overflow:hidden` the way native
- * does, and the glow bleeding past its own rounded corner is exactly the
- * bug that shipped here once already.
- */
-function IllustrationSlot({
-  height,
-  width,
-  radius = 18,
-  ground,
-  glowStrong,
-  glowSoft,
-  icon,
-  imageSource,
-  tagColor,
-}: {
-  height: number
-  width?: number
-  radius?: number
-  ground: string
-  glowStrong: string
-  glowSoft: string
-  icon: React.ReactNode
-  imageSource?: ImageSourcePropType
-  tagColor: string
-}) {
-  const gradientId = useId()
-  return (
-    <YStack
-      height={height}
-      width={width}
-      overflow="hidden"
-      backgroundColor={ground}
-      style={{ borderRadius: radius, position: 'relative' }}
-    >
-      <Svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
-        <Defs>
-          <RadialGradient id={gradientId} cx="50%" cy="45%" r="58%">
-            <Stop offset="0" stopColor={glowStrong} stopOpacity={0.85} />
-            <Stop offset="0.55" stopColor={glowSoft} stopOpacity={0.4} />
-            <Stop offset="1" stopColor={ground} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradientId})`} />
-      </Svg>
-      <YStack flex={1} alignItems="center" justifyContent="center">
-        {imageSource ? (
-          <Image source={imageSource} style={{ width: height * 0.72, height: height * 0.72 }} resizeMode="contain" />
-        ) : (
-          icon
-        )}
-      </YStack>
-      {imageSource ? null : (
-        <XStack position="absolute" bottom={6} right={8} backgroundColor="rgba(0,0,0,0.22)" borderRadius={999} paddingVertical="$0.5" paddingHorizontal="$2">
-          <Text fontSize={9} fontWeight="700" color={tagColor}>
-            3D · bientôt
-          </Text>
-        </XStack>
-      )}
-    </YStack>
-  )
-}
-
-/**
- * A low, warm ember-colored glow in one corner of the hero card — the
- * "chaleureuse" pass: the flat near-black forest green read as corporate
- * rather than cozy, so this adds a lamplight-warm accent without moving
- * off the established dark-hero identity (`brandDeep` itself was also
- * warmed slightly — see soft-palette.ts).
- */
-function HeroWarmGlow({ warm, ground }: { warm: string; ground: string }) {
-  const gradientId = useId()
-  return (
-    <Svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-      <Defs>
-        <RadialGradient id={gradientId} cx="86%" cy="8%" r="55%">
-          <Stop offset="0" stopColor={warm} stopOpacity={0.35} />
-          <Stop offset="1" stopColor={ground} stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradientId})`} />
-    </Svg>
-  )
-}
-
-/**
- * A big, saturated, tappable category tile — "Recettes" / "Courses" —
- * given the same visual weight as the hero so the home page reads as a
- * synthesis-plus-navigation hub, not an expiry log with two footnotes.
- */
-function NavCard({
-  bg,
-  glow,
-  onPress,
-  icon,
-  imageSource,
-  title,
-  subtitle,
-  corner,
-  palette,
-}: {
-  bg: string
-  glow: string
-  onPress: () => void
-  icon: React.ReactNode
-  imageSource?: ImageSourcePropType
-  title: string
-  subtitle: string
-  corner: 'a' | 'b'
-  palette: SoftPalette
-}) {
-  const radii =
-    corner === 'a'
-      ? { borderTopLeftRadius: 26, borderTopRightRadius: 14, borderBottomRightRadius: 26, borderBottomLeftRadius: 14 }
-      : { borderTopLeftRadius: 14, borderTopRightRadius: 26, borderBottomRightRadius: 14, borderBottomLeftRadius: 26 }
-  const hover = useHoverPress()
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onHoverIn={hover.onHoverIn}
-      onHoverOut={hover.onHoverOut}
-      onPressIn={hover.onPressIn}
-      onPressOut={hover.onPressOut}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      style={[{ flex: 1 }, pointerCursor]}
-    >
-      <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
-        <YStack
-          backgroundColor={bg}
-          padding="$2.5"
-          gap="$3"
-          style={{ ...radii, shadowColor: palette.shadowCool, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.16, shadowRadius: 20, elevation: 4 }}
-        >
-          <IllustrationSlot
-            height={72}
-            ground={bg}
-            glowStrong={glow}
-            glowSoft={glow}
-            icon={icon}
-            imageSource={imageSource}
-            tagColor="rgba(255,255,255,0.75)"
-          />
-          <YStack paddingHorizontal="$1.5" paddingBottom="$1.5">
-            <Text fontSize={15} fontWeight="800" color={palette.onDark}>
-              {title}
-            </Text>
-            <Text fontSize={12} fontWeight="600" color="rgba(255,255,255,0.85)" marginTop="$0.5" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          </YStack>
-        </YStack>
-      </Animated.View>
-    </Pressable>
-  )
-}
-
-/**
- * Two soft, off-center radial-gradient blobs feathering into the ground
- * color — the "blob blurred" background the direction asked for, built
- * with `react-native-svg`'s `RadialGradient` (native + web, no platform
- * `filter: blur()`) rather than a flat top-to-bottom rectangle. Strong
- * color sits high and off-axis; both blobs dissolve to fully transparent
- * well before the bottom of the block, so the page reads mint → white,
- * never mint → dark.
- */
-export function BlobBackground({ blobStrong, blobSoft, ground }: { blobStrong: string; blobSoft: string; ground: string }) {
-  // useId(), not hardcoded strings — see AuthBlobBackground's comment in
-  // auth-ui.tsx for the collision this caused there (same component
-  // mounted twice in one DOM under a Stack navigator).
-  const id1 = useId()
-  const id2 = useId()
-  return (
-    <Svg width="100%" height={520} style={{ position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none' }}>
-      <Defs>
-        <RadialGradient id={id1} cx="28%" cy="-6%" r="62%">
-          <Stop offset="0" stopColor={blobStrong} stopOpacity={0.9} />
-          <Stop offset="0.5" stopColor={blobSoft} stopOpacity={0.55} />
-          <Stop offset="1" stopColor={ground} stopOpacity={0} />
-        </RadialGradient>
-        <RadialGradient id={id2} cx="88%" cy="14%" r="48%">
-          <Stop offset="0" stopColor={blobSoft} stopOpacity={0.8} />
-          <Stop offset="1" stopColor={ground} stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={ground} />
-      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id2})`} />
-      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id1})`} />
-    </Svg>
-  )
-}
 
 export interface HouseholdDashboardProps {
   userName: string
