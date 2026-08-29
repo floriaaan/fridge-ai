@@ -36,10 +36,13 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
     const existing = itemsQuery.data.find((i) => i.id === props.itemId)
     if (!existing) return
     appliedEditPrefillRef.current = true
+    // Guarded one-time prefill from already-fetched cache — intentional, not the cascading-renders antipattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(existing.name)
     setAmount(String(existing.quantity.amount))
     setUnit(existing.quantity.unit)
-  }, [props.mode, props.mode === 'edit' ? props.itemId : undefined, itemsQuery.data])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.mode, itemsQuery.data])
 
   const createItem = useCreateShoppingItemMutation()
   const updateItem = useUpdateShoppingItemMutation()
