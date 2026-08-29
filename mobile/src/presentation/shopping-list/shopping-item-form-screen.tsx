@@ -31,14 +31,15 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
   const appliedEditPrefillRef = useRef(false)
 
   useEffect(() => {
-    if (props.mode !== 'edit' || appliedEditPrefillRef.current) return
-    const existing = itemsQuery.data?.find((i) => i.id === props.itemId)
+    if (props.mode !== 'edit' || !itemsQuery.data) return
+    if (appliedEditPrefillRef.current) return
+    const existing = itemsQuery.data.find((i) => i.id === props.itemId)
     if (!existing) return
     appliedEditPrefillRef.current = true
     setName(existing.name)
     setAmount(String(existing.quantity.amount))
     setUnit(existing.quantity.unit)
-  }, [props, itemsQuery.data])
+  }, [props.mode, props.mode === 'edit' ? props.itemId : undefined, itemsQuery.data])
 
   const createItem = useCreateShoppingItemMutation()
   const updateItem = useUpdateShoppingItemMutation()
