@@ -60,7 +60,7 @@ import { ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
 import { SpiralBinding } from './spiral-binding.js'
 import { ShoppingRow } from './shopping-row.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
-import { useToggleShoppingItemMutation } from '../../application/shopping-list/toggle-shopping-item.mutation.js'
+import { useUpdateShoppingItemMutation } from '../../application/shopping-list/update-shopping-item.mutation.js'
 import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
 
 const TABLET_BREAKPOINT = 768
@@ -79,7 +79,7 @@ function ShoppingListContent() {
   // the list would silently show stale `checked` state against a real
   // backend. Caught by noticing the fake connector's own mutation style,
   // not by anything failing visibly in this session.
-  const toggle = useToggleShoppingItemMutation({
+  const updateItem = useUpdateShoppingItemMutation({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
   })
 
@@ -88,7 +88,7 @@ function ShoppingListContent() {
   const checked = items.filter((i) => i.checked)
 
   function handleToggle(item: ShoppingItem, next: boolean) {
-    toggle.mutate({ itemId: item.id, checked: next })
+    updateItem.mutate({ itemId: item.id, patch: { checked: next } })
   }
 
   return (
