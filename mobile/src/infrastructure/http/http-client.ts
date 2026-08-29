@@ -19,3 +19,26 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Res
     return Result.err({ type: 'network_error', message: 'Impossible de contacter le serveur.' })
   }
 }
+
+/**
+ * Like `apiFetch`, but for a `FormData` body (the one client→server call
+ * that isn't JSON: the receipt-scan image upload). No `Content-Type`
+ * header is set — `fetch` derives the multipart boundary from the
+ * `FormData` instance itself, and setting it manually would drop that
+ * boundary.
+ */
+export async function apiFetchMultipart<T>(path: string, formData: FormData): Promise<Result<T, ApiError>> {
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    })
+    if (response.status === 204) return Result.ok(undefined as T)
+    const body = await response.json()
+    if (!response.ok) return Result.err(body.error as ApiError)
+    return Result.ok(body as T)
+  } catch {
+    return Result.err({ type: 'network_error', message: 'Impossible de contacter le serveur.' })
+  }
+}
