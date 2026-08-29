@@ -8,3 +8,16 @@ export interface ShoppingItem {
   createdAt: string
   updatedAt: string
 }
+
+/** Mirrors `createShoppingItemValidator` field-for-field. `source` is never client-supplied — the backend fixes it to `'manual'`. */
+export interface CreateShoppingItemInput {
+  name: string
+  quantity: { amount: number; unit: string }
+}
+
+/** Mirrors `updateShoppingItemValidator` — any subset of fields, same shape `updateProduct`'s patch already uses. */
+export interface UpdateShoppingItemInput {
+  name?: string
+  quantity?: { amount: number; unit: string }
+  checked?: boolean
+}
