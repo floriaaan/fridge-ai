@@ -62,6 +62,7 @@ import { SpiralBinding } from './spiral-binding.js'
 import { ShoppingRow } from './shopping-row.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
 import { useUpdateShoppingItemMutation } from '../../application/shopping-list/update-shopping-item.mutation.js'
+import { useDeleteShoppingItemMutation } from '../../application/shopping-list/delete-shopping-item.mutation.js'
 import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
 
 const TABLET_BREAKPOINT = 768
@@ -83,6 +84,10 @@ function ShoppingListContent() {
   const updateItem = useUpdateShoppingItemMutation({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
   })
+  const [hint, showHint] = useHint()
+  const deleteItem = useDeleteShoppingItemMutation({
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
+  })
 
   const items = itemsQuery.data ?? []
   const unchecked = items.filter((i) => !i.checked)
@@ -90,6 +95,15 @@ function ShoppingListContent() {
 
   function handleToggle(item: ShoppingItem, next: boolean) {
     updateItem.mutate({ itemId: item.id, patch: { checked: next } })
+  }
+
+  function handleEdit(item: ShoppingItem) {
+    router.push({ pathname: '/(tabs)/shopping-list/[id]/edit', params: { id: item.id } })
+  }
+
+  async function handleDelete(item: ShoppingItem) {
+    const result = await deleteItem.mutateAsync(item.id)
+    if (!result.ok) showHint(result.error.message)
   }
 
   return (
@@ -182,6 +196,8 @@ function ShoppingListContent() {
                     item={item}
                     isLast={index === unchecked.length - 1}
                     onToggle={(next) => handleToggle(item, next)}
+                    onEdit={() => handleEdit(item)}
+                    onDelete={() => handleDelete(item)}
                   />
                 ))}
               </YStack>
@@ -218,6 +234,8 @@ function ShoppingListContent() {
                     item={item}
                     isLast={index === checked.length - 1}
                     onToggle={(next) => handleToggle(item, next)}
+                    onEdit={() => handleEdit(item)}
+                    onDelete={() => handleDelete(item)}
                   />
                 ))}
               </YStack>
@@ -225,6 +243,7 @@ function ShoppingListContent() {
           ) : null}
         </ScrollView>
       </SafeAreaView>
+      <HintBubble hint={hint} palette={palette} />
     </YStack>
   )
 }
