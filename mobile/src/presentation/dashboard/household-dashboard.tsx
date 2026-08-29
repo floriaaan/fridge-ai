@@ -397,6 +397,7 @@ export interface HouseholdDashboardProps {
   onOpenRecettes: () => void
   onOpenCourses: () => void
   onOpenFridge: () => void
+  onScanProduct: () => void
 }
 
 const TABLET_BREAKPOINT = 768
@@ -408,6 +409,7 @@ export function HouseholdDashboard({
   onOpenRecettes,
   onOpenCourses,
   onOpenFridge,
+  onScanProduct,
 }: HouseholdDashboardProps) {
   const palette = useSoftPalette()
   const { width } = useWindowDimensions()
@@ -439,7 +441,6 @@ export function HouseholdDashboard({
     }).start()
   }, [entrance, reduceMotion])
 
-  const [hint, setHint] = useState<string | null>(null)
   const [fabScale] = useState(() => new Animated.Value(1))
   function fabSpring(toValue: number, friction: number, tension: number) {
     if (reduceMotion) {
@@ -752,7 +753,7 @@ export function HouseholdDashboard({
             </BlurView>
 
             <Pressable
-              onPress={() => setHint('Scanner — bientôt disponible')}
+              onPress={onScanProduct}
               onHoverIn={hoverFabIn}
               onHoverOut={hoverFabOut}
               onPressIn={pressFabIn}
@@ -783,13 +784,6 @@ export function HouseholdDashboard({
             </Pressable>
           </XStack>
           )}
-          {hint ? (
-            <YStack marginTop="$2" backgroundColor={palette.brandDeep} borderRadius={999} paddingVertical="$1.5" paddingHorizontal="$4">
-              <Text fontSize={12} fontWeight="600" color={palette.brandDeepText}>
-                {hint}
-              </Text>
-            </YStack>
-          ) : null}
         </YStack>
       </SafeAreaView>
     </YStack>
@@ -818,7 +812,7 @@ export function HouseholdDashboard({
           onOpenFrigo={() => {}}
           onOpenRecettes={onOpenRecettes}
           onOpenCourses={onOpenCourses}
-          onScan={() => setHint('Scanner — bientôt disponible')}
+          onScan={onScanProduct}
         />
         <YStack flex={1} minHeight={0} padding="$4">
           <YStack
