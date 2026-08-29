@@ -28,6 +28,8 @@ export default function HomeScreen() {
       onOpenCourses={() => router.push('/(tabs)/shopping-list')}
       onOpenFridge={() => router.push('/(tabs)/fridge')}
       onScanProduct={() => router.push({ pathname: '/(tabs)/fridge/scan', params: { mode: 'create' } })}
+      onScanReceipt={() => router.push('/(tabs)/receipts/scan')}
+      onOpenSettings={() => router.push('/(tabs)/settings')}
     />
   )
 }

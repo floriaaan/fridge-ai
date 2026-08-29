@@ -95,6 +95,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress, useReduceMotion } from '../shared/hover.js'
 import { Sidebar } from '../shared/sidebar.js'
 import { BlobBackground } from '../shared/blob-background.js'
+import { ActionSheet } from '../shared/action-sheet.js'
 import { StatusChip } from './status-chip.js'
 import { StatCard } from './stat-card.js'
 import { HeroWarmGlow } from './hero-warm-glow.js'
@@ -118,6 +119,8 @@ export interface HouseholdDashboardProps {
   onOpenCourses: () => void
   onOpenFridge: () => void
   onScanProduct: () => void
+  onScanReceipt: () => void
+  onOpenSettings: () => void
 }
 
 const TABLET_BREAKPOINT = 768
@@ -130,6 +133,8 @@ export function HouseholdDashboard({
   onOpenCourses,
   onOpenFridge,
   onScanProduct,
+  onScanReceipt,
+  onOpenSettings,
 }: HouseholdDashboardProps) {
   const palette = useSoftPalette()
   const { width } = useWindowDimensions()
@@ -184,6 +189,23 @@ export function HouseholdDashboard({
   const signOutHover = useHoverPress()
   const seeAllHover = useHoverPress()
 
+  const [scanSheetOpen, setScanSheetOpen] = useState(false)
+
+  function openScanSheet() {
+    setScanSheetOpen(true)
+  }
+  function closeScanSheet() {
+    setScanSheetOpen(false)
+  }
+  function handleScanProductChoice() {
+    closeScanSheet()
+    onScanProduct()
+  }
+  function handleScanReceiptChoice() {
+    closeScanSheet()
+    onScanReceipt()
+  }
+
   function statusBg(status: ProductStatus) {
     return status === 'expired' ? palette.expiredBg : status === 'soon' ? palette.soonBg : palette.freshBg
   }
@@ -208,6 +230,7 @@ export function HouseholdDashboard({
     // background clean over the sidebar. The sidebar was rendering
     // correctly underneath the whole time (confirmed via computed
     // styles) — just visually buried under this box's paint.
+    <>
     <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
       <BlobBackground blobStrong={palette.blobStrong} blobSoft={palette.blobSoft} ground={palette.gradientBottom} />
       <SafeAreaView style={{ flex: 1, minHeight: 0 }} edges={isWide ? [] : ['top', 'bottom']}>
@@ -273,6 +296,18 @@ export function HouseholdDashboard({
                     Se déconnecter
                   </Text>
                 </Animated.View>
+              </Pressable>
+              <Pressable
+                onPress={onOpenSettings}
+                testID="open-settings"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Réglages"
+                style={pointerCursor}
+              >
+                <Text fontSize={11} fontWeight="500" color={palette.inkSecondary}>
+                  Réglages
+                </Text>
               </Pressable>
             </YStack>
           </XStack>
@@ -473,7 +508,7 @@ export function HouseholdDashboard({
             </BlurView>
 
             <Pressable
-              onPress={onScanProduct}
+              onPress={openScanSheet}
               onHoverIn={hoverFabIn}
               onHoverOut={hoverFabOut}
               onPressIn={pressFabIn}
@@ -507,6 +542,15 @@ export function HouseholdDashboard({
         </YStack>
       </SafeAreaView>
     </YStack>
+    <ActionSheet
+      visible={scanSheetOpen}
+      onClose={closeScanSheet}
+      options={[
+        { testID: 'scan-sheet-product', label: 'Scanner un produit', onPress: handleScanProductChoice },
+        { testID: 'scan-sheet-receipt', label: 'Scanner un ticket de caisse', onPress: handleScanReceiptChoice },
+      ]}
+    />
+    </>
   )
 
   if (!isWide) return content
@@ -532,7 +576,7 @@ export function HouseholdDashboard({
           onOpenFrigo={() => {}}
           onOpenRecettes={onOpenRecettes}
           onOpenCourses={onOpenCourses}
-          onScan={onScanProduct}
+          onScan={openScanSheet}
         />
         <YStack flex={1} minHeight={0} padding="$4">
           <YStack
