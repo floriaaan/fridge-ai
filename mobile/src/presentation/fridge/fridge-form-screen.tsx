@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pressable, TextInput } from 'react-native'
+import { Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
+import { FormField } from './form-field.js'
 import { useProductQuery } from '../../application/fridge/product.query.js'
 import { useProductLookupQuery } from '../../application/fridge/product-lookup.query.js'
 import { useCreateProductMutation } from '../../application/fridge/create-product.mutation.js'
@@ -17,34 +18,6 @@ import type { LocationValue } from '../../domain/fridge/location.js'
 type FridgeFormMode = { mode: 'create' } | { mode: 'edit'; productId: string }
 
 const LOCATION_LABELS: Record<LocationValue, string> = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' }
-
-function Field({
-  testID,
-  label,
-  value,
-  onChangeText,
-  color,
-}: {
-  testID: string
-  label: string
-  value: string
-  onChangeText: (text: string) => void
-  color: string
-}) {
-  return (
-    <YStack gap="$1">
-      <Text fontSize={12} fontWeight="700" color={color}>
-        {label}
-      </Text>
-      <TextInput
-        testID={testID}
-        value={value}
-        onChangeText={onChangeText}
-        style={{ borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', borderRadius: 10, padding: 10, fontSize: 15 }}
-      />
-    </YStack>
-  )
-}
 
 export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => void; prefillBarcode?: string }) {
   const palette = useSoftPalette()
@@ -183,11 +156,11 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
           {props.mode === 'create' ? 'Ajouter un produit' : 'Modifier le produit'}
         </Text>
 
-        <Field testID="fridge-form-name" label="Nom" value={name} onChangeText={setName} color={palette.ink} />
-        <Field testID="fridge-form-amount" label="Quantité" value={amount} onChangeText={setAmount} color={palette.ink} />
-        <Field testID="fridge-form-unit" label="Unité" value={unit} onChangeText={setUnit} color={palette.ink} />
-        <Field testID="fridge-form-category" label="Catégorie" value={category} onChangeText={setCategory} color={palette.ink} />
-        <Field
+        <FormField testID="fridge-form-name" label="Nom" value={name} onChangeText={setName} color={palette.ink} />
+        <FormField testID="fridge-form-amount" label="Quantité" value={amount} onChangeText={setAmount} color={palette.ink} />
+        <FormField testID="fridge-form-unit" label="Unité" value={unit} onChangeText={setUnit} color={palette.ink} />
+        <FormField testID="fridge-form-category" label="Catégorie" value={category} onChangeText={setCategory} color={palette.ink} />
+        <FormField
           testID="fridge-form-expires-at"
           label="Date de péremption (AAAA-MM-JJ)"
           value={expiresAt}
