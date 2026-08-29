@@ -85,6 +85,67 @@ test('deleteProduct() maps a 204 response to Result.ok(undefined)', async () => 
   globalThis.fetch = originalFetch
 })
 
+test('createShoppingItem() posts the JSON payload and unwraps the created item', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    status: 201,
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        item: { id: 'new-1', name: 'Farine', quantity: { amount: 1, unit: 'kg' }, checked: false, source: 'manual', createdAt: '2026-08-29T00:00:00.000Z', updatedAt: '2026-08-29T00:00:00.000Z' },
+      }),
+  })
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.createShoppingItem({ name: 'Farine', quantity: { amount: 1, unit: 'kg' } })
+
+  expect(result.ok).toBe(true)
+  if (result.ok) expect(result.value.id).toBe('new-1')
+  const [url, init] = fetchMock.mock.calls[0]
+  expect(url).toContain('/api/shopping-items')
+  expect(init.method).toBe('POST')
+  expect(JSON.parse(init.body)).toEqual({ name: 'Farine', quantity: { amount: 1, unit: 'kg' } })
+
+  globalThis.fetch = originalFetch
+})
+
+test('updateShoppingItem() PATCHes the patch and returns Result.ok with the updated item', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    status: 200,
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        item: { id: 'fake-item-1', name: 'Lait demi-écrémé', quantity: { amount: 2, unit: 'L' }, checked: true, source: 'manual', createdAt: '2026-08-26T08:00:00.000Z', updatedAt: '2026-08-29T00:00:00.000Z' },
+      }),
+  })
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.updateShoppingItem('fake-item-1', { checked: true })
+
+  expect(result).toEqual({
+    ok: true,
+    value: { id: 'fake-item-1', name: 'Lait demi-écrémé', quantity: { amount: 2, unit: 'L' }, checked: true, source: 'manual', createdAt: '2026-08-26T08:00:00.000Z', updatedAt: '2026-08-29T00:00:00.000Z' },
+  })
+  const [url, init] = fetchMock.mock.calls[0]
+  expect(url).toContain('/api/shopping-items/fake-item-1')
+  expect(init.method).toBe('PATCH')
+  expect(JSON.parse(init.body)).toEqual({ checked: true })
+
+  globalThis.fetch = originalFetch
+})
+
+test('deleteShoppingItem() maps a 204 response to Result.ok(undefined)', async () => {
+  globalThis.fetch = jest.fn().mockResolvedValue({ status: 204, ok: true }) as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.deleteShoppingItem('fake-item-1')
+
+  expect(result).toEqual({ ok: true, value: undefined })
+
+  globalThis.fetch = originalFetch
+})
+
 test('lookupProductByBarcode() returns null when the backend finds nothing', async () => {
   globalThis.fetch = jest.fn().mockResolvedValue({
     status: 200,
