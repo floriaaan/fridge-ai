@@ -46,221 +46,24 @@
  * disponible" hint as the rest of the app rather than a dead control.
  */
 import { useState } from 'react'
-import { Animated, Pressable, ScrollView, useWindowDimensions } from 'react-native'
+import { ScrollView, useWindowDimensions } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Line, Path, Svg } from 'react-native-svg'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
-import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { Sidebar } from '../shared/sidebar.js'
 import { HintBubble, useHint } from '../shared/hint-bubble.js'
 import { BlobBackground } from '../shared/blob-background.js'
-import { useSoftPalette, type SoftPalette } from '../dashboard/soft-palette.js'
+import { BackButton } from '../shared/back-button.js'
+import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
+import { SpiralBinding } from './spiral-binding.js'
+import { ShoppingRow } from './shopping-row.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
 import { useToggleShoppingItemMutation } from '../../application/shopping-list/toggle-shopping-item.mutation.js'
 import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
 
 const TABLET_BREAKPOINT = 768
-
-function BackButton({ onPress, ink, cream }: { onPress: () => void; ink: string; cream: string }) {
-  const hover = useHoverPress()
-  return (
-    <Pressable
-      onPress={onPress}
-      onHoverIn={hover.onHoverIn}
-      onHoverOut={hover.onHoverOut}
-      onPressIn={hover.onPressIn}
-      onPressOut={hover.onPressOut}
-      accessibilityRole="button"
-      accessibilityLabel="Retour"
-      style={pointerCursor}
-    >
-      <Animated.View
-        style={{
-          transform: [{ scale: hover.scale }],
-          width: 44,
-          height: 44,
-          borderRadius: 999,
-          backgroundColor: cream,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Text fontSize={18} fontWeight="800" color={ink}>
-          ←
-        </Text>
-      </Animated.View>
-    </Pressable>
-  )
-}
-
-/**
- * A tear-line between rows — an SVG dash, not `borderBottomWidth` +
- * `borderStyle:'dashed'`. That combination rendered a full dashed
- * rectangle around each row on web instead of a single bottom edge (RN
- * Web applies `borderStyle` to every side regardless of which side has a
- * width) — an actual bug the border-only version shipped with. SVG's
- * `strokeDasharray` draws exactly the one line asked for, everywhere.
- */
-function RowDivider({ color }: { color: string }) {
-  return (
-    <Svg width="100%" height={1}>
-      <Line x1="0" y1="0.5" x2="100%" y2="0.5" stroke={color} strokeWidth={1} strokeDasharray="4,4" />
-    </Svg>
-  )
-}
-
-/** A flat strip of punched holes + a thin ring each — the pad's spiral edge. Flat top corners, not rounded: a coil runs along a straight edge. */
-function SpiralBinding({ palette }: { palette: SoftPalette }) {
-  const holes = Array.from({ length: 10 })
-  return (
-    <XStack
-      justifyContent="space-around"
-      alignItems="center"
-      paddingVertical="$1.5"
-      backgroundColor={palette.paperBindingStrip}
-      style={{ borderTopLeftRadius: 4, borderTopRightRadius: 4 }}
-    >
-      {holes.map((_, i) => (
-        <YStack
-          key={i}
-          width={9}
-          height={9}
-          borderRadius={999}
-          backgroundColor={palette.paperHole}
-          style={{ borderWidth: 1.5, borderColor: palette.paperRing }}
-        />
-      ))}
-    </XStack>
-  )
-}
-
-/**
- * One confident, slightly organic curve — not a jittery scribble. Two
- * cubic segments instead of straight lines is what reads as "drawn," not
- * "off-model icon."
- */
-function HandDrawnCheck({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M4.5 12.8 C6 12 7.6 14.8 9.3 17 C12.5 13.2 16.2 8.3 19.6 5.2"
-        stroke={color}
-        strokeWidth={2.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
-}
-
-/** A wavy pen-stroke strikethrough — drawn, not `textDecorationLine`. Sized to the text's own box, not the row's. */
-function CheckedName({ children, color }: { children: string; color: string }) {
-  return (
-    <YStack style={{ position: 'relative', alignSelf: 'flex-start' }}>
-      <Text fontSize={14} fontWeight="700" color={color}>
-        {children}
-      </Text>
-      <Svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 100 20"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-      >
-        <Path
-          d="M2 11 C 15 7, 22 14, 35 10 C 50 6, 60 14, 75 9 C 85 6, 92 11, 98 9"
-          stroke={color}
-          strokeWidth={1.8}
-          fill="none"
-          strokeLinecap="round"
-        />
-      </Svg>
-    </YStack>
-  )
-}
-
-/**
- * Deliberately quiet — no scale/spring. A list of many rows all bouncing
- * on hover is what this round's feedback was about; a row just needs a
- * "you're over something" and "you pressed it" signal, not a performance.
- * Hover is an instant background tint (a plain boolean, not animated —
- * that's how hover reads on a real web list); press is a brief, fast
- * opacity dip (120ms timing, no spring) so the tap still registers as
- * felt without adding motion to a list that's already busy with content.
- */
-function useQuietRowFeedback() {
-  const [hovered, setHovered] = useState(false)
-  const [opacity] = useState(() => new Animated.Value(1))
-  function pressIn() {
-    Animated.timing(opacity, { toValue: 0.6, duration: 100, useNativeDriver: true }).start()
-  }
-  function pressOut() {
-    Animated.timing(opacity, { toValue: 1, duration: 120, useNativeDriver: true }).start()
-  }
-  return { hovered, onHoverIn: () => setHovered(true), onHoverOut: () => setHovered(false), opacity, pressIn, pressOut }
-}
-
-function ShoppingRow({ item, onToggle, isLast }: { item: ShoppingItem; onToggle: (checked: boolean) => void; isLast: boolean }) {
-  const palette = useSoftPalette()
-  const row = useQuietRowFeedback()
-  return (
-    <Pressable
-      onPress={() => onToggle(!item.checked)}
-      onHoverIn={row.onHoverIn}
-      onHoverOut={row.onHoverOut}
-      onPressIn={row.pressIn}
-      onPressOut={row.pressOut}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: item.checked }}
-      accessibilityLabel={`${item.name}, ${item.quantity.amount} ${item.quantity.unit}`}
-      style={pointerCursor}
-    >
-      <Animated.View
-        style={{
-          opacity: row.opacity,
-          backgroundColor: row.hovered ? palette.layoutSurface : 'transparent',
-          borderRadius: 10,
-        }}
-      >
-        <XStack
-          alignItems="center"
-          gap="$3"
-          paddingVertical="$2.5"
-          paddingHorizontal="$2"
-          minHeight={48}
-          style={!isLast ? { borderBottomWidth: 1, borderStyle: 'dashed', borderColor: palette.paperRule } : undefined}
-        >
-          <YStack
-            width={24}
-            height={24}
-            borderRadius={999}
-            alignItems="center"
-            justifyContent="center"
-            backgroundColor={item.checked ? palette.freshBg : 'transparent'}
-            style={{ borderWidth: item.checked ? 0 : 2.5, borderColor: palette.inkSecondary }}
-          >
-            {item.checked ? <HandDrawnCheck size={15} color={palette.freshText} /> : null}
-          </YStack>
-          <YStack flex={1}>
-            {item.checked ? (
-              <CheckedName color={palette.penMark}>{item.name}</CheckedName>
-            ) : (
-              <Text fontSize={14} fontWeight="700" color={palette.ink}>
-                {item.name}
-              </Text>
-            )}
-            <Text fontSize={12} fontWeight="500" color={palette.inkSecondary} marginTop="$0.5">
-              {item.quantity.amount} {item.quantity.unit}
-            </Text>
-          </YStack>
-        </XStack>
-      </Animated.View>
-    </Pressable>
-  )
-}
 
 function ShoppingListContent() {
   const palette = useSoftPalette()
