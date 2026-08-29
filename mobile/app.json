@@ -40,6 +40,12 @@
         {
           "cameraPermission": "Fridge AI a besoin de la caméra pour scanner le code-barres d'un produit."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fridge AI a besoin d'accéder à tes photos pour importer un ticket de caisse."
+        }
       ]
     ],
     "experiments": {
