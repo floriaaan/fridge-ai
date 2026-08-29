@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef } from 'react'
 import { Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { CameraView, useCameraPermissions } from 'expo-camera'
@@ -7,16 +7,35 @@ import { Text, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 
-type BarcodeScannerMode = { mode: 'create' } | { mode: 'edit'; productId: string }
+type BarcodeScannerMode = ({ mode: 'create' } | { mode: 'edit'; productId: string }) & {
+  // True when the scanner was pushed from a form that's already open (the form's own
+  // "Scanner un code-barres" button) — as opposed to a fresh scan from the dashboard/sidebar
+  // where no form exists yet. Determines how a scanned barcode is delivered back: dismiss
+  // onto the existing form instance vs. open a brand-new one.
+  fromForm?: boolean
+}
 
 export function BarcodeScannerScreen(props: BarcodeScannerMode) {
   const palette = useSoftPalette()
   const [permission, requestPermission] = useCameraPermissions()
-  const [handled, setHandled] = useState(false)
+  // A ref, not state: `onBarcodeScanned` can fire multiple times before a state update
+  // commits a re-render, so several calls could all observe `handled === false` and all
+  // navigate. A ref is read/written synchronously, so only the first call ever proceeds.
+  const handledRef = useRef(false)
 
   function handleBarcodeScanned({ data }: { data: string }) {
-    if (handled) return
-    setHandled(true)
+    if (handledRef.current) return
+    handledRef.current = true
+
+    if (props.fromForm) {
+      // A form is already open underneath the scanner in the stack — dismiss back onto it
+      // and update its `prefillBarcode` param, rather than opening a new form instance
+      // (which would discard whatever the user had already typed there).
+      router.back()
+      router.setParams({ prefillBarcode: data })
+      return
+    }
+
     if (props.mode === 'edit') {
       router.replace({ pathname: '/(tabs)/fridge/[id]/edit', params: { id: props.productId, prefillBarcode: data } })
       return

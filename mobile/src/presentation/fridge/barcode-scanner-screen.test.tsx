@@ -8,9 +8,13 @@ jest.mock('expo-camera', () => ({
   useCameraPermissions: () => [{ granted: true }, jest.fn()],
 }))
 
-jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }))
+jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn(), setParams: jest.fn() } }))
 
-test('scanning a barcode in create mode navigates to the new-product form with prefillBarcode', async () => {
+beforeEach(() => {
+  jest.clearAllMocks()
+})
+
+test('scanning a barcode in create mode with no form open navigates to the new-product form with prefillBarcode', async () => {
   await render(
     <ThemeProvider>
       <BarcodeScannerScreen mode="create" />
@@ -33,7 +37,7 @@ test('scanning a barcode in create mode navigates to the new-product form with p
   })
 })
 
-test('scanning a barcode in edit mode navigates to that product\'s edit form with prefillBarcode', async () => {
+test("scanning a barcode in edit mode with no form open navigates to that product's edit form with prefillBarcode", async () => {
   await render(
     <ThemeProvider>
       <BarcodeScannerScreen mode="edit" productId="fake-product-1" />
@@ -49,4 +53,55 @@ test('scanning a barcode in edit mode navigates to that product\'s edit form wit
     pathname: '/(tabs)/fridge/[id]/edit',
     params: { id: 'fake-product-1', prefillBarcode: '3017620422003' },
   })
+})
+
+test('scanning a barcode launched from an already-open form dismisses back onto it instead of opening a new one', async () => {
+  await render(
+    <ThemeProvider>
+      <BarcodeScannerScreen mode="create" fromForm />
+    </ThemeProvider>,
+  )
+
+  const camera = screen.getByTestId('fridge-barcode-camera')
+  await act(async () => {
+    camera.props.onBarcodeScanned({ data: '3017620422003' })
+  })
+
+  expect(router.back).toHaveBeenCalledTimes(1)
+  expect(router.setParams).toHaveBeenCalledWith({ prefillBarcode: '3017620422003' })
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test('scanning a barcode launched from an already-open edit form also dismisses back onto it', async () => {
+  await render(
+    <ThemeProvider>
+      <BarcodeScannerScreen mode="edit" productId="fake-product-1" fromForm />
+    </ThemeProvider>,
+  )
+
+  const camera = screen.getByTestId('fridge-barcode-camera')
+  await act(async () => {
+    camera.props.onBarcodeScanned({ data: '3017620422003' })
+  })
+
+  expect(router.back).toHaveBeenCalledTimes(1)
+  expect(router.setParams).toHaveBeenCalledWith({ prefillBarcode: '3017620422003' })
+  expect(router.replace).not.toHaveBeenCalled()
+})
+
+test('multiple rapid onBarcodeScanned callbacks only navigate once', async () => {
+  await render(
+    <ThemeProvider>
+      <BarcodeScannerScreen mode="create" />
+    </ThemeProvider>,
+  )
+
+  const camera = screen.getByTestId('fridge-barcode-camera')
+  await act(async () => {
+    camera.props.onBarcodeScanned({ data: '3017620422003' })
+    camera.props.onBarcodeScanned({ data: '3017620422003' })
+    camera.props.onBarcodeScanned({ data: '0000000000000' })
+  })
+
+  expect(router.replace).toHaveBeenCalledTimes(1)
 })

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Pressable, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -50,7 +50,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
   const palette = useSoftPalette()
   const queryClient = useQueryClient()
 
-  const existing = props.mode === 'edit' ? useProductQuery(props.productId) : null
+  const existing = useProductQuery(props.mode === 'edit' ? props.productId : '')
   const lookup = useProductLookupQuery(props.prefillBarcode ?? '')
 
   const [name, setName] = useState('')
@@ -60,42 +60,70 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
   const [location, setLocation] = useState<LocationValue>('fridge')
   const [openfoodfactId, setOpenfoodfactId] = useState<string | null>(null)
   const [categories, setCategories] = useState<string[] | null>(null)
+  const [expiresAt, setExpiresAt] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [lookupHint, setLookupHint] = useState<string | null>(null)
 
+  // Two async sources (the edit-mode product load and a barcode-lookup result)
+  // both want to prefill the same fields, and either can resolve first —
+  // reachable for real now that the scanner can be launched from an already-open
+  // edit form. These two refs make the ordering deterministic instead of "whoever
+  // renders last wins": the edit-load prefill applies at most once, and never
+  // after a lookup has already applied (a deliberate scan always takes
+  // precedence over the product's original data).
+  const appliedEditPrefillRef = useRef(false)
+  const appliedLookupRef = useRef(false)
+  // Tracks which barcode's lookup result has already been applied, so a re-render
+  // triggered by something unrelated (e.g. the edit-load query settling) can't
+  // reapply the same lookup data a second time.
+  const appliedLookupKeyRef = useRef<string | null>(null)
+
   useEffect(() => {
-    if (props.mode === 'edit' && existing?.data) {
-      setName(existing.data.name)
-      setAmount(String(existing.data.quantity.amount))
-      setUnit(existing.data.quantity.unit)
-      setCategory(existing.data.category)
-      setLocation(existing.data.location)
-      setOpenfoodfactId(existing.data.openfoodfactId)
-      setCategories(existing.data.categories)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existing?.data])
+    if (props.mode !== 'edit' || !existing?.data) return
+    if (appliedEditPrefillRef.current || appliedLookupRef.current) return
+    appliedEditPrefillRef.current = true
+    const data = existing.data
+    setName(data.name)
+    setAmount(String(data.quantity.amount))
+    setUnit(data.quantity.unit)
+    setCategory(data.category)
+    setLocation(data.location)
+    setOpenfoodfactId(data.openfoodfactId)
+    setCategories(data.categories)
+    setExpiresAt(data.expiresAt ? data.expiresAt.slice(0, 10) : '')
+  }, [props.mode, existing?.data])
 
   useEffect(() => {
     if (props.prefillBarcode) lookup.refetch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.prefillBarcode])
 
+  // Split into two flat, mutually-exclusive effects (rather than one effect with an
+  // if/else) so each one's setState calls sit directly behind its own ref-guarded
+  // early return — see the appliedLookupKeyRef comment above.
   useEffect(() => {
-    if (!lookup.isFetched) return
-    if (lookup.data) {
-      setName(lookup.data.name)
-      setCategory(lookup.data.category ?? '')
-      setCategories(lookup.data.categories)
-      setOpenfoodfactId(lookup.data.openfoodfactId)
-      setLookupHint(null)
-    } else {
-      // A real, expected outcome (barcode not in OpenFoodFacts) — not an ApiError, so it
-      // gets an informational hint rather than the `error` state used for form validation.
-      setLookupHint('Produit non trouvé, remplis les champs à la main.')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lookup.isFetched, lookup.data])
+    if (!lookup.isFetched || !lookup.data) return
+    const key = props.prefillBarcode ?? ''
+    if (appliedLookupKeyRef.current === key) return
+    appliedLookupKeyRef.current = key
+    appliedLookupRef.current = true
+    setName(lookup.data.name)
+    setCategory(lookup.data.category ?? '')
+    setCategories(lookup.data.categories)
+    setOpenfoodfactId(lookup.data.openfoodfactId)
+    setLookupHint(null)
+  }, [lookup.isFetched, lookup.data, props.prefillBarcode])
+
+  useEffect(() => {
+    if (!lookup.isFetched || lookup.data) return
+    const key = props.prefillBarcode ?? ''
+    if (appliedLookupKeyRef.current === key) return
+    appliedLookupKeyRef.current = key
+    appliedLookupRef.current = true
+    // A real, expected outcome (barcode not in OpenFoodFacts) — not an ApiError, so it
+    // gets an informational hint rather than the `error` state used for form validation.
+    setLookupHint('Produit non trouvé, remplis les champs à la main.')
+  }, [lookup.isFetched, lookup.data, props.prefillBarcode])
 
   const createProduct = useCreateProductMutation()
   const updateProduct = useUpdateProductMutation()
@@ -117,7 +145,16 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
       return
     }
 
-    const payload = { name: name.trim(), quantity: quantity.value, location, category: category.trim(), openfoodfactId, categories }
+    const trimmedExpiresAt = expiresAt.trim()
+    const payload = {
+      name: name.trim(),
+      quantity: quantity.value,
+      location,
+      category: category.trim(),
+      openfoodfactId,
+      categories,
+      expiresAt: trimmedExpiresAt.length > 0 ? new Date(trimmedExpiresAt).toISOString() : null,
+    }
 
     const result =
       props.mode === 'create'
@@ -150,6 +187,13 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
         <Field testID="fridge-form-amount" label="Quantité" value={amount} onChangeText={setAmount} color={palette.ink} />
         <Field testID="fridge-form-unit" label="Unité" value={unit} onChangeText={setUnit} color={palette.ink} />
         <Field testID="fridge-form-category" label="Catégorie" value={category} onChangeText={setCategory} color={palette.ink} />
+        <Field
+          testID="fridge-form-expires-at"
+          label="Date de péremption (AAAA-MM-JJ)"
+          value={expiresAt}
+          onChangeText={setExpiresAt}
+          color={palette.ink}
+        />
 
         <YStack gap="$1">
           <Text fontSize={12} fontWeight="700" color={palette.ink}>
@@ -185,8 +229,8 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
           onPress={() =>
             router.push(
               props.mode === 'create'
-                ? { pathname: '/(tabs)/fridge/scan', params: { mode: 'create' } }
-                : { pathname: '/(tabs)/fridge/scan', params: { mode: 'edit', productId: props.productId } },
+                ? { pathname: '/(tabs)/fridge/scan', params: { mode: 'create', fromForm: '1' } }
+                : { pathname: '/(tabs)/fridge/scan', params: { mode: 'edit', productId: props.productId, fromForm: '1' } },
             )
           }
           accessibilityRole="button"

@@ -53,6 +53,79 @@ test('edit mode pre-fills the form from the existing product', async () => {
   await waitFor(() => expect(screen.getByTestId('fridge-form-name').props.value).toBe('Lait demi-écrémé'))
   expect(screen.getByTestId('fridge-form-amount').props.value).toBe('1')
   expect(screen.getByTestId('fridge-form-unit').props.value).toBe('L')
+  // fake-product-1's fixture expiresAt is '2026-08-30T00:00:00.000Z' — prefilled as a plain date.
+  expect(screen.getByTestId('fridge-form-expires-at').props.value).toBe('2026-08-30')
+})
+
+test('submitting with an expiresAt value round-trips it into the create payload as an ISO string', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const connector = new FakeFridgeConnector()
+  const createSpy = jest.spyOn(connector, 'createProduct')
+  await render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConnectorProvider connector={connector}>
+          <FridgeFormScreen mode="create" onSuccess={jest.fn()} />
+        </ConnectorProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  )
+
+  await fireEvent.changeText(screen.getByTestId('fridge-form-name'), 'Yaourt nature')
+  await fireEvent.changeText(screen.getByTestId('fridge-form-amount'), '4')
+  await fireEvent.changeText(screen.getByTestId('fridge-form-unit'), 'pots')
+  await fireEvent.changeText(screen.getByTestId('fridge-form-category'), 'Produits laitiers')
+  await fireEvent.changeText(screen.getByTestId('fridge-form-expires-at'), '2026-09-10')
+  await fireEvent.press(screen.getByTestId('fridge-form-submit'))
+
+  await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1))
+  expect(createSpy.mock.calls[0]?.[0]).toMatchObject({ expiresAt: new Date('2026-09-10').toISOString() })
+})
+
+test('submitting an edit form with an updated expiresAt round-trips it into the update payload', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const connector = new FakeFridgeConnector()
+  const updateSpy = jest.spyOn(connector, 'updateProduct')
+  await render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConnectorProvider connector={connector}>
+          <FridgeFormScreen mode="edit" productId="fake-product-1" onSuccess={jest.fn()} />
+        </ConnectorProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  )
+
+  await waitFor(() => expect(screen.getByTestId('fridge-form-name').props.value).toBe('Lait demi-écrémé'))
+  await fireEvent.changeText(screen.getByTestId('fridge-form-expires-at'), '2026-09-20')
+  await fireEvent.press(screen.getByTestId('fridge-form-submit'))
+
+  await waitFor(() => expect(updateSpy).toHaveBeenCalledTimes(1))
+  expect(updateSpy.mock.calls[0]?.[1]).toMatchObject({ expiresAt: new Date('2026-09-20').toISOString() })
+})
+
+test('submitting with an empty expiresAt sends null', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const connector = new FakeFridgeConnector()
+  const createSpy = jest.spyOn(connector, 'createProduct')
+  await render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConnectorProvider connector={connector}>
+          <FridgeFormScreen mode="create" onSuccess={jest.fn()} />
+        </ConnectorProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  )
+
+  await fireEvent.changeText(screen.getByTestId('fridge-form-name'), 'Beurre doux')
+  await fireEvent.changeText(screen.getByTestId('fridge-form-amount'), '1')
+  await fireEvent.changeText(screen.getByTestId('fridge-form-unit'), 'plaquette')
+  await fireEvent.changeText(screen.getByTestId('fridge-form-category'), 'Produits laitiers')
+  await fireEvent.press(screen.getByTestId('fridge-form-submit'))
+
+  await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1))
+  expect(createSpy.mock.calls[0]?.[0]).toMatchObject({ expiresAt: null })
 })
 
 test('a prefillBarcode found in the lookup fixture pre-fills name/category', async () => {
@@ -64,6 +137,22 @@ test('a prefillBarcode found in the lookup fixture pre-fills name/category', asy
     expect(screen.getByTestId('fridge-form-name').props.value).toBe('Pâte à tartiner noisettes-cacao'),
   )
   expect(screen.getByTestId('fridge-form-category').props.value).toBe('Pâtes à tartiner')
+})
+
+test('scanning a barcode from an edit form applies the lookup result, not the original product data, regardless of which query settles first', async () => {
+  // Regression test for the edit-prefill vs. barcode-lookup-prefill race: both effects
+  // write name/category, and a deliberate scan should always win over the product's
+  // original data even though `existing` (fake-product-1) and `lookup` can settle in
+  // either order.
+  await renderWithProviders(
+    <FridgeFormScreen mode="edit" productId="fake-product-1" prefillBarcode="3017620422003" onSuccess={jest.fn()} />,
+  )
+
+  await waitFor(() =>
+    expect(screen.getByTestId('fridge-form-name').props.value).toBe('Pâte à tartiner noisettes-cacao'),
+  )
+  expect(screen.getByTestId('fridge-form-category').props.value).toBe('Pâtes à tartiner')
+  expect(screen.getByTestId('fridge-form-name').props.value).not.toBe('Lait demi-écrémé')
 })
 
 test('a prefillBarcode not in the lookup fixture shows an informational hint, leaves the form empty', async () => {

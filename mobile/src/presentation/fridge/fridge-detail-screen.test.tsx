@@ -44,3 +44,34 @@ test('pressing delete then confirm removes the product', async () => {
 
   await waitFor(() => expect(screen.getByTestId('fridge-detail-deleted')).toBeTruthy())
 })
+
+test('a failed delete shows an inline error and does not navigate away or invalidate queries', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const connector = new FakeFridgeConnector()
+  const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
+  jest.spyOn(connector, 'deleteProduct').mockResolvedValue({
+    ok: false,
+    error: { type: 'product_not_found', message: 'Produit introuvable.' },
+  })
+
+  await render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConnectorProvider connector={connector}>
+          <FridgeDetailScreen productId="fake-product-1" />
+        </ConnectorProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  )
+
+  await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
+  invalidateSpy.mockClear()
+
+  await fireEvent.press(screen.getByTestId('fridge-detail-delete'))
+  await fireEvent.press(screen.getByTestId('fridge-detail-delete-confirm'))
+
+  await waitFor(() => expect(screen.getByTestId('fridge-detail-delete-error')).toBeTruthy())
+  expect(screen.getByText('Produit introuvable.')).toBeTruthy()
+  expect(screen.queryByTestId('fridge-detail-deleted')).toBeNull()
+  expect(invalidateSpy).not.toHaveBeenCalled()
+})
