@@ -16,6 +16,8 @@ import type { LocationValue } from '../../domain/fridge/location.js'
 
 type FridgeFormMode = { mode: 'create' } | { mode: 'edit'; productId: string }
 
+const LOCATION_LABELS: Record<LocationValue, string> = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' }
+
 function Field({
   testID,
   label,
@@ -170,7 +172,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                   paddingHorizontal="$3"
                 >
                   <Text fontSize={12} fontWeight="700" color={location === loc ? palette.accentLimeText : palette.mintPaleText}>
-                    {loc}
+                    {LOCATION_LABELS[loc]}
                   </Text>
                 </YStack>
               </Pressable>
