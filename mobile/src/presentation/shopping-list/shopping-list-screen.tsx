@@ -46,7 +46,7 @@
  * disponible" hint as the rest of the app rather than a dead control.
  */
 import { useState } from 'react'
-import { ScrollView, useWindowDimensions } from 'react-native'
+import { Pressable, ScrollView, useWindowDimensions } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -55,6 +55,7 @@ import { Sidebar } from '../shared/sidebar.js'
 import { HintBubble, useHint } from '../shared/hint-bubble.js'
 import { BlobBackground } from '../shared/blob-background.js'
 import { BackButton } from '../shared/back-button.js'
+import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
 import { SpiralBinding } from './spiral-binding.js'
@@ -106,18 +107,33 @@ function ShoppingListContent() {
             alignSelf: isWide ? 'center' : undefined,
           }}
         >
-          <XStack alignItems="center" gap="$3">
-            {isWide ? null : <BackButton onPress={() => router.back()} ink={palette.ink} cream={palette.cream} />}
-            <YStack>
-              <Text fontSize={20} fontWeight="800" color={palette.ink}>
-                Liste de courses
-              </Text>
-              <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} marginTop="$0.5">
-                {itemsQuery.isPending
-                  ? 'Chargement...'
-                  : `${unchecked.length} article${unchecked.length > 1 ? 's' : ''} restant${unchecked.length > 1 ? 's' : ''}`}
-              </Text>
-            </YStack>
+          <XStack alignItems="center" justifyContent="space-between" gap="$3">
+            <XStack alignItems="center" gap="$3">
+              {isWide ? null : <BackButton onPress={() => router.back()} ink={palette.ink} cream={palette.cream} />}
+              <YStack>
+                <Text fontSize={20} fontWeight="800" color={palette.ink}>
+                  Liste de courses
+                </Text>
+                <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} marginTop="$0.5">
+                  {itemsQuery.isPending
+                    ? 'Chargement...'
+                    : `${unchecked.length} article${unchecked.length > 1 ? 's' : ''} restant${unchecked.length > 1 ? 's' : ''}`}
+                </Text>
+              </YStack>
+            </XStack>
+            <Pressable
+              testID="shopping-list-add"
+              onPress={() => router.push('/(tabs)/shopping-list/new')}
+              accessibilityRole="button"
+              accessibilityLabel="Ajouter un article"
+              style={pointerCursor}
+            >
+              <XStack backgroundColor={palette.accentLime} borderRadius={999} paddingVertical="$1.5" paddingHorizontal="$3">
+                <Text fontSize={13} fontWeight="800" color={palette.accentLimeText}>
+                  + Ajouter
+                </Text>
+              </XStack>
+            </Pressable>
           </XStack>
 
           {itemsQuery.isError ? (
