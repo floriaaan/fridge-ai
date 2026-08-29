@@ -29,20 +29,24 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
   const [error, setError] = useState<string | null>(null)
 
   const appliedEditPrefillRef = useRef(false)
+  const editItemId = props.mode === 'edit' ? props.itemId : undefined
 
+  // Guarded one-time prefill from already-fetched cache — intentional, not the
+  // cascading-renders antipattern. Disabled for the whole effect body (not just
+  // the line under the first setState call) so reordering the setters below
+  // can't silently drop back under the rule's radar.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (props.mode !== 'edit' || !itemsQuery.data) return
     if (appliedEditPrefillRef.current) return
-    const existing = itemsQuery.data.find((i) => i.id === props.itemId)
+    const existing = itemsQuery.data.find((i) => i.id === editItemId)
     if (!existing) return
     appliedEditPrefillRef.current = true
-    // Guarded one-time prefill from already-fetched cache — intentional, not the cascading-renders antipattern.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(existing.name)
     setAmount(String(existing.quantity.amount))
     setUnit(existing.quantity.unit)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.mode, itemsQuery.data])
+  }, [props.mode, editItemId, itemsQuery.data])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const createItem = useCreateShoppingItemMutation()
   const updateItem = useUpdateShoppingItemMutation()

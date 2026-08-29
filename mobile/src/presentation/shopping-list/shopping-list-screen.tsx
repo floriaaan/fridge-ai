@@ -39,11 +39,14 @@
  * curve, not a jittery scribble. Three real material cues, executed with
  * restraint, not a pile of decorative textures.
  *
- * SCOPE, disclosed like every other placeholder in this codebase: this
- * is read + toggle-checked only. Adding a new item, editing quantity, and
- * deleting are real backend endpoints (`POST`/`DELETE /api/shopping-
- * items`) not wired here yet — the FAB shows the same honest "bientôt
- * disponible" hint as the rest of the app rather than a dead control.
+ * SCOPE: full CRUD is wired on this screen. Creating a new item goes
+ * through the "+ Ajouter" pill → the `/new` route; editing and deleting an
+ * existing item go through the swipe actions revealed on each row → the
+ * `/[id]/edit` route for "Modifier", a direct delete call for "Supprimer".
+ * The one remaining stub anywhere on this screen is the desktop
+ * `Sidebar`'s `onScan` prop, which still shows the honest "bientôt
+ * disponible" hint — unrelated to shopping-list CRUD, just an adjacent
+ * placeholder this screen's sidebar happens to carry.
  */
 import { useState } from 'react'
 import { Pressable, ScrollView, useWindowDimensions } from 'react-native'
@@ -122,10 +125,10 @@ function ShoppingListContent() {
           }}
         >
           <XStack alignItems="center" justifyContent="space-between" gap="$3">
-            <XStack alignItems="center" gap="$3">
+            <XStack alignItems="center" gap="$3" flexShrink={1}>
               {isWide ? null : <BackButton onPress={() => router.back()} ink={palette.ink} cream={palette.cream} />}
               <YStack>
-                <Text fontSize={20} fontWeight="800" color={palette.ink}>
+                <Text fontSize={20} fontWeight="800" color={palette.ink} numberOfLines={1}>
                   Liste de courses
                 </Text>
                 <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} marginTop="$0.5">
