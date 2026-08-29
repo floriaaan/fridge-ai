@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { YStack } from '../shared/tamagui-typed.js'
 import { useSignUpMutation } from '../../application/identity/sign-up.mutation.js'
-import { AuthButton, AuthError, AuthField } from './auth-ui.js'
+import { AuthButton } from './auth-button.js'
+import { AuthError } from './auth-error.js'
+import { AuthField } from './auth-field.js'
 
 export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
   const [name, setName] = useState('')
