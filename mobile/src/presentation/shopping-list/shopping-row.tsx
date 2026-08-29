@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Animated, Pressable } from 'react-native'
-import { Swipeable } from 'react-native-gesture-handler'
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
@@ -23,13 +24,24 @@ export function ShoppingRow({
 }) {
   const palette = useSoftPalette()
   const row = useQuietRowFeedback()
+  // Tracks the swipe's actual open/closed state so the "Modifier"/"Supprimer"
+  // actions can be pulled out of the accessibility tree while closed — they're
+  // always mounted (just visually clipped/transformed off-screen) so a screen
+  // reader could otherwise reach "Supprimer" without the swipe gesture that's
+  // meant to be the intent-confirmation step (spec §3).
+  const [isOpen, setIsOpen] = useState(false)
   return (
     <Swipeable
-      renderRightActions={() => (
-        <XStack>
+      onSwipeableOpen={() => setIsOpen(true)}
+      onSwipeableClose={() => setIsOpen(false)}
+      renderRightActions={(_progress, _translation, swipeableMethods) => (
+        <XStack accessibilityElementsHidden={!isOpen} importantForAccessibility={isOpen ? 'auto' : 'no-hide-descendants'}>
           <Pressable
             testID={`shopping-row-edit-${item.id}`}
-            onPress={onEdit}
+            onPress={() => {
+              swipeableMethods.close()
+              onEdit()
+            }}
             accessibilityRole="button"
             accessibilityLabel={`Modifier ${item.name}`}
             style={pointerCursor}
@@ -42,7 +54,10 @@ export function ShoppingRow({
           </Pressable>
           <Pressable
             testID={`shopping-row-delete-${item.id}`}
-            onPress={onDelete}
+            onPress={() => {
+              swipeableMethods.close()
+              onDelete()
+            }}
             accessibilityRole="button"
             accessibilityLabel={`Supprimer ${item.name}`}
             style={pointerCursor}

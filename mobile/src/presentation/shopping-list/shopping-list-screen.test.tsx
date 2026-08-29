@@ -31,24 +31,31 @@ test('tapping "+ Ajouter" navigates to the new-item route', async () => {
   expect(router.push).toHaveBeenCalledWith('/(tabs)/shopping-list/new')
 })
 
-test('swiping and tapping "Modifier" navigates to the item\'s edit route', async () => {
+// The row's swipe actions are hidden from the accessibility tree (and thus
+// from RNTL's default queries) while the swipe is closed — see shopping-row.tsx's
+// `accessibilityElementsHidden`/`importantForAccessibility` wiring, spec §3's
+// "swipe is the intent-confirmation step". These tests exercise the handler
+// wiring directly rather than performing the swipe gesture itself, so they
+// need `includeHiddenElements: true` to reach the (currently hidden) buttons.
+
+test("tapping the row's Modifier action navigates to the item's edit route", async () => {
   await renderScreen()
-  const editButtons = await screen.findAllByTestId(/^shopping-row-edit-/)
+  const editButtons = await screen.findAllByTestId(/^shopping-row-edit-/, { includeHiddenElements: true })
   await fireEvent.press(editButtons[0])
   expect(router.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/(tabs)/shopping-list/[id]/edit' }))
 })
 
-test('swiping and tapping "Supprimer" deletes the item and refreshes the list', async () => {
+test("tapping the row's Supprimer action deletes the item and refreshes the list", async () => {
   const connector = new FakeFridgeConnector()
   const deleteSpy = jest.spyOn(connector, 'deleteShoppingItem')
   await renderScreen(connector)
 
-  const before = await screen.findAllByTestId(/^shopping-row-delete-/)
+  const before = await screen.findAllByTestId(/^shopping-row-delete-/, { includeHiddenElements: true })
   const targetTestId = before[0].props.testID as string
   await fireEvent.press(before[0])
 
   await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1))
-  await waitFor(() => expect(screen.queryByTestId(targetTestId)).toBeNull())
+  await waitFor(() => expect(screen.queryByTestId(targetTestId, { includeHiddenElements: true })).toBeNull())
 })
 
 test('a failed delete shows a hint instead of removing the row', async () => {
@@ -56,8 +63,10 @@ test('a failed delete shows a hint instead of removing the row', async () => {
   jest.spyOn(connector, 'deleteShoppingItem').mockResolvedValue({ ok: false, error: { type: 'server_error', message: 'Suppression impossible.' } })
   await renderScreen(connector)
 
-  const deleteButtons = await screen.findAllByTestId(/^shopping-row-delete-/)
+  const deleteButtons = await screen.findAllByTestId(/^shopping-row-delete-/, { includeHiddenElements: true })
+  const targetTestId = deleteButtons[0].props.testID as string
   await fireEvent.press(deleteButtons[0])
 
   await waitFor(() => expect(screen.getByText('Suppression impossible.')).toBeTruthy())
+  expect(screen.queryByTestId(targetTestId, { includeHiddenElements: true })).toBeTruthy()
 })

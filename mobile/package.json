@@ -60,6 +60,7 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
+    "resolver": "./jest.worklets-resolver.js",
     "setupFiles": [
       "./jest.setup.ts"
     ],
