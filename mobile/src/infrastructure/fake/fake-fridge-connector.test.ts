@@ -31,21 +31,56 @@ test('getShoppingItems() returns the fixture list', async () => {
   expect(items.length).toBeGreaterThan(0)
 })
 
-test('toggleShoppingItem() flips checked and persists across calls', async () => {
+test('createShoppingItem() adds a new item to the list', async () => {
+  const connector = new FakeFridgeConnector()
+  const before = await connector.getShoppingItems()
+
+  const result = await connector.createShoppingItem({ name: 'Farine', quantity: { amount: 1, unit: 'kg' } })
+  expect(result.ok).toBe(true)
+  if (result.ok) {
+    expect(result.value.name).toBe('Farine')
+    expect(result.value.checked).toBe(false)
+    expect(result.value.source).toBe('manual')
+  }
+
+  const after = await connector.getShoppingItems()
+  expect(after.length).toBe(before.length + 1)
+})
+
+test('updateShoppingItem() patches an item and persists across calls', async () => {
   const connector = new FakeFridgeConnector()
   const [first] = await connector.getShoppingItems()
   expect(first.checked).toBe(false)
 
-  const result = await connector.toggleShoppingItem(first.id, true)
+  const result = await connector.updateShoppingItem(first.id, { checked: true })
   expect(result.ok).toBe(true)
 
   const [updated] = await connector.getShoppingItems()
   expect(updated.checked).toBe(true)
 })
 
-test('toggleShoppingItem() rejects an unknown id', async () => {
+test('updateShoppingItem() rejects an unknown id', async () => {
   const connector = new FakeFridgeConnector()
-  const result = await connector.toggleShoppingItem('does-not-exist', true)
+  const result = await connector.updateShoppingItem('does-not-exist', { checked: true })
+  expect(result.ok).toBe(false)
+})
+
+test('deleteShoppingItem() removes the item from the list', async () => {
+  const connector = new FakeFridgeConnector()
+  const before = await connector.getShoppingItems()
+  const [first] = before
+
+  const result = await connector.deleteShoppingItem(first.id)
+  expect(result.ok).toBe(true)
+
+  const after = await connector.getShoppingItems()
+  expect(after.length).toBe(before.length - 1)
+  expect(after.find((i) => i.id === first.id)).toBeUndefined()
+})
+
+test('deleteShoppingItem() rejects an unknown id', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.deleteShoppingItem('does-not-exist')
   expect(result.ok).toBe(false)
 })
 

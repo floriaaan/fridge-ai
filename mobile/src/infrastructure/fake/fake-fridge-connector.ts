@@ -11,7 +11,7 @@ import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.j
 import type { Session } from '../../domain/identity/session.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
-import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
+import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
 import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../../domain/fridge/product.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
@@ -26,6 +26,7 @@ export class FakeFridgeConnector implements FridgeConnector {
   private shoppingItems: ShoppingItem[] = fakeShoppingItems.map((item) => ({ ...item }))
   private products: Product[] = fakeProducts.map((p) => ({ ...p }))
   private nextProductId = 1
+  private nextShoppingItemId = 1
   private receipts: Receipt[] = fakeReceipts.map((r) => ({ ...r }))
   private nextReceiptId = 1
   private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
@@ -64,15 +65,36 @@ export class FakeFridgeConnector implements FridgeConnector {
   }
 
   async getShoppingItems(): Promise<ShoppingItem[]> {
-    return this.shoppingItems
+    return [...this.shoppingItems]
   }
 
-  async toggleShoppingItem(itemId: string, checked: boolean): Promise<Result<ShoppingItem, ApiError>> {
+  async createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>> {
+    const now = new Date().toISOString()
+    const item: ShoppingItem = {
+      id: `fake-item-new-${this.nextShoppingItemId++}`,
+      name: input.name,
+      quantity: input.quantity,
+      checked: false,
+      source: 'manual',
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.shoppingItems.push(item)
+    return Result.ok(item)
+  }
+
+  async updateShoppingItem(itemId: string, patch: UpdateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>> {
     const item = this.shoppingItems.find((i) => i.id === itemId)
     if (!item) return Result.err({ type: 'not_found', message: 'Article introuvable.' })
-    item.checked = checked
-    item.updatedAt = new Date().toISOString()
+    Object.assign(item, patch, { updatedAt: new Date().toISOString() })
     return Result.ok(item)
+  }
+
+  async deleteShoppingItem(itemId: string): Promise<Result<void, ApiError>> {
+    const index = this.shoppingItems.findIndex((i) => i.id === itemId)
+    if (index === -1) return Result.err({ type: 'not_found', message: 'Article introuvable.' })
+    this.shoppingItems.splice(index, 1)
+    return Result.ok(undefined)
   }
 
   async getRecipes(): Promise<Recipe[]> {
