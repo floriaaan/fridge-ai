@@ -43,8 +43,13 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
       router.replace({ pathname: '/(tabs)/fridge/[id]/edit', params: { id: props.productId, prefillBarcode: data } })
       return
     }
+    
+    try {
       router.replace({ pathname: '/(tabs)/fridge/new', params: { prefillBarcode: data } })
-  }
+    } catch (error) {
+      // If router.replace fails (empty stack case), fall back to home route
+      router.replace('/(tabs)/fridge')
+    }
   }
 
   if (!permission?.granted) {
