@@ -44,7 +44,6 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
       return
     }
       router.replace({ pathname: '/(tabs)/fridge/new', params: { prefillBarcode: data } })
-    }
   }
   }
 
