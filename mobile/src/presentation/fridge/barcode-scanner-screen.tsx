@@ -3,8 +3,11 @@ import { Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import { router } from 'expo-router'
-import { Text, YStack } from '../shared/tamagui-typed.js'
+import { YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor } from '../shared/hover.js'
+import { CameraPermissionModal } from '../shared/camera-permission-modal.js'
+import { goBack } from '../shared/navigation.js'
+import { XIcon } from '../dashboard/dashboard-icons.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 
 type BarcodeScannerMode = ({ mode: 'create' } | { mode: 'edit'; productId: string }) & {
@@ -40,31 +43,22 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
       router.replace({ pathname: '/(tabs)/fridge/[id]/edit', params: { id: props.productId, prefillBarcode: data } })
       return
     }
-    router.replace({ pathname: '/(tabs)/fridge/new', params: { prefillBarcode: data } })
+      router.replace({ pathname: '/(tabs)/fridge/new', params: { prefillBarcode: data } })
+    }
+  }
   }
 
   if (!permission?.granted) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
-        <YStack flex={1} padding="$4" gap="$3" alignItems="center" justifyContent="center">
-          <Text fontSize={14} color={palette.ink} textAlign="center">
-            L&apos;accès à la caméra est nécessaire pour scanner un code-barres.
-          </Text>
-          <Pressable
-            testID="barcode-scanner-request-permission"
-            onPress={requestPermission}
-            accessibilityRole="button"
-            accessibilityLabel="Autoriser la caméra"
-            style={pointerCursor}
-          >
-            <YStack backgroundColor={palette.accentLime} borderRadius={999} paddingVertical="$2.5" paddingHorizontal="$4">
-              <Text fontWeight="800" color={palette.accentLimeText}>
-                Autoriser la caméra
-              </Text>
-            </YStack>
-          </Pressable>
-        </YStack>
-      </SafeAreaView>
+      <CameraPermissionModal
+        palette={palette}
+        message="L'accès à la caméra est nécessaire pour scanner un code-barres."
+        canAskAgain={permission?.canAskAgain ?? true}
+        onRequestPermission={requestPermission}
+        onClose={() => goBack('/(tabs)/fridge')}
+        requestTestID="barcode-scanner-request-permission"
+        closeTestID="barcode-scanner-permission-close"
+      />
     )
   }
 
@@ -79,14 +73,12 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
       <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
         <Pressable
           testID="barcode-scanner-close"
-          onPress={() => router.back()}
+          onPress={() => goBack('/(tabs)/fridge')}
           accessibilityRole="button"
           accessibilityLabel="Fermer le scanner"
           style={[pointerCursor, { padding: 16 }]}
         >
-          <Text fontSize={24} color="#FFFFFF">
-            ×
-          </Text>
+          <XIcon size={24} color="#FFFFFF" />
         </Pressable>
       </SafeAreaView>
     </YStack>
