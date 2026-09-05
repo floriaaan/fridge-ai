@@ -1,6 +1,16 @@
 import { useState } from 'react'
-import { Animated, Pressable } from 'react-native'
+import { Animated } from 'react-native'
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable'
+// react-native-gesture-handler's own `Pressable`, not React Native core's —
+// an audit found the swipe checking the item directly instead of opening
+// the actions: core `Pressable` claims RN's legacy JS touch-responder
+// independently of Swipeable's native `Gesture.Pan()`, so a partial swipe
+// could win the tap race before the pan gesture decided it was a drag.
+// RNGH's `Pressable` is built on `Gesture.Native()` through the same
+// `GestureDetector` graph as Swipeable's internal pan/tap gestures, so the
+// two arbitrate correctly via native gesture-recognizer negotiation
+// instead of racing across two unrelated touch systems.
+import { Pressable } from 'react-native-gesture-handler'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
@@ -14,12 +24,16 @@ export function ShoppingRow({
   onToggle,
   onEdit,
   onDelete,
+  onLongPress,
   isLast,
 }: {
   item: ShoppingItem
   onToggle: (checked: boolean) => void
   onEdit: () => void
   onDelete: () => void
+  /** The non-gesture way to Modifier/Supprimer — a swipe is invisible to a
+   *  first-timer and impossible for a screen-reader user. */
+  onLongPress: () => void
   isLast: boolean
 }) {
   const palette = useSoftPalette()
@@ -72,7 +86,9 @@ export function ShoppingRow({
       )}
     >
       <Pressable
+        testID={`shopping-row-${item.id}`}
         onPress={() => onToggle(!item.checked)}
+        onLongPress={onLongPress}
         onHoverIn={row.onHoverIn}
         onHoverOut={row.onHoverOut}
         onPressIn={row.pressIn}
@@ -80,6 +96,7 @@ export function ShoppingRow({
         accessibilityRole="checkbox"
         accessibilityState={{ checked: item.checked }}
         accessibilityLabel={`${item.name}, ${item.quantity.amount} ${item.quantity.unit}`}
+        accessibilityHint="Appui long pour modifier ou supprimer"
         style={pointerCursor}
       >
         <Animated.View

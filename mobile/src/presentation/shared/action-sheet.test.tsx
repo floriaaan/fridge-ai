@@ -1,11 +1,15 @@
 import { fireEvent, render, screen } from '@testing-library/react-native'
 import { ThemeProvider } from './theme-provider.js'
-import { ActionSheet } from './action-sheet.js'
+import { ActionSheet, type ActionSheetOption } from './action-sheet.js'
+
+function option(overrides: Partial<ActionSheetOption>): ActionSheetOption {
+  return { testID: 'opt-a', label: 'A', icon: () => null, tint: '#000', onPress: jest.fn(), ...overrides }
+}
 
 test('renders nothing when not visible', async () => {
   await render(
     <ThemeProvider>
-      <ActionSheet visible={false} onClose={jest.fn()} options={[{ testID: 'opt-a', label: 'A', onPress: jest.fn() }]} />
+      <ActionSheet visible={false} onClose={jest.fn()} options={[option({})]} />
     </ThemeProvider>,
   )
 
@@ -16,7 +20,7 @@ test('renders one pressable row per option and calls its onPress when tapped', a
   const onPress = jest.fn()
   await render(
     <ThemeProvider>
-      <ActionSheet visible onClose={jest.fn()} options={[{ testID: 'opt-a', label: 'A', onPress }]} />
+      <ActionSheet visible onClose={jest.fn()} options={[option({ onPress })]} />
     </ThemeProvider>,
   )
 

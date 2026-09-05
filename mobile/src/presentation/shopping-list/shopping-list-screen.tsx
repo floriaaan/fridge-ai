@@ -40,27 +40,32 @@
  * restraint, not a pile of decorative textures.
  *
  * SCOPE: full CRUD is wired on this screen. Creating a new item goes
- * through the "+ Ajouter" pill → the `/new` route; editing and deleting an
- * existing item go through the swipe actions revealed on each row → the
- * `/[id]/edit` route for "Modifier", a direct delete call for "Supprimer".
- * The one remaining stub anywhere on this screen is the desktop
- * `Sidebar`'s `onScan` prop, which still shows the honest "bientôt
- * disponible" hint — unrelated to shopping-list CRUD, just an adjacent
- * placeholder this screen's sidebar happens to carry.
+ * through the "+ Ajouter" pill → the `/new` route.
+ *
+ * Editing and deleting are reachable two ways since a usability critique:
+ * the swipe actions, and a long press on the row — a gesture-only path is
+ * invisible to a first-timer and unreachable for a screen-reader user, who
+ * cannot swipe. Both land on the same titled sheet, which names the item
+ * and carries an Annuler row, so a delete on shared household state always
+ * costs two deliberate steps. It used to be one unconfirmed tap, on the
+ * one screen in the app whose sibling (the fridge) did confirm.
+ *
+ * Checking an item is optimistic: in a supermarket on one bar of signal the
+ * round trip is long enough that the row looked dead, and a failed toggle
+ * surfaced nothing at all.
  */
 import { useState } from 'react'
-import { Pressable, ScrollView, useWindowDimensions } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
-import { Sidebar } from '../shared/sidebar.js'
-import { HintBubble, useHint } from '../shared/hint-bubble.js'
-import { BlobBackground } from '../shared/blob-background.js'
-import { BackButton } from '../shared/back-button.js'
+import { AppShell } from '../shared/app-shell.js'
+import { ActionSheet } from '../shared/action-sheet.js'
+import { useHint } from '../shared/hint-bubble.js'
+import { useScanSheet } from '../shared/scan-sheet.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
+import { ChevronRightIcon, ShoppingCartIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { SpiralBinding } from './spiral-binding.js'
 import { ShoppingRow } from './shopping-row.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
@@ -68,12 +73,8 @@ import { useUpdateShoppingItemMutation } from '../../application/shopping-list/u
 import { useDeleteShoppingItemMutation } from '../../application/shopping-list/delete-shopping-item.mutation.js'
 import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
 
-const TABLET_BREAKPOINT = 768
-
-function ShoppingListContent() {
+export function ShoppingListScreen() {
   const palette = useSoftPalette()
-  const { width } = useWindowDimensions()
-  const isWide = width >= TABLET_BREAKPOINT
   const queryClient = useQueryClient()
   const itemsQuery = useShoppingItemsQuery()
   // Invalidate explicitly on success — this "just worked" against the fake
@@ -84,10 +85,27 @@ function ShoppingListContent() {
   // the list would silently show stale `checked` state against a real
   // backend. Caught by noticing the fake connector's own mutation style,
   // not by anything failing visibly in this session.
-  const updateItem = useUpdateShoppingItemMutation({
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
-  })
   const [hint, showHint] = useHint()
+  const { openScanSheet, scanSheet } = useScanSheet()
+  const [sheetItem, setSheetItem] = useState<ShoppingItem | null>(null)
+  // Optimistic: the checkbox flips now, and rolls back with a hint if the
+  // server refuses. `onSettled` re-syncs either way.
+  const updateItem = useUpdateShoppingItemMutation({
+    onMutate: async ({ itemId, patch }) => {
+      await queryClient.cancelQueries({ queryKey: ['shopping-items'] })
+      const previous = queryClient.getQueryData<ShoppingItem[]>(['shopping-items'])
+      queryClient.setQueryData<ShoppingItem[]>(['shopping-items'], (current) =>
+        (current ?? []).map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+      )
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      const previous = (context as { previous?: ShoppingItem[] } | undefined)?.previous
+      if (previous) queryClient.setQueryData(['shopping-items'], previous)
+      showHint('Impossible de cocher cet article.')
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
+  })
   const deleteItem = useDeleteShoppingItemMutation({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
   })
@@ -96,8 +114,9 @@ function ShoppingListContent() {
   const unchecked = items.filter((i) => !i.checked)
   const checked = items.filter((i) => i.checked)
 
-  function handleToggle(item: ShoppingItem, next: boolean) {
-    updateItem.mutate({ itemId: item.id, patch: { checked: next } })
+  async function handleToggle(item: ShoppingItem, next: boolean) {
+    const result = await updateItem.mutateAsync({ itemId: item.id, patch: { checked: next } })
+    if (!result.ok) showHint(result.error.message)
   }
 
   function handleEdit(item: ShoppingItem) {
@@ -105,192 +124,203 @@ function ShoppingListContent() {
   }
 
   async function handleDelete(item: ShoppingItem) {
+    setSheetItem(null)
     const result = await deleteItem.mutateAsync(item.id)
     if (!result.ok) showHint(result.error.message)
   }
 
   return (
-    <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
-      <BlobBackground blobStrong={palette.blobStrong} blobSoft={palette.blobSoft} ground={palette.gradientBottom} />
-      <SafeAreaView style={{ flex: 1, minHeight: 0 }} edges={isWide ? [] : ['top', 'bottom']}>
-        <ScrollView
-          style={{ flex: 1, minHeight: 0 }}
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingBottom: 40,
-            paddingTop: isWide ? 32 : 20,
-            maxWidth: isWide ? 640 : undefined,
-            width: isWide ? '100%' : undefined,
-            alignSelf: isWide ? 'center' : undefined,
+    <>
+    <AppShell nav={{ kind: 'tab', tab: 'courses', onScan: openScanSheet }} hint={hint}>
+      <XStack alignItems="center" justifyContent="space-between" gap="$3">
+        <YStack flexShrink={1}>
+          <Text fontSize={20} fontWeight="800" color={palette.ink} numberOfLines={1}>
+            Liste de courses
+          </Text>
+          <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} marginTop="$0.5">
+            {itemsQuery.isPending
+              ? 'Chargement...'
+              : `${unchecked.length} article${unchecked.length > 1 ? 's' : ''} restant${unchecked.length > 1 ? 's' : ''}`}
+          </Text>
+        </YStack>
+        <Pressable
+          testID="shopping-list-add"
+          onPress={() => router.push('/(tabs)/shopping-list/new')}
+          hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="Ajouter un article"
+          style={pointerCursor}
+        >
+          <XStack
+            backgroundColor={palette.accentLime}
+            borderRadius={999}
+            paddingVertical="$2.5"
+            paddingHorizontal="$3"
+            minHeight={44}
+            alignItems="center"
+          >
+            <Text fontSize={13} fontWeight="800" color={palette.accentLimeText}>
+              + Ajouter
+            </Text>
+          </XStack>
+        </Pressable>
+      </XStack>
+
+      {itemsQuery.isError ? (
+        <XStack alignItems="center" gap="$3" backgroundColor={palette.expiredBg} borderRadius={14} padding="$3" marginTop="$4">
+          <Text fontSize={13} fontWeight="600" color={palette.expiredText} flex={1}>
+            Impossible de charger la liste de courses.
+          </Text>
+          <Pressable
+            testID="shopping-list-retry"
+            onPress={() => itemsQuery.refetch()}
+            accessibilityRole="button"
+            accessibilityLabel="Réessayer"
+            style={pointerCursor}
+          >
+            <XStack alignItems="center" minHeight={44} paddingHorizontal="$3">
+              <Text fontSize={13} fontWeight="800" color={palette.expiredText}>
+                Réessayer
+              </Text>
+            </XStack>
+          </Pressable>
+        </XStack>
+      ) : null}
+
+      {!itemsQuery.isPending && !itemsQuery.isError && items.length === 0 ? (
+        <YStack alignItems="center" gap="$3" marginTop="$8">
+          <ShoppingCartIcon size={32} color={palette.inkSecondary} />
+          <Text fontSize={15} fontWeight="700" color={palette.ink}>
+            Liste de courses vide
+          </Text>
+          <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} textAlign="center">
+            Ajoute ce qui manque, ou pars d’une recette pour la remplir d’un coup.
+          </Text>
+          <Pressable
+            testID="shopping-list-empty-add"
+            onPress={() => router.push('/(tabs)/shopping-list/new')}
+            accessibilityRole="button"
+            accessibilityLabel="Ajouter un article"
+            style={pointerCursor}
+          >
+            <XStack alignItems="center" minHeight={44} paddingHorizontal="$5" borderRadius={999} backgroundColor={palette.accentLime}>
+              <Text fontSize={14} fontWeight="800" color={palette.accentLimeText}>
+                Ajouter un article
+              </Text>
+            </XStack>
+          </Pressable>
+        </YStack>
+      ) : null}
+
+      {unchecked.length > 0 ? (
+        <YStack
+          marginTop="$5"
+          backgroundColor={palette.paperCard}
+          overflow="hidden"
+          style={{
+            // Nearly-square top (a coil runs along a flat edge),
+            // asymmetric rounded bottom — the "no uniform radius"
+            // rule holds inside the notepad exception, just shaped
+            // like a real pad instead of the app's usual soft corners.
+            borderTopLeftRadius: 4,
+            borderTopRightRadius: 4,
+            borderBottomRightRadius: 20,
+            borderBottomLeftRadius: 10,
+            shadowColor: palette.shadowCool,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 1,
           }}
         >
-          <XStack alignItems="center" justifyContent="space-between" gap="$3">
-            <XStack alignItems="center" gap="$3" flexShrink={1}>
-              {isWide ? null : <BackButton onPress={() => router.back()} ink={palette.ink} cream={palette.cream} />}
-              <YStack>
-                <Text fontSize={20} fontWeight="800" color={palette.ink} numberOfLines={1}>
-                  Liste de courses
-                </Text>
-                <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} marginTop="$0.5">
-                  {itemsQuery.isPending
-                    ? 'Chargement...'
-                    : `${unchecked.length} article${unchecked.length > 1 ? 's' : ''} restant${unchecked.length > 1 ? 's' : ''}`}
-                </Text>
-              </YStack>
-            </XStack>
-            <Pressable
-              testID="shopping-list-add"
-              onPress={() => router.push('/(tabs)/shopping-list/new')}
-              accessibilityRole="button"
-              accessibilityLabel="Ajouter un article"
-              style={pointerCursor}
-            >
-              <XStack backgroundColor={palette.accentLime} borderRadius={999} paddingVertical="$1.5" paddingHorizontal="$3">
-                <Text fontSize={13} fontWeight="800" color={palette.accentLimeText}>
-                  + Ajouter
-                </Text>
-              </XStack>
-            </Pressable>
-          </XStack>
+          <SpiralBinding palette={palette} />
+          <YStack paddingHorizontal="$2">
+            {unchecked.map((item, index) => (
+              <ShoppingRow
+                key={item.id}
+                item={item}
+                isLast={index === unchecked.length - 1}
+                onToggle={(next) => handleToggle(item, next)}
+                onEdit={() => handleEdit(item)}
+                onDelete={() => setSheetItem(item)}
+                onLongPress={() => setSheetItem(item)}
+              />
+            ))}
+          </YStack>
+        </YStack>
+      ) : null}
 
-          {itemsQuery.isError ? (
-            <XStack backgroundColor={palette.expiredBg} borderRadius={14} padding="$3" marginTop="$4">
-              <Text fontSize={13} fontWeight="600" color={palette.expiredText} flex={1}>
-                Impossible de charger la liste de courses.
-              </Text>
-            </XStack>
-          ) : null}
-
-          {!itemsQuery.isPending && items.length === 0 ? (
-            <YStack alignItems="center" gap="$2" marginTop="$8">
-              <ShoppingCartIcon size={32} color={palette.inkSecondary} />
-              <Text fontSize={14} fontWeight="600" color={palette.inkSecondary}>
-                Liste de courses vide
-              </Text>
-            </YStack>
-          ) : null}
-
-          {unchecked.length > 0 ? (
-            <YStack
-              marginTop="$5"
-              backgroundColor={palette.paperCard}
-              overflow="hidden"
-              style={{
-                // Nearly-square top (a coil runs along a flat edge),
-                // asymmetric rounded bottom — the "no uniform radius"
-                // rule holds inside the notepad exception, just shaped
-                // like a real pad instead of the app's usual soft corners.
-                borderTopLeftRadius: 4,
-                borderTopRightRadius: 4,
-                borderBottomRightRadius: 20,
-                borderBottomLeftRadius: 10,
-                shadowColor: palette.shadowCool,
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.08,
-                shadowRadius: 12,
-                elevation: 1,
-              }}
-            >
-              <SpiralBinding palette={palette} />
-              <YStack paddingHorizontal="$2">
-                {unchecked.map((item, index) => (
-                  <ShoppingRow
-                    key={item.id}
-                    item={item}
-                    isLast={index === unchecked.length - 1}
-                    onToggle={(next) => handleToggle(item, next)}
-                    onEdit={() => handleEdit(item)}
-                    onDelete={() => handleDelete(item)}
-                  />
-                ))}
-              </YStack>
-            </YStack>
-          ) : null}
-
-          {checked.length > 0 ? (
-            <YStack marginTop="$6">
-              <Text fontSize={13} fontWeight="700" color={palette.inkSecondary}>
-                Déjà pris ({checked.length})
-              </Text>
-              <YStack
-                marginTop="$3"
-                backgroundColor={palette.paperCard}
-                paddingHorizontal="$2"
-                style={{
-                  borderTopLeftRadius: 8,
-                  borderTopRightRadius: 16,
-                  borderBottomRightRadius: 8,
-                  borderBottomLeftRadius: 16,
-                  // A slight tilt — no spiral strip here on purpose: this
-                  // is the torn-off page set aside, not another notepad.
-                  transform: [{ rotate: '-1deg' }],
-                  shadowColor: palette.shadowCool,
-                  shadowOffset: { width: 0, height: 6 },
-                  shadowOpacity: 0.08,
-                  shadowRadius: 12,
-                  elevation: 1,
-                }}
-              >
-                {checked.map((item, index) => (
-                  <ShoppingRow
-                    key={item.id}
-                    item={item}
-                    isLast={index === checked.length - 1}
-                    onToggle={(next) => handleToggle(item, next)}
-                    onEdit={() => handleEdit(item)}
-                    onDelete={() => handleDelete(item)}
-                  />
-                ))}
-              </YStack>
-            </YStack>
-          ) : null}
-        </ScrollView>
-      </SafeAreaView>
-      <HintBubble hint={hint} palette={palette} />
-    </YStack>
-  )
-}
-
-export function ShoppingListScreen() {
-  const palette = useSoftPalette()
-  const { width } = useWindowDimensions()
-  const isWide = width >= TABLET_BREAKPOINT
-  const [streakDays] = useState(12) // same synthetic streak as the dashboard fixture — see dashboard.fixture.ts's disclosed gap
-  const [hint, showHint] = useHint()
-
-  if (!isWide) return <ShoppingListContent />
-
-  return (
-    <SafeAreaView style={{ flex: 1, minHeight: 0, backgroundColor: palette.layoutSurface }} edges={['top', 'bottom']}>
-      <XStack flex={1} minHeight={0} backgroundColor={palette.layoutSurface}>
-        <Sidebar
-          palette={palette}
-          streakDays={streakDays}
-          active="courses"
-          onOpenFrigo={() => router.push('/(tabs)')}
-          onOpenRecettes={() => router.push('/(tabs)/recipes')}
-          onOpenCourses={() => {}}
-          onScan={() => showHint('Scanner — bientôt disponible')}
-        />
-        <YStack flex={1} minHeight={0} padding="$4" style={{ position: 'relative' }}>
+      {checked.length > 0 ? (
+        <YStack marginTop="$6">
+          <Text fontSize={13} fontWeight="700" color={palette.inkSecondary}>
+            Déjà pris ({checked.length})
+          </Text>
           <YStack
-            flex={1}
-            minHeight={0}
-            overflow="hidden"
+            marginTop="$3"
+            backgroundColor={palette.paperCard}
+            paddingHorizontal="$2"
             style={{
-              borderRadius: 28,
-              shadowColor: palette.shadowWarm,
-              shadowOffset: { width: 0, height: 14 },
-              shadowOpacity: 0.2,
-              shadowRadius: 26,
-              elevation: 4,
+              borderTopLeftRadius: 8,
+              borderTopRightRadius: 16,
+              borderBottomRightRadius: 8,
+              borderBottomLeftRadius: 16,
+              // A slight tilt — no spiral strip here on purpose: this
+              // is the torn-off page set aside, not another notepad.
+              transform: [{ rotate: '-1deg' }],
+              shadowColor: palette.shadowCool,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 1,
             }}
           >
-            <ShoppingListContent />
+            {checked.map((item, index) => (
+              <ShoppingRow
+                key={item.id}
+                item={item}
+                isLast={index === checked.length - 1}
+                onToggle={(next) => handleToggle(item, next)}
+                onEdit={() => handleEdit(item)}
+                onDelete={() => setSheetItem(item)}
+                onLongPress={() => setSheetItem(item)}
+              />
+            ))}
           </YStack>
-          <HintBubble hint={hint} palette={palette} />
         </YStack>
-      </XStack>
-    </SafeAreaView>
+      ) : null}
+    </AppShell>
+    {scanSheet}
+    <ActionSheet
+      visible={sheetItem !== null}
+      onClose={() => setSheetItem(null)}
+      title={sheetItem?.name}
+      description="Supprimer retire l’article de la liste du foyer."
+      options={
+        sheetItem
+          ? [
+              {
+                testID: 'shopping-list-edit-confirm',
+                label: 'Modifier',
+                icon: (color) => <ChevronRightIcon size={18} color={color} />,
+                tint: palette.chipTeal,
+                onPress: () => {
+                  const item = sheetItem
+                  setSheetItem(null)
+                  handleEdit(item)
+                },
+              },
+              {
+                testID: 'shopping-list-delete-confirm',
+                label: 'Supprimer',
+                icon: (color) => <XIcon size={18} color={color} />,
+                tint: palette.expired,
+                destructive: true,
+                onPress: () => handleDelete(sheetItem),
+              },
+            ]
+          : []
+      }
+    />
+    </>
   )
 }
