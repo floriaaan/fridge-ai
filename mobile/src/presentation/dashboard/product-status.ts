@@ -40,9 +40,16 @@ export function daysUntilExpiry(product: Pick<Product, 'expiresAt'>, now: Date =
   return Math.round((expires - today) / DAY_MS)
 }
 
+/**
+ * A product expiring *today* is a warning, not a loss — it is exactly the
+ * thing the app exists to get you to cook tonight. Only a date already past
+ * reads as expired. (The fridge list and the dashboard used to disagree on
+ * this, so the same yoghurt read "Bientôt" on one screen and "Expiré" on
+ * the next.)
+ */
 export function statusOf(daysLeft: number | null): ProductStatus {
   if (daysLeft === null) return 'fresh'
-  if (daysLeft <= 0) return 'expired'
+  if (daysLeft < 0) return 'expired'
   if (daysLeft <= 3) return 'soon'
   return 'fresh'
 }

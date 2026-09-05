@@ -46,7 +46,7 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
     
     try {
       router.replace({ pathname: '/(tabs)/fridge/new', params: { prefillBarcode: data } })
-    } catch (error) {
+    } catch {
       // If router.replace fails (empty stack case), fall back to home route
       router.replace('/(tabs)/fridge')
     }
@@ -74,15 +74,26 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }}
         onBarcodeScanned={handleBarcodeScanned}
       />
-      <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+      <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
         <Pressable
           testID="barcode-scanner-close"
           onPress={() => goBack('/(tabs)/fridge')}
           accessibilityRole="button"
           accessibilityLabel="Fermer le scanner"
-          style={[pointerCursor, { padding: 16 }]}
+          style={[pointerCursor, { padding: 12 }]}
         >
-          <XIcon size={24} color="#FFFFFF" />
+          {/* A scrim behind the glyph: white-on-white was invisible against a
+              fridge door, a ceiling, or a pale receipt. */}
+          <YStack
+            width={44}
+            height={44}
+            borderRadius={999}
+            alignItems="center"
+            justifyContent="center"
+            backgroundColor="rgba(0,0,0,0.45)"
+          >
+            <XIcon size={22} color="#FFFFFF" />
+          </YStack>
         </Pressable>
       </SafeAreaView>
     </YStack>

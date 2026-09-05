@@ -12,9 +12,9 @@ test('a product with no expiry date has no day count and never reads as at risk'
   expect(expiryLabel(null)).toBe('Sans date')
 })
 
-test('status thresholds: today and earlier are expired, up to three days is soon', () => {
+test('status thresholds: only a past date is expired, today through three days is soon', () => {
   expect(statusOf(-1)).toBe('expired')
-  expect(statusOf(0)).toBe('expired')
+  expect(statusOf(0)).toBe('soon')
   expect(statusOf(3)).toBe('soon')
   expect(statusOf(4)).toBe('fresh')
 })

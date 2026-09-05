@@ -1,7 +1,9 @@
-import { Pressable, ScrollView } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { FlatList, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import { XStack, YStack, Text } from '../shared/tamagui-typed.js'
+import { AppShell, shellContentStyle, useAppShellLayout } from '../shared/app-shell.js'
+import { BackButton } from '../shared/back-button.js'
+import { goBack } from '../shared/navigation.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { useReceiptsQuery } from '../../application/receipt/receipts.query.js'
@@ -32,29 +34,39 @@ function ReceiptRow({ receipt, palette }: { receipt: Receipt; palette: ReturnTyp
   )
 }
 
+// Same pushed-screen convention as settings-screen.tsx: `{ kind: 'stack' }`
+// AppShell nav — BackButton in the header, full shell everywhere else. An
+// audit found this screen previously had no shell at all.
 export function ReceiptsListScreen() {
   const palette = useSoftPalette()
   const receipts = useReceiptsQuery()
+  const nav = { kind: 'stack' as const }
+  const { isWide, hasMobileNav } = useAppShellLayout(nav)
 
   return (
-    <YStack flex={1} backgroundColor={palette.gradientBottom}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <YStack flex={1} padding="$4">
-          <Text fontSize={20} fontWeight="800" color={palette.ink} marginBottom="$3">
-            Historique des tickets
-          </Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {receipts.data?.length === 0 ? (
-              <Text fontSize={13} color={palette.inkSecondary}>
-                Aucun ticket importé pour l&apos;instant.
-              </Text>
-            ) : null}
-            {receipts.data?.map((receipt) => (
-              <ReceiptRow key={receipt.id} receipt={receipt} palette={palette} />
-            ))}
-          </ScrollView>
-        </YStack>
-      </SafeAreaView>
-    </YStack>
+    <AppShell nav={nav} scrollable={false}>
+      <FlatList
+        data={receipts.data ?? []}
+        keyExtractor={(receipt) => receipt.id}
+        renderItem={({ item }) => <ReceiptRow receipt={item} palette={palette} />}
+        contentContainerStyle={shellContentStyle({ isWide, hasMobileNav })}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <XStack alignItems="center" gap="$3" marginBottom="$4">
+            <BackButton onPress={() => goBack('/(tabs)/settings')} ink={palette.ink} cream={palette.cream} />
+            <Text fontSize={20} fontWeight="800" color={palette.ink}>
+              Historique des tickets
+            </Text>
+          </XStack>
+        }
+        ListEmptyComponent={
+          receipts.data?.length === 0 ? (
+            <Text fontSize={13} color={palette.inkSecondary}>
+              Aucun ticket importé pour l&apos;instant.
+            </Text>
+          ) : null
+        }
+      />
+    </AppShell>
   )
 }
