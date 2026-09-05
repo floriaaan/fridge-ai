@@ -4,13 +4,28 @@
  * household-dashboard.tsx's own (inline) copy of this idea. Extracted
  * here so new screens don't reinvent it or, worse, ship a silent no-op.
  */
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Text, YStack } from './tamagui-typed.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 
+/** Hints clear themselves: a toast that never leaves stops reading as feedback. */
+const HINT_MS = 3200
+
 export function useHint(): [string | null, (message: string) => void] {
   const [hint, setHint] = useState<string | null>(null)
-  return [hint, setHint]
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const show = useCallback((message: string) => {
+    if (timeout.current) clearTimeout(timeout.current)
+    setHint(message)
+    timeout.current = setTimeout(() => setHint(null), HINT_MS)
+  }, [])
+
+  useEffect(() => () => {
+    if (timeout.current) clearTimeout(timeout.current)
+  }, [])
+
+  return [hint, show]
 }
 
 export function HintBubble({ hint, palette }: { hint: string | null; palette: SoftPalette }) {

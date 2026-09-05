@@ -33,6 +33,8 @@ export class FakeFridgeConnector implements FridgeConnector {
   private nextShoppingItemId = 1
   private receipts: Receipt[] = fakeReceipts.map((r) => ({ ...r }))
   private nextReceiptId = 1
+  private generatedRecipes: Recipe[] = []
+  private nextRecipeId = 1
   private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
 
   async getSession(): Promise<Session | null> {
@@ -129,7 +131,51 @@ export class FakeFridgeConnector implements FridgeConnector {
   }
 
   async getRecipes(): Promise<Recipe[]> {
-    return fakeRecipes
+    return [...this.generatedRecipes, ...fakeRecipes]
+  }
+
+  async getRecipe(recipeId: string): Promise<Recipe | null> {
+    return [...this.generatedRecipes, ...fakeRecipes].find((r) => r.id === recipeId) ?? null
+  }
+
+  /**
+   * Stands in for the backend's AI call by cooking whatever is closest to
+   * expiring — enough to exercise the generate flow's pending/empty/success
+   * states without a provider key.
+   */
+  async generateRecipes(prompt?: string): Promise<Result<Recipe[], ApiError>> {
+    const usable = this.products.filter((p) => p.expiresAt !== null)
+    if (usable.length === 0) {
+      return Result.err({ type: 'no_products', message: 'Ajoute des produits au frigo pour générer une recette.' })
+    }
+    const soonest = [...usable].sort(
+      (a, b) => new Date(a.expiresAt ?? 0).getTime() - new Date(b.expiresAt ?? 0).getTime(),
+    )
+    const used = soonest.slice(0, 3)
+    const now = new Date().toISOString()
+    const recipe: Recipe = {
+      id: `fake-recipe-generated-${this.nextRecipeId++}`,
+      title: `Idée express : ${used[0].name.toLowerCase()}`,
+      description: prompt ? `Généré à partir de : ${prompt}` : 'Généré à partir des produits qui périment le plus vite.',
+      source: 'ai_generated',
+      instructions: used
+        .map((product, index) => `${index + 1}. Préparer ${product.name.toLowerCase()} et réserver.`)
+        .concat(`${used.length + 1}. Assembler, assaisonner, servir chaud.`)
+        .join('\n'),
+      preparationTime: 15 + used.length * 5,
+      tags: ['anti-gaspi', 'rapide'],
+      imageKey: null,
+      ingredients: used.map((product, index) => ({
+        id: `fake-generated-ingredient-${this.nextRecipeId}-${index}`,
+        productId: product.id,
+        label: product.name,
+        quantity: product.quantity.amount,
+        unit: product.quantity.unit,
+      })),
+      createdAt: now,
+    }
+    this.generatedRecipes.unshift(recipe)
+    return Result.ok([recipe])
   }
 
   async getProducts(params?: { location?: LocationValue; expiringWithinDays?: number }): Promise<Product[]> {
