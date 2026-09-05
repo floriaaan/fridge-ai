@@ -26,8 +26,6 @@ function renderDashboard(overrides: Partial<React.ComponentProps<typeof Househol
             onOpenFridge={noop}
             onOpenProduct={noop}
             onAddProduct={noop}
-            onScanProduct={noop}
-            onScanReceipt={noop}
             onOpenSettings={noop}
             {...overrides}
           />
@@ -85,8 +83,6 @@ test('an empty fridge offers the two ways to fill it instead of a dead sentence'
             onOpenFridge={noop}
             onOpenProduct={noop}
             onAddProduct={onAddProduct}
-            onScanProduct={noop}
-            onScanReceipt={noop}
             onOpenSettings={noop}
           />
         </ConnectorProvider>

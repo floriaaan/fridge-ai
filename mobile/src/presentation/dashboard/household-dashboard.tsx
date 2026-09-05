@@ -78,8 +78,6 @@ import {
   ChefHatIcon,
   ChevronRightIcon,
   CircleXIcon,
-  ReceiptIcon,
-  ScanLineIcon,
   SettingsIcon,
   ShoppingCartIcon,
   TriangleAlertIcon,
@@ -87,7 +85,7 @@ import {
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress, useReduceMotion } from '../shared/hover.js'
 import { AppShell } from '../shared/app-shell.js'
-import { ActionSheet } from '../shared/action-sheet.js'
+import { goToReceiptScan, useScanSheet } from '../shared/scan-sheet.js'
 import { StatusChip } from './status-chip.js'
 import { StatCard } from './stat-card.js'
 import { HeroWarmGlow } from './hero-warm-glow.js'
@@ -118,8 +116,6 @@ export interface HouseholdDashboardProps {
   onOpenFridge: () => void
   onOpenProduct: (productId: string) => void
   onAddProduct: () => void
-  onScanProduct: () => void
-  onScanReceipt: () => void
   onOpenSettings: () => void
 }
 
@@ -130,8 +126,6 @@ export function HouseholdDashboard({
   onOpenFridge,
   onOpenProduct,
   onAddProduct,
-  onScanProduct,
-  onScanReceipt,
   onOpenSettings,
 }: HouseholdDashboardProps) {
   const palette = useSoftPalette()
@@ -186,23 +180,8 @@ export function HouseholdDashboard({
 
   const seeAllHover = useHoverPress()
   const settingsHover = useHoverPress()
-
-  const [scanSheetOpen, setScanSheetOpen] = useState(false)
-
-  function openScanSheet() {
-    setScanSheetOpen(true)
-  }
-  function closeScanSheet() {
-    setScanSheetOpen(false)
-  }
-  function handleScanProductChoice() {
-    closeScanSheet()
-    onScanProduct()
-  }
-  function handleScanReceiptChoice() {
-    closeScanSheet()
-    onScanReceipt()
-  }
+  // The FAB opens the same two-choice sheet on every tab — see scan-sheet.tsx.
+  const { openScanSheet, scanSheet } = useScanSheet()
 
   function statusBg(status: ProductStatus) {
     return status === 'expired' ? palette.expiredBg : status === 'soon' ? palette.soonBg : palette.freshBg
@@ -436,7 +415,7 @@ export function HouseholdDashboard({
                   </Text>
                   <XStack gap="$2" flexWrap="wrap">
                     <EmptyAction label="Ajouter un produit" onPress={onAddProduct} testID="dashboard-empty-add" primary palette={palette} />
-                    <EmptyAction label="Scanner un ticket" onPress={onScanReceipt} testID="dashboard-empty-scan" palette={palette} />
+                    <EmptyAction label="Scanner un ticket" onPress={goToReceiptScan} testID="dashboard-empty-scan" palette={palette} />
                   </XStack>
                 </YStack>
               ) : null}
@@ -493,26 +472,7 @@ export function HouseholdDashboard({
         both AppShell's job now — see app-shell.tsx. Keeping them here,
         duplicated per screen, is exactly what left the FAB and persistent
         nav working on this screen only. */}
-    <ActionSheet
-      visible={scanSheetOpen}
-      onClose={closeScanSheet}
-      options={[
-        {
-          testID: 'scan-sheet-product',
-          label: 'Scanner un produit',
-          icon: (color) => <ScanLineIcon size={18} color={color} />,
-          tint: palette.chipTeal,
-          onPress: handleScanProductChoice,
-        },
-        {
-          testID: 'scan-sheet-receipt',
-          label: 'Scanner un ticket de caisse',
-          icon: (color) => <ReceiptIcon size={18} color={color} />,
-          tint: palette.chipViolet,
-          onPress: handleScanReceiptChoice,
-        },
-      ]}
-    />
+    {scanSheet}
     </>
   )
 }
