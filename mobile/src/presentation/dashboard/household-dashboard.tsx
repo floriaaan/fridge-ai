@@ -1,6 +1,7 @@
 /*
  * DIRECTION CONTRACT — dashboard foyer (redesign, 2026-08-27; pushed
- * toward Material Expressive same day per follow-up feedback)
+ * toward Material Expressive same day per follow-up feedback; wired to
+ * real household data 2026-09-05 after a usability critique)
  *
  * User-pinned world, replacing the previously built "ticket de caisse"
  * direction outright (a pin beats the roll — new-work.md §"Commit the
@@ -18,44 +19,49 @@
  * warm-dark hero card (umber, not cold forest-black — an ember glow in
  * one corner), asymmetric-radius, as the surface's sole high-contrast
  * block; lime reserved for interactive/progress elements;
- * a second bold hue (warm orange) on the streak badge, tilted like a
- * decal; three pastel stat cards (cream/lavender/pale-mint) each with its
- * own asymmetric corner set and a solid saturated icon chip (orange /
+ * three pastel stat cards (cream/lavender/pale-mint) each with its own
+ * asymmetric corner set and a solid saturated icon chip (orange /
  * violet / teal) instead of a bare icon; full-pill badges, wide
  * low-opacity floating shadows, no visible borders; one geometric sans,
  * hierarchy by size+weight only; status still redundantly icon+color
  * (mint/amber/coral), kept from the previous world's accessibility raise.
  * STORY: a foyer member opens the app, reads the hero in one glance
- * ("3 produits à surveiller"), scans the pastel stats, then either jumps
- * to Recettes/Courses (the two things they'd actually tap next) or
- * glances the 2-line "périme bientôt" preview — the home page is a
- * synthesis-and-navigation hub, not an expiry log with two footnotes.
+ * ("3 produits à surveiller"), scans the three metrics, acts on the
+ * products about to go bad, then jumps to Recettes/Courses.
+ *
+ * DATA (2026-09-05): every number on this screen comes from the backend —
+ * `useProductsQuery`, `useShoppingItemsQuery`, `useHouseholdQuery`. The
+ * screen previously rendered `dashboard.fixture.ts`, which meant the home
+ * page contradicted the user's own actions (import 20 products, still
+ * reads "12") and showed every foyer the same invented name. Two elements
+ * died with the fixture rather than being re-sourced:
+ *   — the "12j sans gaspi" streak badge: no "days without waste" concept
+ *     exists anywhere in the domain, so there was nothing to compute it
+ *     from. Removed here and from the desktop Sidebar.
+ *   — the "Consommé %" and "Valeur €" stat cards: SaaS-dashboard reflexes
+ *     with no kitchen decision behind them. Replaced by the three counts a
+ *     foyer member actually acts on — what expires this week, what has
+ *     already expired, what is left to buy.
+ * ORDER: "Périme bientôt" now sits directly under the metrics, above
+ * "Accès rapide" — it is the answer to the question the screen exists to
+ * answer, and it used to be a two-row footnote at the bottom of the scroll.
+ *
  * FIRST VIEWPORT: a small transparent carrot illustration beside the
  * greeting (no background chip — two earlier rounds tried it as a boxed
  * tile above and inside the hero; both read as a separate component
  * rather than personality attached to the person you're greeting) +
- * tilted warm streak badge + quiet sign-out link, spring-entrance warm
- * hero card (ember glow corner) with headline + two status pills, three
- * asymmetric pastel stat cards, then "Accès rapide" — two big
- * saturated NavCards (Recettes / Courses) at the same visual weight as
- * the hero — then a deliberately small "Périme bientôt" preview (top 2
- * items + "Voir tout"), closed by a floating glass pill (current
+ * a Réglages icon button, spring-entrance warm hero card (ember glow
+ * corner) with headline + two status pills, three asymmetric pastel stat
+ * cards, the "Périme bientôt" preview (top 4, each row opening that
+ * product), then "Accès rapide" — two big saturated NavCards
+ * (Recettes / Courses) — closed by a floating glass pill (current
  * surface) and a lime FAB that scales down on press (the signature
- * interaction) before scanning a product. Every tap that has no real
- * destination yet (NavCards, FAB, "Voir tout") surfaces the same honest
- * "bientôt disponible" hint rather than a dead control. Product status
- * (in the "Périme bientôt" preview) is a colored+labeled pill, not just
- * an icon — same redundant icon+color+word signal, more legible at a
- * glance. Every Pressable spring-scales on hover (web) and press (all
- * platforms) via `useHoverPress`. At ≥768px width the phone's floating
- * pill+FAB are replaced by a persistent playful sidebar (nav + streak +
- * a lime "Scanner" button, same warm-hero material) and the whole
- * dashboard becomes a rounded "insert" panel beside it — a two-pane
+ * interaction). Every Pressable spring-scales on hover (web) and press
+ * (all platforms) via `useHoverPress`. At ≥768px width the phone's
+ * floating pill+FAB are replaced by a persistent playful sidebar and the
+ * whole dashboard becomes a rounded "insert" panel beside it — a two-pane
  * layout, not the phone layout stretched wide.
  * FORM: user-pinned direction, no concept-seed roll.
- * FINISH: unreviewed and undocumented is unfinished; this build ends with
- * the finish review, the verdict, DESIGN.md, and every shipping raster
- * carrying its provenance.
  *
  * DISCLOSED GAPS:
  * — 3D illustrations: the hero and both NavCards now carry real 3D
@@ -64,44 +70,35 @@
  *   found by web search once image generation turned out unavailable
  *   this session. They're a found match, not the product's own
  *   commissioned set — swap for real product photography/illustration
- *   when that exists. Any *other* illustration slot added later without
- *   a matching asset still falls back to `IllustrationSlot`'s flat
- *   icon + "3D · bientôt" tag rather than shipping empty.
- * — Dark mode: `useSoftPalette` is light-only on purpose right now — see
- *   soft-palette.ts's header comment for why (the naive dark palette
- *   read as "mint→dark green", which is what triggered this round of
- *   feedback in the first place).
- *
- * Data is synthetic — see dashboard.fixture.ts. `streakDays` in
- * particular has no MVP concept behind it at all (invented to prove the
- * gamified badge) — flag before this ships past a design pass.
+ *   when that exists.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Animated, Image, type ImageSourcePropType, Pressable, ScrollView, useWindowDimensions } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { BlurView } from 'expo-blur'
+import { Animated, Image, type ImageSourcePropType, Pressable } from 'react-native'
 import {
   ChefHatIcon,
+  ChevronRightIcon,
   CircleXIcon,
-  FlameIcon,
-  PackageIcon,
+  ReceiptIcon,
   ScanLineIcon,
+  SettingsIcon,
   ShoppingCartIcon,
-  TrendingUpIcon,
   TriangleAlertIcon,
-  WalletIcon,
 } from './dashboard-icons.js'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress, useReduceMotion } from '../shared/hover.js'
-import { Sidebar } from '../shared/sidebar.js'
-import { BlobBackground } from '../shared/blob-background.js'
+import { AppShell } from '../shared/app-shell.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { StatusChip } from './status-chip.js'
 import { StatCard } from './stat-card.js'
 import { HeroWarmGlow } from './hero-warm-glow.js'
 import { NavCard } from './nav-card.js'
 import { useSoftPalette } from './soft-palette.js'
-import { dashboardFixture, expiryLabel, type ProductStatus } from './dashboard.fixture.js'
+import type { SoftPalette } from './soft-palette.js'
+import { daysUntilExpiry, expiryLabel, sortByExpiry, statusOf, type ProductStatus } from './product-status.js'
+import { useProductsQuery } from '../../application/fridge/products.query.js'
+import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
+import { useHouseholdQuery } from '../../application/identity/household.query.js'
+import type { Product } from '../../domain/fridge/product.js'
 
 // Real 3D illustrations — Microsoft Fluent Emoji 3D (MIT license), bundled
 // locally rather than fetched from a CDN at runtime (this app makes no
@@ -111,42 +108,63 @@ const carrotIllustration = require('../../../assets/illustrations/carrot-3d.png'
 const potOfFoodIllustration = require('../../../assets/illustrations/pot-of-food-3d.png') as ImageSourcePropType
 const shoppingCartIllustration = require('../../../assets/illustrations/shopping-cart-3d.png') as ImageSourcePropType
 
+/** Rows shown in the "Périme bientôt" preview before "Voir tout" takes over. */
+const PREVIEW_COUNT = 4
+
 export interface HouseholdDashboardProps {
   userName: string
-  onSignOut: () => void
-  signOutError: string | null
   onOpenRecettes: () => void
   onOpenCourses: () => void
   onOpenFridge: () => void
+  onOpenProduct: (productId: string) => void
+  onAddProduct: () => void
   onScanProduct: () => void
   onScanReceipt: () => void
   onOpenSettings: () => void
 }
 
-const TABLET_BREAKPOINT = 768
-
 export function HouseholdDashboard({
   userName,
-  onSignOut,
-  signOutError,
   onOpenRecettes,
   onOpenCourses,
   onOpenFridge,
+  onOpenProduct,
+  onAddProduct,
   onScanProduct,
   onScanReceipt,
   onOpenSettings,
 }: HouseholdDashboardProps) {
   const palette = useSoftPalette()
-  const { width } = useWindowDimensions()
-  const isWide = width >= TABLET_BREAKPOINT
-  const fixture = dashboardFixture
-  const sortedProducts = useMemo(
-    () => [...fixture.products].sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry),
-    [fixture.products],
+  const productsQuery = useProductsQuery()
+  const shoppingQuery = useShoppingItemsQuery()
+  const householdQuery = useHouseholdQuery()
+
+  const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data])
+  const dated = useMemo(
+    () => products.map((product) => ({ product, daysLeft: daysUntilExpiry(product) })),
+    [products],
   )
-  const soonCount = fixture.products.filter((p) => p.status === 'soon').length
-  const expiredCount = fixture.products.filter((p) => p.status === 'expired').length
+  const soonProducts = useMemo(
+    () => sortByExpiry(products).filter((product) => statusOf(daysUntilExpiry(product)) !== 'fresh'),
+    [products],
+  )
+  const previewProducts = useMemo(
+    // Once nothing is at risk, the preview still earns its place by showing
+    // what to use up next rather than collapsing to an empty box.
+    () => (soonProducts.length > 0 ? soonProducts : sortByExpiry(products)).slice(0, PREVIEW_COUNT),
+    [soonProducts, products],
+  )
+
+  const expiredCount = dated.filter(({ daysLeft }) => statusOf(daysLeft) === 'expired').length
+  const soonCount = dated.filter(({ daysLeft }) => statusOf(daysLeft) === 'soon').length
+  const thisWeekCount = dated.filter(({ daysLeft }) => daysLeft !== null && daysLeft > 0 && daysLeft <= 7).length
+  const toBuyCount = (shoppingQuery.data ?? []).filter((item) => !item.checked).length
   const watchCount = soonCount + expiredCount
+
+  const loading = productsQuery.isPending
+  const failed = !productsQuery.isPending && productsQuery.isError
+  const empty = !loading && !failed && products.length === 0
+  const householdName = householdQuery.data?.name ?? 'Ton foyer'
 
   const reduceMotion = useReduceMotion()
   const [entrance] = useState(() => new Animated.Value(0))
@@ -166,28 +184,8 @@ export function HouseholdDashboard({
     }).start()
   }, [entrance, reduceMotion])
 
-  const [fabScale] = useState(() => new Animated.Value(1))
-  function fabSpring(toValue: number, friction: number, tension: number) {
-    if (reduceMotion) {
-      Animated.timing(fabScale, { toValue, duration: 0, useNativeDriver: true }).start()
-      return
-    }
-    Animated.spring(fabScale, { toValue, friction, tension, useNativeDriver: true }).start()
-  }
-  function pressFabIn() {
-    fabSpring(0.86, 5, 200)
-  }
-  function pressFabOut() {
-    fabSpring(1, 4, 160)
-  }
-  function hoverFabIn() {
-    fabSpring(1.06, 6, 200)
-  }
-  function hoverFabOut() {
-    fabSpring(1, 5, 160)
-  }
-  const signOutHover = useHoverPress()
   const seeAllHover = useHoverPress()
+  const settingsHover = useHoverPress()
 
   const [scanSheetOpen, setScanSheetOpen] = useState(false)
 
@@ -213,110 +211,68 @@ export function HouseholdDashboard({
     return status === 'expired' ? palette.expiredText : status === 'soon' ? palette.soonText : palette.freshText
   }
 
-  const content = (
-    // minHeight={0} on every nested flex:1 box below is load-bearing: CSS
-    // flex items default to `min-height:auto`, which on web means a
-    // flex:1 box still grows to fit its content instead of being clipped
-    // at its allotted height — so ScrollView never gets a bounded parent
-    // to scroll *within*, and the whole page grows past the viewport
-    // instead. That's what "only the bottom shows" actually was.
-    //
-    // `position:'relative'` here is equally load-bearing and was the
-    // actual sidebar bug: BlobBackground is `position:absolute,
-    // left:0,right:0`, which on native Yoga is always confined to its
-    // immediate parent — but on web, CSS absolute positioning escapes to
-    // the nearest *positioned* ancestor, and with none declared it
-    // escaped all the way to the viewport (1440px), painting the light
-    // background clean over the sidebar. The sidebar was rendering
-    // correctly underneath the whole time (confirmed via computed
-    // styles) — just visually buried under this box's paint.
+  function heroHeadline() {
+    if (loading) return 'On regarde dans ton frigo…'
+    if (failed) return 'Frigo indisponible'
+    if (empty) return 'Ton frigo est encore vide'
+    return watchCount > 0
+      ? `${watchCount} produit${watchCount > 1 ? 's' : ''} à surveiller`
+      : 'Tout est frais aujourd’hui'
+  }
+
+  /** `—` rather than `0` while loading: an honest blank, not a wrong number. */
+  function metric(value: number) {
+    return loading || failed ? '—' : String(value)
+  }
+
+  return (
     <>
-    <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
-      <BlobBackground blobStrong={palette.blobStrong} blobSoft={palette.blobSoft} ground={palette.gradientBottom} />
-      <SafeAreaView style={{ flex: 1, minHeight: 0 }} edges={isWide ? [] : ['top', 'bottom']}>
-        <ScrollView
-          style={{ flex: 1, minHeight: 0 }}
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingBottom: isWide ? 40 : 140,
-            paddingTop: isWide ? 32 : 20,
-            maxWidth: isWide ? 640 : undefined,
-            width: isWide ? '100%' : undefined,
-            alignSelf: isWide ? 'center' : undefined,
-          }}
-        >
-          <XStack justifyContent="space-between" alignItems="flex-start">
-            <XStack alignItems="center" gap="$2.5">
+    <AppShell nav={{ kind: 'tab', tab: 'accueil', onScan: openScanSheet }}>
+          <XStack justifyContent="space-between" alignItems="center">
+            <XStack alignItems="center" gap="$2.5" flex={1}>
               <Image
                 source={carrotIllustration}
                 style={{ width: 40, height: 40 }}
                 resizeMode="contain"
                 accessibilityLabel=""
               />
-              <YStack>
+              <YStack flex={1}>
                 <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
                   Salut, {userName || 'toi'}
                 </Text>
-                <Text fontSize={20} fontWeight="800" color={palette.ink} marginTop="$1">
-                  {fixture.householdName}
+                <Text fontSize={20} fontWeight="800" color={palette.ink} marginTop="$1" numberOfLines={1}>
+                  {householdName}
                 </Text>
               </YStack>
             </XStack>
-            <YStack alignItems="flex-end" gap="$2">
-              {isWide ? null : (
-                <XStack
-                  alignItems="center"
-                  gap="$1.5"
-                  backgroundColor={palette.accentWarm}
-                  paddingVertical="$1.5"
-                  paddingHorizontal="$3"
+            {/* Was an 11px grey text link — the app's only route to Réglages,
+                and invisible next to a 40px illustration. Now a real 44pt
+                icon button (the Sidebar carries its own entry on desktop). */}
+            <Pressable
+              onPress={onOpenSettings}
+              testID="open-settings"
+              onHoverIn={settingsHover.onHoverIn}
+              onHoverOut={settingsHover.onHoverOut}
+              onPressIn={settingsHover.onPressIn}
+              onPressOut={settingsHover.onPressOut}
+              accessibilityRole="button"
+              accessibilityLabel="Réglages"
+              style={pointerCursor}
+            >
+              <Animated.View style={{ transform: [{ scale: settingsHover.scale }] }}>
+                <YStack
+                  width={44}
+                  height={44}
                   borderRadius={999}
-                  style={{ transform: [{ rotate: '-4deg' }] }}
+                  backgroundColor={palette.cream}
+                  alignItems="center"
+                  justifyContent="center"
                 >
-                  <FlameIcon size={14} color={palette.accentWarmText} />
-                  <Text fontSize={12} fontWeight="800" color={palette.accentWarmText}>
-                    {fixture.streakDays}j sans gaspi
-                  </Text>
-                </XStack>
-              )}
-              <Pressable
-                onPress={onSignOut}
-                onHoverIn={signOutHover.onHoverIn}
-                onHoverOut={signOutHover.onHoverOut}
-                onPressIn={signOutHover.onPressIn}
-                onPressOut={signOutHover.onPressOut}
-                testID="sign-out"
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                accessibilityRole="button"
-                accessibilityLabel="Se déconnecter"
-                style={pointerCursor}
-              >
-                <Animated.View style={{ transform: [{ scale: signOutHover.scale }] }}>
-                  <Text fontSize={11} fontWeight="500" color={palette.inkSecondary}>
-                    Se déconnecter
-                  </Text>
-                </Animated.View>
-              </Pressable>
-              <Pressable
-                onPress={onOpenSettings}
-                testID="open-settings"
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                accessibilityRole="button"
-                accessibilityLabel="Réglages"
-                style={pointerCursor}
-              >
-                <Text fontSize={11} fontWeight="500" color={palette.inkSecondary}>
-                  Réglages
-                </Text>
-              </Pressable>
-            </YStack>
+                  <SettingsIcon size={19} color={palette.ink} />
+                </YStack>
+              </Animated.View>
+            </Pressable>
           </XStack>
-
-          {signOutError ? (
-            <Text fontSize={12} color={palette.expiredText} marginTop="$2">
-              {signOutError}
-            </Text>
-          ) : null}
 
           <Animated.View
             style={{
@@ -348,8 +304,18 @@ export function HouseholdDashboard({
                 AUJOURD’HUI DANS TON FRIGO
               </Text>
               <Text fontSize={24} fontWeight="800" color={palette.brandDeepText} lineHeight={30}>
-                {watchCount > 0 ? `${watchCount} produit${watchCount > 1 ? 's' : ''} à surveiller` : 'Tout est frais aujourd’hui'}
+                {heroHeadline()}
               </Text>
+              {failed ? (
+                <Text fontSize={13} fontWeight="500" color={palette.brandDeepTextSecondary}>
+                  On n’a pas pu joindre le serveur.
+                </Text>
+              ) : null}
+              {empty ? (
+                <Text fontSize={13} fontWeight="500" color={palette.brandDeepTextSecondary}>
+                  Ajoute un produit ou scanne un ticket de caisse pour démarrer.
+                </Text>
+              ) : null}
               <XStack gap="$2" flexWrap="wrap">
                 {soonCount > 0 ? (
                   <XStack alignItems="center" gap="$1.5" backgroundColor="rgba(0,0,0,0.28)" paddingVertical="$1.5" paddingHorizontal="$3" borderRadius={999}>
@@ -367,6 +333,21 @@ export function HouseholdDashboard({
                     </Text>
                   </XStack>
                 ) : null}
+                {failed ? (
+                  <Pressable
+                    testID="dashboard-retry"
+                    onPress={() => productsQuery.refetch()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Réessayer de charger le frigo"
+                    style={pointerCursor}
+                  >
+                    <XStack alignItems="center" backgroundColor={palette.accentLime} paddingVertical="$2" paddingHorizontal="$4" borderRadius={999} minHeight={44}>
+                      <Text fontSize={13} fontWeight="800" color={palette.accentLimeText}>
+                        Réessayer
+                      </Text>
+                    </XStack>
+                  </Pressable>
+                ) : null}
               </XStack>
             </YStack>
           </Animated.View>
@@ -377,9 +358,9 @@ export function HouseholdDashboard({
               labelColor={palette.creamText}
               valueColor={palette.ink}
               chipColor={palette.chipOrange}
-              icon={<PackageIcon size={18} color={palette.onDark} />}
-              label="Produits"
-              value={String(fixture.productCount)}
+              icon={<TriangleAlertIcon size={18} color={palette.onDark} />}
+              label="Cette semaine"
+              value={metric(thisWeekCount)}
               corner="a"
               palette={palette}
             />
@@ -388,9 +369,9 @@ export function HouseholdDashboard({
               labelColor={palette.lavenderText}
               valueColor={palette.ink}
               chipColor={palette.chipViolet}
-              icon={<TrendingUpIcon size={18} color={palette.onDark} />}
-              label="Consommé"
-              value={`${fixture.consumptionRatePct}%`}
+              icon={<CircleXIcon size={18} color={palette.onDark} />}
+              label="Périmés"
+              value={metric(expiredCount)}
               corner="b"
               palette={palette}
             />
@@ -399,48 +380,18 @@ export function HouseholdDashboard({
               labelColor={palette.mintPaleText}
               valueColor={palette.ink}
               chipColor={palette.chipTeal}
-              icon={<WalletIcon size={18} color={palette.onDark} />}
-              label="Valeur"
-              value={`${fixture.estimatedValueEur}€`}
+              icon={<ShoppingCartIcon size={18} color={palette.onDark} />}
+              label="À racheter"
+              value={shoppingQuery.isPending ? '—' : String(toBuyCount)}
               corner="c"
               palette={palette}
             />
           </XStack>
 
           <YStack marginTop="$6">
-            <Text fontSize={15} fontWeight="800" color={palette.ink}>
-              Accès rapide
-            </Text>
-            <XStack gap="$3" marginTop="$3">
-              <NavCard
-                bg={palette.navCardTeal}
-                glow={palette.chipTeal}
-                onPress={onOpenRecettes}
-                icon={<ChefHatIcon size={30} color={palette.onDark} />}
-                imageSource={potOfFoodIllustration}
-                title="Recettes"
-                subtitle={fixture.suggestedRecipe}
-                corner="b"
-                palette={palette}
-              />
-              <NavCard
-                bg={palette.navCardViolet}
-                glow={palette.chipViolet}
-                onPress={onOpenCourses}
-                icon={<ShoppingCartIcon size={30} color={palette.onDark} />}
-                imageSource={shoppingCartIllustration}
-                title="Courses"
-                subtitle={`${fixture.shoppingListCount} articles`}
-                corner="a"
-                palette={palette}
-              />
-            </XStack>
-          </YStack>
-
-          <YStack marginTop="$6">
             <XStack justifyContent="space-between" alignItems="center">
               <Text fontSize={15} fontWeight="800" color={palette.ink}>
-                Périme bientôt
+                {soonProducts.length > 0 ? 'Périme bientôt' : 'À consommer en premier'}
               </Text>
               <Pressable
                 onPress={onOpenFridge}
@@ -468,134 +419,196 @@ export function HouseholdDashboard({
               gap="$1"
               style={{ shadowColor: palette.shadowCool, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.06, shadowRadius: 14, elevation: 1 }}
             >
-              {sortedProducts.slice(0, 2).map((product) => (
-                <XStack key={product.id} alignItems="center" gap="$3" padding="$2.5">
-                  <Text fontSize={13} fontWeight="600" color={palette.ink} flex={1} numberOfLines={1}>
-                    {product.name}
+              {loading ? (
+                <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} padding="$3">
+                  Chargement…
+                </Text>
+              ) : null}
+              {failed ? (
+                <Text fontSize={13} fontWeight="500" color={palette.expiredText} padding="$3">
+                  Liste indisponible hors connexion.
+                </Text>
+              ) : null}
+              {empty ? (
+                <YStack padding="$3" gap="$3">
+                  <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
+                    Rien dans le frigo pour l’instant.
                   </Text>
-                  <YStack alignItems="flex-end" gap="$1">
-                    <StatusChip status={product.status} bg={statusBg(product.status)} color={statusText(product.status)} />
-                    <Text fontSize={10} fontWeight="500" color={palette.inkSecondary}>
-                      {expiryLabel(product.daysUntilExpiry)}
-                    </Text>
-                  </YStack>
-                </XStack>
+                  <XStack gap="$2" flexWrap="wrap">
+                    <EmptyAction label="Ajouter un produit" onPress={onAddProduct} testID="dashboard-empty-add" primary palette={palette} />
+                    <EmptyAction label="Scanner un ticket" onPress={onScanReceipt} testID="dashboard-empty-scan" palette={palette} />
+                  </XStack>
+                </YStack>
+              ) : null}
+              {previewProducts.map((product) => (
+                <PreviewRow
+                  key={product.id}
+                  product={product}
+                  onPress={() => onOpenProduct(product.id)}
+                  statusBg={statusBg}
+                  statusText={statusText}
+                  palette={palette}
+                />
               ))}
             </YStack>
           </YStack>
-        </ScrollView>
 
-        <YStack position="absolute" left={0} right={0} bottom={0} alignItems="center" paddingBottom={18}>
-          {isWide ? null : (
-          <XStack alignItems="center" gap="$3" width="92%" justifyContent="space-between">
-            <BlurView
-              intensity={40}
-              tint="light"
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 10,
-                paddingHorizontal: 18,
-                borderRadius: 999,
-                overflow: 'hidden',
-                gap: 8,
-              }}
-            >
-              <YStack width={8} height={8} borderRadius={999} backgroundColor={palette.accentLime} />
-              <Text fontSize={13} fontWeight="700" color={palette.ink}>
-                Frigo
-              </Text>
-            </BlurView>
-
-            <Pressable
-              onPress={openScanSheet}
-              onHoverIn={hoverFabIn}
-              onHoverOut={hoverFabOut}
-              onPressIn={pressFabIn}
-              onPressOut={pressFabOut}
-              testID="scan-fab"
-              accessibilityRole="button"
-              accessibilityLabel="Scanner un produit"
-              style={pointerCursor}
-            >
-              <Animated.View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  backgroundColor: palette.accentLime,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transform: [{ scale: fabScale }],
-                  shadowColor: palette.shadowCool,
-                  shadowOffset: { width: 0, height: 10 },
-                  shadowOpacity: 0.28,
-                  shadowRadius: 16,
-                  elevation: 6,
-                }}
-              >
-                <ScanLineIcon size={24} color={palette.accentLimeText} />
-              </Animated.View>
-            </Pressable>
-          </XStack>
-          )}
-        </YStack>
-      </SafeAreaView>
-    </YStack>
+          <YStack marginTop="$6">
+            <Text fontSize={15} fontWeight="800" color={palette.ink}>
+              Accès rapide
+            </Text>
+            <XStack gap="$3" marginTop="$3">
+              <NavCard
+                bg={palette.navCardTeal}
+                glow={palette.chipTeal}
+                onPress={onOpenRecettes}
+                icon={<ChefHatIcon size={30} color={palette.onDark} />}
+                imageSource={potOfFoodIllustration}
+                title="Recettes"
+                subtitle={soonCount + expiredCount > 0 ? 'Cuisine ce qui périme' : 'Idées pour ce soir'}
+                corner="b"
+                palette={palette}
+              />
+              <NavCard
+                bg={palette.navCardViolet}
+                glow={palette.chipViolet}
+                onPress={onOpenCourses}
+                icon={<ShoppingCartIcon size={30} color={palette.onDark} />}
+                imageSource={shoppingCartIllustration}
+                title="Courses"
+                subtitle={
+                  shoppingQuery.isPending
+                    ? 'Chargement…'
+                    : toBuyCount === 0
+                      ? 'Liste à jour'
+                      : `${toBuyCount} article${toBuyCount > 1 ? 's' : ''} à prendre`
+                }
+                corner="a"
+                palette={palette}
+              />
+            </XStack>
+          </YStack>
+    </AppShell>
+    {/* The mobile bottom nav (glass pill + FAB) and the desktop sidebar are
+        both AppShell's job now — see app-shell.tsx. Keeping them here,
+        duplicated per screen, is exactly what left the FAB and persistent
+        nav working on this screen only. */}
     <ActionSheet
       visible={scanSheetOpen}
       onClose={closeScanSheet}
       options={[
-        { testID: 'scan-sheet-product', label: 'Scanner un produit', onPress: handleScanProductChoice },
-        { testID: 'scan-sheet-receipt', label: 'Scanner un ticket de caisse', onPress: handleScanReceiptChoice },
+        {
+          testID: 'scan-sheet-product',
+          label: 'Scanner un produit',
+          icon: (color) => <ScanLineIcon size={18} color={color} />,
+          tint: palette.chipTeal,
+          onPress: handleScanProductChoice,
+        },
+        {
+          testID: 'scan-sheet-receipt',
+          label: 'Scanner un ticket de caisse',
+          icon: (color) => <ReceiptIcon size={18} color={color} />,
+          tint: palette.chipViolet,
+          onPress: handleScanReceiptChoice,
+        },
       ]}
     />
     </>
   )
+}
 
-  if (!isWide) return content
-
-  // Tablet/desktop: the whole layout — edge to edge, sidebar included —
-  // is `layoutSurface`, a near-white warm-tinted gray, deliberately much
-  // lighter than the old dark-brown surround (that read as "too much
-  // brown" — this is a bare touch of it). The dashboard itself is a
-  // separate pure-white rounded card *inset* into that surface with a
-  // visible margin on every side (top/right/bottom, and the gap facing
-  // the sidebar), like a mat around a print — content must stay the
-  // lighter of the two for that to read at all, so the shadow between
-  // them carries more of the separation now that the color step is small.
-  // The sidebar has no card of its own: it's the same tone as the
-  // layout, not a panel sitting on it.
+/**
+ * The preview rows used to be inert text. They are the one place on the home
+ * screen that names a specific product, so they are also the shortest route
+ * to acting on it — each row opens that product.
+ */
+function PreviewRow({
+  product,
+  onPress,
+  statusBg,
+  statusText,
+  palette,
+}: {
+  product: Product
+  onPress: () => void
+  statusBg: (status: ProductStatus) => string
+  statusText: (status: ProductStatus) => string
+  palette: SoftPalette
+}) {
+  const hover = useHoverPress()
+  const daysLeft = daysUntilExpiry(product)
+  const status = statusOf(daysLeft)
   return (
-    <SafeAreaView style={{ flex: 1, minHeight: 0, backgroundColor: palette.layoutSurface }} edges={['top', 'bottom']}>
-      <XStack flex={1} minHeight={0} backgroundColor={palette.layoutSurface}>
-        <Sidebar
-          palette={palette}
-          streakDays={fixture.streakDays}
-          active="frigo"
-          onOpenFrigo={() => {}}
-          onOpenRecettes={onOpenRecettes}
-          onOpenCourses={onOpenCourses}
-          onScan={openScanSheet}
-        />
-        <YStack flex={1} minHeight={0} padding="$4">
-          <YStack
-            flex={1}
-            minHeight={0}
-            overflow="hidden"
-            style={{
-              borderRadius: 28,
-              shadowColor: palette.shadowWarm,
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.16,
-              shadowRadius: 22,
-              elevation: 4,
-            }}
-          >
-            {content}
+    <Pressable
+      testID={`dashboard-product-${product.id}`}
+      onPress={onPress}
+      onHoverIn={hover.onHoverIn}
+      onHoverOut={hover.onHoverOut}
+      onPressIn={hover.onPressIn}
+      onPressOut={hover.onPressOut}
+      accessibilityRole="button"
+      accessibilityLabel={`${product.name} — ${expiryLabel(daysLeft)}`}
+      style={pointerCursor}
+    >
+      <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
+        <XStack alignItems="center" gap="$3" padding="$2.5" minHeight={44}>
+          <Text fontSize={13} fontWeight="600" color={palette.ink} flex={1} numberOfLines={1}>
+            {product.name}
+          </Text>
+          <YStack alignItems="flex-end" gap="$1">
+            <StatusChip status={status} bg={statusBg(status)} color={statusText(status)} />
+            <Text fontSize={10} fontWeight="500" color={palette.inkSecondary}>
+              {expiryLabel(daysLeft)}
+            </Text>
           </YStack>
-        </YStack>
-      </XStack>
-    </SafeAreaView>
+          <ChevronRightIcon size={16} color={palette.inkSecondary} />
+        </XStack>
+      </Animated.View>
+    </Pressable>
+  )
+}
+
+/** An empty state that hands over the next action instead of describing the void. */
+function EmptyAction({
+  label,
+  onPress,
+  testID,
+  primary,
+  palette,
+}: {
+  label: string
+  onPress: () => void
+  testID: string
+  primary?: boolean
+  palette: SoftPalette
+}) {
+  const hover = useHoverPress()
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      onHoverIn={hover.onHoverIn}
+      onHoverOut={hover.onHoverOut}
+      onPressIn={hover.onPressIn}
+      onPressOut={hover.onPressOut}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={pointerCursor}
+    >
+      <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
+        <XStack
+          alignItems="center"
+          justifyContent="center"
+          minHeight={44}
+          paddingHorizontal="$4"
+          borderRadius={999}
+          backgroundColor={primary ? palette.accentLime : palette.cream}
+        >
+          <Text fontSize={13} fontWeight="800" color={primary ? palette.accentLimeText : palette.ink}>
+            {label}
+          </Text>
+        </XStack>
+      </Animated.View>
+    </Pressable>
   )
 }

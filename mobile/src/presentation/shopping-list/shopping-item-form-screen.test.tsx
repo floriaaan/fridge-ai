@@ -6,6 +6,14 @@ import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-conne
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { ShoppingItemFormScreen } from './shopping-item-form-screen.js'
 
+// `AppShell` registers its scan action through expo-router's `useFocusEffect`,
+// which needs a real navigation container. These screen tests render the shell
+// without one, so the hook — and only the hook — is stubbed out.
+jest.mock('expo-router', () => ({
+  ...jest.requireActual('expo-router'),
+  useFocusEffect: jest.fn(),
+}))
+
 function renderWithProviders(children: ReactNode, connector = new FakeFridgeConnector()) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(

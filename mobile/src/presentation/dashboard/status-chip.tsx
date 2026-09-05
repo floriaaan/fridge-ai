@@ -1,6 +1,6 @@
 import { CircleCheckIcon, CircleXIcon, TriangleAlertIcon } from './dashboard-icons.js'
 import { Text, XStack } from '../shared/tamagui-typed.js'
-import type { ProductStatus } from './dashboard.fixture.js'
+import type { ProductStatus } from './product-status.js'
 
 function StatusIcon({ status, size, color }: { status: ProductStatus; size: number; color: string }) {
   if (status === 'expired') return <CircleXIcon size={size} color={color} />

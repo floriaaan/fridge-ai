@@ -9,11 +9,11 @@ import { Animated, Image, Pressable } from 'react-native'
 import { Text, XStack, YStack } from './tamagui-typed.js'
 import { pointerCursor, useHoverPress } from './hover.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ChefHatIcon, FlameIcon, PackageIcon, ScanLineIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
+import { ChefHatIcon, HomeIcon, PackageIcon, ScanLineIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
 
 const carrotIllustration = require('../../../assets/illustrations/carrot-3d.png')
 
-export type SidebarSection = 'frigo' | 'recettes' | 'courses'
+export type SidebarSection = 'accueil' | 'frigo' | 'recettes' | 'courses'
 
 /** One row in the sidebar — hover/press feedback, active state in lime. */
 function SidebarItem({
@@ -65,16 +65,16 @@ function SidebarItem({
 
 export function Sidebar({
   palette,
-  streakDays,
   active,
+  onOpenAccueil,
   onOpenFrigo,
   onOpenRecettes,
   onOpenCourses,
   onScan,
 }: {
   palette: SoftPalette
-  streakDays: number
-  active: SidebarSection
+  active?: SidebarSection
+  onOpenAccueil: () => void
   onOpenFrigo: () => void
   onOpenRecettes: () => void
   onOpenCourses: () => void
@@ -95,23 +95,14 @@ export function Sidebar({
         </Text>
       </XStack>
 
-      <XStack
-        alignItems="center"
-        gap="$1.5"
-        alignSelf="flex-start"
-        backgroundColor={palette.accentWarm}
-        paddingVertical="$1.5"
-        paddingHorizontal="$3"
-        borderRadius={999}
-        style={{ transform: [{ rotate: '-3deg' }] }}
-      >
-        <FlameIcon size={13} color={palette.accentWarmText} />
-        <Text fontSize={11} fontWeight="800" color={palette.accentWarmText}>
-          {streakDays}j sans gaspi
-        </Text>
-      </XStack>
-
       <YStack gap="$1.5">
+        <SidebarItem
+          active={active === 'accueil'}
+          icon={<HomeIcon size={17} color={active === 'accueil' ? palette.accentLimeText : palette.inkSecondary} />}
+          label="Accueil"
+          onPress={onOpenAccueil}
+          palette={palette}
+        />
         <SidebarItem
           active={active === 'frigo'}
           icon={<PackageIcon size={17} color={active === 'frigo' ? palette.accentLimeText : palette.inkSecondary} />}

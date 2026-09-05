@@ -7,7 +7,7 @@ import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-conne
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { ReceiptReviewScreen } from './receipt-review-screen.js'
 
-jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }))
+jest.mock('expo-router', () => ({ router: { replace: jest.fn() }, useFocusEffect: jest.fn() }))
 
 // @testing-library/react-native v14: render() AND fireEvent (press/changeText/
 // scroll) are async by default, both return a Promise — every call below must

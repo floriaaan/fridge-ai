@@ -25,7 +25,7 @@ jest.mock('expo-image-picker', () => ({
   MediaTypeOptions: { Images: 'Images' },
 }))
 
-jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn() } }))
+jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn() }, useFocusEffect: jest.fn() }))
 
 beforeEach(() => {
   jest.clearAllMocks()

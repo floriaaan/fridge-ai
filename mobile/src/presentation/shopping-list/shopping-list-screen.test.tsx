@@ -8,6 +8,7 @@ import { ShoppingListScreen } from './shopping-list-screen.js'
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn() },
+ useFocusEffect: jest.fn(),
 }))
 
 function renderScreen(connector = new FakeFridgeConnector()) {

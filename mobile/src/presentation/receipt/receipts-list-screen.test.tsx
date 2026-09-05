@@ -7,7 +7,7 @@ import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-conne
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { ReceiptsListScreen } from './receipts-list-screen.js'
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }))
+jest.mock('expo-router', () => ({ router: { push: jest.fn() }, useFocusEffect: jest.fn() }))
 
 function renderWithProviders(children: ReactNode) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
