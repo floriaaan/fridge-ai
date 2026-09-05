@@ -37,6 +37,7 @@ function icon(paths: IconSegment[]) {
   }
 }
 
+export const XIcon = icon([{ d: 'M18 6 6 18' }, { d: 'm6 6 12 12' }])
 export const CircleCheckIcon = icon([{ cx: '12', cy: '12', r: '10' }, { d: 'm9 12 2 2 4-4' }])
 export const CircleXIcon = icon([{ cx: '12', cy: '12', r: '10' }, { d: 'm15 9-6 6' }, { d: 'm9 9 6 6' }])
 export const TriangleAlertIcon = icon([
@@ -88,4 +89,42 @@ export const TrendingUpIcon = icon([
 export const LeafIcon = icon([
   { d: 'M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z' },
   { d: 'M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12' },
+])
+
+// Sidebar/AppShell "Accueil" nav item — the dashboard's own destination,
+// distinct from the "Frigo" tab (FridgeListScreen), which previously
+// borrowed this slot's active state incorrectly (see app-shell.tsx).
+export const HomeIcon = icon([
+  { d: 'M3 9.5 12 3l9 6.5' },
+  { d: 'M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5' },
+])
+
+// Settings screen: account card.
+export const UserIcon = icon([{ cx: '12', cy: '7', r: '4' }, { d: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2' }])
+
+// Settings screen: "Historique des tickets" row.
+export const ReceiptIcon = icon([
+  { d: 'M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z' },
+  { d: 'M8 7h8' },
+  { d: 'M8 11h8' },
+  { d: 'M8 15h5' },
+])
+
+// Settings screen: sign-out button.
+export const LogOutIcon = icon([
+  { d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' },
+  { points: '16 17 21 12 16 7' },
+  { d: 'M21 12H9' },
+])
+
+// Settings screen: "Historique des tickets" row chevron.
+export const ChevronRightIcon = icon([{ d: 'm9 18 6-6-6-6' }])
+
+// Dashboard header: the Réglages entry (Lucide `settings-2` — the gear's
+// tooth path reads as mush at 19px, the sliders shape survives).
+export const SettingsIcon = icon([
+  { d: 'M20 7h-9' },
+  { d: 'M14 17H5' },
+  { cx: '17', cy: '17', r: '3' },
+  { cx: '7', cy: '7', r: '3' },
 ])

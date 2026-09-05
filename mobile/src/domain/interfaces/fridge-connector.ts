@@ -1,6 +1,7 @@
 import type { Result } from '../shared/result.js'
 import type { ApiError } from '../shared/api-error.js'
 import type { Session } from '../identity/session.js'
+import type { Household } from '../identity/household.js'
 import type { AuthMethod } from '../identity/auth-method.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../shopping-list/shopping-item.js'
 import type { Recipe } from '../recipe/recipe.js'
@@ -23,6 +24,10 @@ export interface FridgeConnector {
   signUpEmail(email: string, password: string, name: string): Promise<Result<Session, ApiError>>
   signInSocial(provider: 'pocketid'): Promise<Result<Session, ApiError>>
   signOut(): Promise<void>
+  getHousehold(): Promise<Household | null>
+  regenerateInviteCode(): Promise<Result<string, ApiError>>
+  removeHouseholdMember(userId: string): Promise<Result<void, ApiError>>
+  leaveHousehold(): Promise<Result<void, ApiError>>
   getShoppingItems(): Promise<ShoppingItem[]>
   createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>
   updateShoppingItem(itemId: string, patch: UpdateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>

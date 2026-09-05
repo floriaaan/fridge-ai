@@ -3,6 +3,7 @@ import { apiFetch, apiFetchMultipart } from './http-client.js'
 import { Result } from '../../domain/shared/result.js'
 import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.js'
 import type { Session } from '../../domain/identity/session.js'
+import type { Household } from '../../domain/identity/household.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
@@ -71,6 +72,28 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async signOut(): Promise<void> {
     await authClient.signOut()
+  }
+
+  async getHousehold(): Promise<Household | null> {
+    const result = await apiFetch<{ household: Household | null }>('/api/households/mine')
+    return result.ok ? result.value.household : null
+  }
+
+  async regenerateInviteCode(): Promise<Result<string, ApiError>> {
+    const result = await apiFetch<{ inviteCode: string }>('/api/households/invite-code/regenerate', {
+      method: 'POST',
+    })
+    return result.ok ? Result.ok(result.value.inviteCode) : Result.err(result.error)
+  }
+
+  async removeHouseholdMember(userId: string): Promise<Result<void, ApiError>> {
+    const result = await apiFetch<void>(`/api/households/members/${userId}`, { method: 'DELETE' })
+    return result.ok ? Result.ok(undefined) : Result.err(result.error)
+  }
+
+  async leaveHousehold(): Promise<Result<void, ApiError>> {
+    const result = await apiFetch<void>('/api/households/leave', { method: 'POST' })
+    return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async getShoppingItems(): Promise<ShoppingItem[]> {

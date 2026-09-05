@@ -8,7 +8,7 @@ jest.mock('expo-camera', () => ({
   useCameraPermissions: () => [{ granted: true }, jest.fn()],
 }))
 
-jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn(), setParams: jest.fn() } }))
+jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn(), setParams: jest.fn() }, useFocusEffect: jest.fn() }))
 
 beforeEach(() => {
   jest.clearAllMocks()

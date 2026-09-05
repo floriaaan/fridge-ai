@@ -13,6 +13,7 @@ import { FridgeDetailScreen } from './fridge-detail-screen.js'
 // for this screen-level test — we only assert the delete-confirm flow.
 jest.mock('expo-router', () => ({
   router: { back: jest.fn(), push: jest.fn() },
+ useFocusEffect: jest.fn(),
 }))
 
 function renderWithProviders(children: ReactNode) {

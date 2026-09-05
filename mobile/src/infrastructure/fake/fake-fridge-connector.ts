@@ -1,5 +1,6 @@
 import { Result } from '../../domain/shared/result.js'
 import { fakeSession } from './fixtures/session.fixture.js'
+import { fakeHousehold } from './fixtures/household.fixture.js'
 import { fakeShoppingItems } from './fixtures/shopping-item.fixture.js'
 import { fakeRecipes } from './fixtures/recipe.fixture.js'
 import { fakeProducts } from './fixtures/product.fixture.js'
@@ -9,6 +10,7 @@ import { fakeReceipts } from './fixtures/receipt.fixture.js'
 import { fakeAiSettings } from './fixtures/ai-settings.fixture.js'
 import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.js'
 import type { Session } from '../../domain/identity/session.js'
+import type { Household } from '../../domain/identity/household.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
@@ -23,6 +25,8 @@ import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.j
 /** In-memory only, resets on every reload — UI iteration without a running backend. */
 export class FakeFridgeConnector implements FridgeConnector {
   private session: Session | null = null
+  private household: Household = { ...fakeHousehold, members: fakeHousehold.members.map((m) => ({ ...m })) }
+  private nextInviteCode = 1
   private shoppingItems: ShoppingItem[] = fakeShoppingItems.map((item) => ({ ...item }))
   private products: Product[] = fakeProducts.map((p) => ({ ...p }))
   private nextProductId = 1
@@ -62,6 +66,33 @@ export class FakeFridgeConnector implements FridgeConnector {
 
   async signOut(): Promise<void> {
     this.session = null
+  }
+
+  async getHousehold(): Promise<Household | null> {
+    return { ...this.household, members: this.household.members.map((m) => ({ ...m })) }
+  }
+
+  async regenerateInviteCode(): Promise<Result<string, ApiError>> {
+    if (this.household.role !== 'owner') {
+      return Result.err({ type: 'forbidden', message: 'Seul le propriétaire du foyer peut régénérer le code.' })
+    }
+    this.household.inviteCode = `FRIDGE-NEW${this.nextInviteCode++}`
+    return Result.ok(this.household.inviteCode)
+  }
+
+  async removeHouseholdMember(userId: string): Promise<Result<void, ApiError>> {
+    if (this.household.role !== 'owner') {
+      return Result.err({ type: 'forbidden', message: 'Seul le propriétaire du foyer peut retirer un membre.' })
+    }
+    const index = this.household.members.findIndex((m) => m.userId === userId)
+    if (index === -1) return Result.err({ type: 'not_found', message: 'Membre introuvable.' })
+    this.household.members.splice(index, 1)
+    return Result.ok(undefined)
+  }
+
+  async leaveHousehold(): Promise<Result<void, ApiError>> {
+    this.household.members = this.household.members.filter((m) => m.userId !== this.session?.user.id)
+    return Result.ok(undefined)
   }
 
   async getShoppingItems(): Promise<ShoppingItem[]> {
