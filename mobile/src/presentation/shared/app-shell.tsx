@@ -34,7 +34,6 @@ import { pointerCursor, useReduceMotion } from './hover.js'
 import { Sidebar, type SidebarSection } from './sidebar.js'
 import { BlobBackground } from './blob-background.js'
 import { HintBubble } from './hint-bubble.js'
-import { useRegisterScanAction } from './scan-action-context.js'
 import {
   ChefHatIcon,
   HomeIcon,
@@ -87,8 +86,14 @@ export interface AppShellProps {
   children: React.ReactNode
 }
 
+/**
+ * `.navigate`, not `.push`: pushing a tab switch stacked a history entry on
+ * every hop, so Android's back button unwound the whole tab-hopping session
+ * instead of leaving the app. `navigate` also happens to be the action iOS's
+ * NativeBottomTabsRouter special-cases for jumping between tabs.
+ */
 function goToTab(tab: SidebarSection) {
-  router.push(TAB_ROUTES[tab] as never)
+  router.navigate(TAB_ROUTES[tab] as never)
 }
 
 /**
@@ -238,7 +243,6 @@ function MobileTabNav({ tab, onScan }: { tab: SidebarSection; onScan: () => void
 export function AppShell({ nav, hint, contentMaxWidth = 640, scrollable = true, children }: AppShellProps) {
   const palette = useSoftPalette()
   const { isWide, hasMobileNav, isNativeTabBar } = useAppShellLayout(nav)
-  useRegisterScanAction(nav.kind === 'tab' ? nav.onScan : null, nav.kind === 'tab' ? TAB_ROUTES[nav.tab] : null)
 
   const content = (
     <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
@@ -276,6 +280,7 @@ export function AppShell({ nav, hint, contentMaxWidth = 640, scrollable = true, 
           onOpenFrigo={() => (activeTab === 'frigo' ? undefined : goToTab('frigo'))}
           onOpenRecettes={() => (activeTab === 'recettes' ? undefined : goToTab('recettes'))}
           onOpenCourses={() => (activeTab === 'courses' ? undefined : goToTab('courses'))}
+          onOpenReglages={() => router.push('/(tabs)/settings')}
           onScan={nav.kind === 'tab' ? nav.onScan : () => goToTab('accueil')}
         />
         <YStack flex={1} minHeight={0} padding="$4" style={{ position: 'relative' }}>

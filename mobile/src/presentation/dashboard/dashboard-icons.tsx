@@ -128,3 +128,19 @@ export const SettingsIcon = icon([
   { cx: '17', cy: '17', r: '3' },
   { cx: '7', cy: '7', r: '3' },
 ])
+
+// Household screen: the members list.
+export const UsersIcon = icon([
+  { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' },
+  { cx: '9', cy: '7', r: '4' },
+  { d: 'M22 21v-2a4 4 0 0 0-3-3.87' },
+  { d: 'M16 3.13a4 4 0 0 1 0 7.75' },
+])
+
+// Household screen: regenerating the invite code.
+export const RefreshIcon = icon([
+  { d: 'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8' },
+  { d: 'M21 3v5h-5' },
+  { d: 'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16' },
+  { d: 'M8 16H3v5' },
+])

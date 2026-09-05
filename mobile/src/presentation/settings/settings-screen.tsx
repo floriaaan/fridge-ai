@@ -152,18 +152,26 @@ export function SettingsScreen() {
           corner="a"
           palette={palette}
         />
-        <StatCard
-          bg={palette.mintPale}
-          labelColor={palette.mintPaleText}
-          valueColor={palette.ink}
-          chipColor={palette.chipTeal}
-          icon={<HomeIcon size={18} color={palette.onDark} />}
-          label="Foyer"
-          value={household.isPending ? '—' : (household.data?.name ?? 'Aucun foyer')}
-          secondary={memberSummary}
-          corner="b"
-          palette={palette}
-        />
+        <Pressable
+          testID="settings-household"
+          onPress={() => router.push('/(tabs)/household')}
+          accessibilityRole="button"
+          accessibilityLabel="Gérer le foyer"
+          style={[pointerCursor, { flex: 1 }]}
+        >
+          <StatCard
+            bg={palette.mintPale}
+            labelColor={palette.mintPaleText}
+            valueColor={palette.ink}
+            chipColor={palette.chipTeal}
+            icon={<HomeIcon size={18} color={palette.onDark} />}
+            label="Foyer"
+            value={household.isPending ? '—' : (household.data?.name ?? 'Aucun foyer')}
+            secondary={memberSummary ? `${memberSummary} · gérer` : 'Gérer'}
+            corner="b"
+            palette={palette}
+          />
+        </Pressable>
       </XStack>
 
       <YStack marginTop="$6" gap="$2">
