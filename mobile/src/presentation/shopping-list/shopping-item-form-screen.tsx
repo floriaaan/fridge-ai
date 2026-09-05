@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pressable } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Text, YStack } from '../shared/tamagui-typed.js'
-import { pointerCursor } from '../shared/hover.js'
+import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import { AppShell } from '../shared/app-shell.js'
+import { BackButton } from '../shared/back-button.js'
+import { FormCard } from '../shared/form-card.js'
+import { AuthButton } from '../identity/auth-button.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { FormField } from '../fridge/form-field.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
@@ -86,37 +87,49 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <YStack flex={1} padding="$4" gap="$3" backgroundColor={palette.gradientBottom}>
+    <AppShell nav={{ kind: 'stack' }}>
+      <XStack alignItems="center" gap="$3">
+        <BackButton onPress={() => router.back()} ink={palette.ink} cream={palette.cream} />
         <Text fontSize={20} fontWeight="800" color={palette.ink}>
           {props.mode === 'create' ? 'Ajouter un article' : "Modifier l'article"}
         </Text>
+      </XStack>
 
-        <FormField testID="shopping-item-form-name" label="Nom" value={name} onChangeText={setName} color={palette.ink} />
-        <FormField testID="shopping-item-form-amount" label="Quantité" value={amount} onChangeText={setAmount} color={palette.ink} />
-        <FormField testID="shopping-item-form-unit" label="Unité" value={unit} onChangeText={setUnit} color={palette.ink} />
+      <YStack marginTop="$5">
+        <FormCard palette={palette} gap="$3">
+          <FormField testID="shopping-item-form-name" label="Nom" value={name} onChangeText={setName} palette={palette} />
+          <FormField
+            testID="shopping-item-form-amount"
+            label="Quantité"
+            value={amount}
+            onChangeText={setAmount}
+            palette={palette}
+            keyboardType="number-pad"
+          />
+          <FormField
+            testID="shopping-item-form-unit"
+            label="Unité"
+            value={unit}
+            onChangeText={setUnit}
+            palette={palette}
+            autoCapitalize="none"
+          />
 
-        {error ? (
-          <Text fontSize={13} color={palette.expiredText}>
-            {error}
-          </Text>
-        ) : null}
-
-        <Pressable
-          testID="shopping-item-form-submit"
-          onPress={handleSubmit}
-          disabled={pending}
-          accessibilityRole="button"
-          accessibilityLabel="Enregistrer"
-          style={pointerCursor}
-        >
-          <YStack backgroundColor={palette.accentLime} borderRadius={999} paddingVertical="$2.5" alignItems="center">
-            <Text fontWeight="800" color={palette.accentLimeText}>
-              {pending ? 'Enregistrement...' : 'Enregistrer'}
+          {error ? (
+            <Text fontSize={13} color={palette.expiredText}>
+              {error}
             </Text>
-          </YStack>
-        </Pressable>
+          ) : null}
+
+          <AuthButton
+            testID="shopping-item-form-submit"
+            label="Enregistrer"
+            pendingLabel="Enregistrement..."
+            pending={pending}
+            onPress={handleSubmit}
+          />
+        </FormCard>
       </YStack>
-    </SafeAreaView>
+    </AppShell>
   )
 }

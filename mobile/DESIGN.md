@@ -1,6 +1,6 @@
 ---
 name: Fridge AI
-description: A soft, gamified household dashboard for a shared fridge — playful habit-app energy applied to food waste instead of streaks and lessons.
+description: A soft household dashboard for a shared fridge — playful, warm, and built entirely on numbers the foyer can act on.
 colors:
   ground-mint: "#E9F6D8"
   ground-white: "#FFFFFF"
@@ -40,6 +40,7 @@ colors:
   expired: "#C6493B"
   expired-bg: "#FBDCD4"
   expired-text: "#B23A2E"
+  scrim: "rgba(15,43,29,0.40)"
 typography:
   display:
     fontFamily: "System sans-serif (Tamagui defaultConfig — no custom typeface sourced yet)"
@@ -118,7 +119,7 @@ Warm and near-white by design; color is spent deliberately (lime for action, one
 
 ### Secondary
 - **Hero Mocha** (`#6B5642`): the one deliberately dark, rich surface in the whole system (the "AUJOURD'HUI DANS TON FRIGO" hero card, the auth-screen equivalent, status toast). Carries white text (`#FFFFFF`, ≈6.9:1) and a low-opacity warm-orange ember glow in one corner for warmth.
-- **Accent Warm** (`#FF8A3D`): the second bold hue — the tilted streak badge, nowhere else. Paired text `#3D1B00` (≈10.6:1).
+- **Accent Warm** (`#FF8A3D`): the second bold hue — the hero card's ember glow (`HeroWarmGlow`), nowhere else. Paired text `#3D1B00` (≈10.6:1) for anything ever set on it. It used to also fill a tilted "12j sans gaspi" streak badge; that badge is gone (2026-09-05) because no "days without waste" concept exists in the domain, so nothing could compute it — it rendered a fixture number to every foyer.
 
 ### Tertiary
 - **Chip Teal** (`#2FA88A`) / **Chip Violet** (`#8B7FD1`) / **Chip Orange** (`#FF8A3D`): saturated icon-chip fills inside the pastel stat cards — decorative-graphic use only (icons, not text), so they can stay lighter than the 4.5:1 text floor.
@@ -134,6 +135,11 @@ Warm and near-white by design; color is spent deliberately (lime for action, one
 - **Fresh** `#3FAE6B` / bg `#DFF3E4` / text `#1F6B44`
 - **Soon** `#C98A1E` / bg `#FBEBC7` / text `#8A5A12`
 - **Expired** `#C6493B` / bg `#FBDCD4` / text `#B23A2E`
+
+Status is derived in exactly one place — `productStatus`/`statusOf` in `src/presentation/dashboard/product-status.ts`. A date already past is `expired`; today through three days out is `soon`; no date at all is `fresh`. The fridge list once carried its own fractional-day copy of this, so the same yoghurt read "Bientôt" on one screen and "Expiré" on the next.
+
+### Scrim
+- **Scrim** (`rgba(15,43,29,0.40)` light / `rgba(0,0,0,0.62)` dark): the dimming layer behind a modal `ActionSheet`, and the small circular backdrop behind a camera overlay's close glyph (white-on-white was invisible against a fridge door). Always a token, never an inline literal.
 
 ### Named Rules
 **The One Dark Surface Rule.** Exactly one surface per screen is allowed to be rich/dark (the hero card, or the auth card's — no, the auth card is white; the hero-equivalent status toast). Two dark surfaces on one screen means the hierarchy broke; the fix is never "make it lighter," it's "which one loses hero status."
@@ -158,9 +164,16 @@ Warm and near-white by design; color is spent deliberately (lime for action, one
 
 ## Layout
 
-**Mobile (< 768px):** a single scrolling column, `paddingHorizontal: 20`, capped at the device width. A floating glass pill (current section) + a lime FAB sit fixed at the bottom, overlapping the scroll content by design.
+**`AppShell` (`src/presentation/shared/app-shell.tsx`) is the layout contract — every screen renders through it, not a per-screen reimplementation.** An audit (2026-08-30) found this chrome copy-pasted independently across four screens, diverging each time, while two screens skipped it entirely — the mobile bottom nav and FAB worked on the dashboard alone. `AppShell` now owns both breakpoints below and the nav chrome; a screen supplies only its own header/content as children plus a `nav` prop:
 
-**Tablet/desktop (≥ 768px, `TABLET_BREAKPOINT`):** a two-pane frame replaces the phone chrome entirely — no floating pill, no FAB. A fixed 220px sidebar (`layoutSurface` background, no card of its own) sits flush against a white content card (`gradientBottom`) that is centered and width-capped at 640px, with a 16px (`$4`) margin of `layoutSurface` visible on every side of the content card, including the edge facing the sidebar. The whole frame — sidebar and content together — is one `overflow:hidden`, `borderRadius:28` box; the sidebar never has its own separate radius/shadow.
+- **`{ kind: 'tab', tab, onScan }`** — one of the four top-level sections (Accueil/Frigo/Recettes/Courses). Mobile gets the bottom nav; desktop gets the Sidebar with `tab` highlighted.
+- **`{ kind: 'stack' }`** — a pushed, non-tab screen (Réglages, Historique des tickets). Mobile carries no bottom nav (the screen renders its own `BackButton` in its header instead); desktop still gets the Sidebar, DESIGN.md's tablet/desktop frame being universal rather than per-screen-opt-in, with nothing highlighted since no tab is active.
+
+**Mobile (< 768px):** a single scrolling column, `paddingHorizontal: 20`, capped at the device width. For `kind: 'tab'` screens, a floating glass pill (current section) + a lime FAB sit fixed at the bottom, overlapping the scroll content by design.
+
+**Tablet/desktop (≥ 768px, `TABLET_BREAKPOINT`, exported from `app-shell.tsx`):** a two-pane frame replaces the phone chrome entirely — no floating pill, no FAB. A fixed 220px sidebar (`layoutSurface` background, no card of its own) sits flush against a white content card (`gradientBottom`) that is centered and width-capped at 640px, with a 16px (`$4`) margin of `layoutSurface` visible on every side of the content card, including the edge facing the sidebar. The whole frame — sidebar and content together — is one `overflow:hidden`, `borderRadius:28` box; the sidebar never has its own separate radius/shadow.
+
+`AppShell` wraps children in its own `ScrollView` by default. A screen that owns a virtualized `FlatList` instead (fridge, receipts) passes `scrollable={false}` and builds its list's `contentContainerStyle` from the exported `shellContentStyle()` + `useAppShellLayout()` helpers, so its padding/max-width still matches every other screen exactly.
 
 Every `flex:1` box in a scrollable chain declares `minHeight:0` explicitly — a CSS default (`min-height:auto`) that silently breaks nested scroll containers on web and was the root cause of two real layout bugs during this build.
 
@@ -179,7 +192,7 @@ Hybrid: flat color fields for status/pastel surfaces, wide/soft/low-opacity shad
 
 ## Shapes
 
-Every major surface gets its own **asymmetric** corner radius — two opposite corners larger, two smaller — rather than one uniform radius reused everywhere. Three named corner sets rotate across the stat cards and NavCards (`corner="a"|"b"|"c"` in `StatCard`, `"a"|"b"` in `NavCard`) so a row of same-purpose cards still reads as organic, not stamped. The hero card and auth card use a consistent 36/20/36/20 (px) pattern. Full-pill (`999px`) radius is reserved for anything that's a status/action/badge (chips, buttons, the streak badge, the FAB) — never for a content container.
+Every major surface gets its own **asymmetric** corner radius — two opposite corners larger, two smaller — rather than one uniform radius reused everywhere. Three named corner sets rotate across the stat cards and NavCards (`corner="a"|"b"|"c"` in `StatCard`, `"a"|"b"` in `NavCard`) so a row of same-purpose cards still reads as organic, not stamped. The hero card and auth card use a consistent 36/20/36/20 (px) pattern. Full-pill (`999px`) radius is reserved for anything that's a status/action/badge (chips, buttons, the FAB) — never for a content container.
 
 No borders anywhere in the system. Separation between surfaces is color contrast and shadow, never a stroke.
 
@@ -196,7 +209,7 @@ No borders anywhere in the system. Separation between surfaces is color contrast
 
 ### Chips
 - **Status chip** (`StatusChip`): pill, status-bg fill, status-text label + a matching icon (`CircleCheckIcon`/`TriangleAlertIcon`/`CircleXIcon`) — always icon+color+word together.
-- **Streak badge**: pill, `accent-warm` fill, tilted −3° to −4° (the one intentionally-rotated element in the system — a "sticker," used exactly once).
+- **Selectable chip**: pill, `minHeight:44`, `accent-lime`/`accent-lime-text` when selected and `mint-pale`/`mint-pale-text` when not, always carrying `accessibilityState={{ selected }}`. Used for locations, units, category suggestions, expiry shortcuts and list filters — one shape for "pick one of a few", never a bespoke variant per screen.
 
 ### Cards / Containers
 - **Hero card / auth card:** asymmetric 36/20/36/20px radius, `hero-mocha` or white fill, hero-lift shadow, a low-opacity warm radial glow (`HeroWarmGlow`) in one corner.
@@ -204,14 +217,23 @@ No borders anywhere in the system. Separation between surfaces is color contrast
 - **NavCard:** asymmetric corner set, `navcard-teal`/`navcard-violet` fill, an `IllustrationSlot` (blurred radial glow + a bundled 3D illustration or a flat icon fallback tagged "3D · bientôt"), hero-lift shadow, hover/press spring.
 - **Internal padding:** `$4` (16px) to `$5` (20px) depending on card size.
 
-### Inputs / Fields (`AuthField`)
-- **Style:** 48px height, 14px radius, `cream` fill, 2px transparent border, label above in `ink-secondary`.
+### Inputs / Fields (`AuthField`, `FormField`)
+Two components, one recipe: `AuthField` on the auth screens, `FormField` (`src/presentation/fridge/form-field.tsx`) everywhere else.
+- **Style:** `minHeight` 48 (auth) / 44 (forms) — never a fixed `height`, so large Dynamic Type sizes grow the field instead of clipping it — 12-14px radius, `cream` fill, 2px transparent border, label above.
 - **Focus:** border shifts to `accent-lime` (2px) — the only focus treatment in the system; no glow, no shadow change.
-- **Error:** surfaced below the field stack as an `AuthError` coral chip (`expired-bg`/`expired-text`), not inline per-field.
+- **Error:** `FormField` takes a per-field `error`, which turns the border `expired` and prints the message under that field with `accessibilityLiveRegion="polite"`. `AuthField`'s errors still surface as one `AuthError` coral chip below the stack. A form-wide summary may accompany per-field errors; it must never replace them — an unanchored "un champ est invalide" at the bottom of a long card is not recoverable.
+- **Keyboard:** any numeric or date field passes `keyboardType`. Making a user find digits on the alphabetic keyboard while holding groceries is a defect, not a detail.
+
+### Action sheet (`ActionSheet`)
+The app's one modal. Options are separate card-buttons on a `layoutSurface` sheet; a `title` (and optional `description`) names what is being decided, a `destructive` option carries `expired-bg`/`expired-text`, and every sheet ends with an "Annuler" row. Any irreversible action on shared household state — deleting a product or a shopping item, removing a member, leaving a foyer, discarding an unsaved form — goes through one, and its copy names the consequence for the rest of the foyer.
+
+### Scan (`useScanSheet`, `ScanScreen`)
+The lime FAB means one thing on every tab: scan a product, or scan a receipt. `useScanSheet` owns both the sheet and the two destinations, and iOS's native "search"-role tab renders the same two choices as a real screen. Nothing in the app opens a different scan affordance per screen.
 
 ### Navigation
-- **Mobile:** a floating glass pill (`expo-blur` `BlurView`, `intensity:40`) showing the current section, plus the lime FAB, both fixed to the bottom, overlapping scroll content.
-- **Desktop/tablet sidebar:** `layoutSurface` fill, no border/shadow of its own (part of the shared frame). Active item = full-lime pill with `accent-lime-text` label; inactive items = transparent, `ink` label, `ink-secondary` icon. One `flex:1` spacer pushes the Scanner button to the bottom.
+Owned entirely by `AppShell` (see Layout) — no screen wires its own nav chrome.
+- **Mobile:** a floating glass pill (`expo-blur` `BlurView`, `intensity:40`, `tint` following the active color scheme via `palette.blurTint` — a hardcoded `tint="light"` shipped once and stayed a light frosted pill in dark mode until caught) showing the current section, plus the lime FAB, both fixed to the bottom, overlapping scroll content. Present on `kind: 'tab'` screens only.
+- **Desktop/tablet sidebar (`Sidebar`, `src/presentation/shared/sidebar.tsx`):** `layoutSurface` fill, no border/shadow of its own (part of the shared frame). Five items — Accueil / Frigo / Recettes / Courses, then Réglages (never highlighted: it is a stack screen, not a tab). Active item = full-lime pill with `accent-lime-text` label; inactive items = transparent, `ink` label, `ink-secondary` icon; a `kind: 'stack'` screen shows the sidebar with none active. One `flex:1` spacer pushes the Scanner button to the bottom.
 
 ## Do's and Don'ts
 
@@ -221,11 +243,17 @@ No borders anywhere in the system. Separation between surfaces is color contrast
 - **Do** give every new major card its own asymmetric corner set, drawn from (or extending) the existing three-set rotation.
 - **Do** set `minHeight:0` on every `flex:1` box in a chain that ends in a `ScrollView` — this is a recurring, real web bug in this codebase, not a style nitpick.
 - **Do** honor/press-scale every new Pressable via `useHoverPress` (`src/presentation/shared/hover.ts`) rather than adding a bespoke animation.
-- **Do** disclose a placeholder honestly (an unbuilt illustration, an unsent route) — `IllustrationSlot`'s "3D · bientôt" tag and the app-wide "bientôt disponible" hint pattern exist specifically so an unfinished feature never ships as a silently dead control.
+- **Do** disclose a placeholder honestly (an unbuilt illustration, an unsent route) — `IllustrationSlot`'s "3D · bientôt" tag exists specifically so an unfinished feature never ships as a silently dead control. The bar rose in 2026-09: a hint is for a genuinely unbuilt feature, never for a control that *could* be wired. "Bientôt disponible" was sitting on the recipe cards, the Recettes FAB and the Courses FAB while every endpoint behind them was already shipped.
+- **Do** give every screen its real loading, empty and error states, and put the next action inside the empty one. `return null` while a query settles is a blank white screen with no chrome and nothing to announce; an empty state that only names the void makes the user find their own way out.
+- **Do** confirm anything irreversible through an `ActionSheet` that names the consequence — never by swapping a button in place, which turns an impatient double-tap into a deletion on shared state.
+- **Do** route every screen through `AppShell` rather than reimplementing BlobBackground/SafeAreaView/ScrollView/Sidebar chrome locally — that duplication is exactly what left the mobile FAB and bottom nav working on the dashboard alone.
 
 ### Don't:
+- **Don't** hand-roll a screen's own responsive shell (breakpoint check, Sidebar wiring, safe-area, background) — extend `AppShell` instead. This was a real, audited regression: four screens each reimplemented it slightly differently, and two skipped it entirely.
 - **Don't** use `#0F2B1D`-family near-black greens anywhere — that was the original hero color, rejected as "too corporate/cold," and the whole warm-mocha identity exists specifically to replace it.
 - **Don't** use `chip-teal`/`chip-violet`/`chip-orange` behind white *text* — they measure below 4.5:1 with white text; use the darker `navcard-teal`/`navcard-violet` siblings for anything text-bearing.
 - **Don't** add a second dark/high-contrast surface to a screen that already has the hero card — one rich surface per screen, always.
-- **Don't** add a visible border/stroke to any container — separation comes from shadow and color contrast only.
+- **Don't** add a visible border/stroke to any container — separation comes from shadow and color contrast only. (A field's 2px focus ring is a state, not a container border; the shopping list's dashed tear-line is a disclosed material exception.)
+- **Don't** render product counts, household names or any other domain number from a fixture. The dashboard shipped on `dashboard.fixture.ts` for a while: it named every foyer "Foyer Leroux" and kept claiming 12 products after a 20-item receipt import. A number with no source is worse than no number.
+- **Don't** leave a gesture as the only path to an action. The shopping list's edit and delete were swipe-only, which is invisible to a first-timer and unreachable with a screen reader; they now answer to a long press too.
 - **Don't** hardcode an SVG gradient `id` as a literal string on a component that can mount more than once in the same DOM (e.g., inside a Stack navigator that keeps prior screens mounted) — use `useId()`. This shipped as a real bug (the sign-up screen's background blob silently failed to render) before being caught.

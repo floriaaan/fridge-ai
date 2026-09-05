@@ -9,6 +9,7 @@ export function StatCard({
   icon,
   label,
   value,
+  secondary,
   corner,
   palette,
 }: {
@@ -19,6 +20,8 @@ export function StatCard({
   icon: React.ReactNode
   label: string
   value: string
+  /** Optional third line under `value` — smaller, `labelColor`-toned (e.g. an email under an account name). Settings' account/household cards use this; the dashboard's metric cards don't need it. */
+  secondary?: string
   corner: 'a' | 'b' | 'c'
   palette: SoftPalette
 }) {
@@ -46,9 +49,14 @@ export function StatCard({
         <Text fontSize={12} fontWeight="500" color={labelColor}>
           {label}
         </Text>
-        <Text fontSize={22} fontWeight="800" color={valueColor} marginTop="$1">
+        <Text fontSize={22} fontWeight="800" color={valueColor} marginTop="$1" numberOfLines={1}>
           {value}
         </Text>
+        {secondary ? (
+          <Text fontSize={12} fontWeight="500" color={labelColor} marginTop="$0.5" numberOfLines={1}>
+            {secondary}
+          </Text>
+        ) : null}
       </YStack>
     </YStack>
   )
