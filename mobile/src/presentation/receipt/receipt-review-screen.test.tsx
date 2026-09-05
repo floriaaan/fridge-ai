@@ -7,7 +7,10 @@ import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-conne
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { ReceiptReviewScreen } from './receipt-review-screen.js'
 
-jest.mock('expo-router', () => ({ router: { replace: jest.fn() }, useFocusEffect: jest.fn() }))
+jest.mock('expo-router', () => ({
+  router: { replace: jest.fn(), back: jest.fn(), canGoBack: () => true },
+  useFocusEffect: jest.fn(),
+}))
 
 // @testing-library/react-native v14: render() AND fireEvent (press/changeText/
 // scroll) are async by default, both return a Promise — every call below must
@@ -33,19 +36,65 @@ test('scans the image on mount and pre-fills the form from the draft', async () 
   await renderWithProviders(<ReceiptReviewScreen imageUri="file://receipt.jpg" />)
 
   await waitFor(() => expect(screen.getByTestId('receipt-review-store-name').props.value).toBe('Carrefour'))
-  expect(screen.getByTestId('receipt-item-0-name').props.value).toBe('Lait demi-écrémé')
+  expect(screen.getByText('Lait demi-écrémé')).toBeTruthy()
+  expect(screen.getByTestId('receipt-review-photo').props.source).toEqual({ uri: 'file://receipt.jpg' })
 })
 
-test('importing sends every item with its chosen location and navigates to the dashboard on success', async () => {
+test('importing confirms what landed in the fridge instead of dropping the user on the dashboard', async () => {
   await renderWithProviders(<ReceiptReviewScreen imageUri="file://receipt.jpg" />)
 
-  await waitFor(() => expect(screen.getByTestId('receipt-item-0-name').props.value).toBe('Lait demi-écrémé'))
+  await waitFor(() => expect(screen.getByTestId('receipt-review-submit')).toBeTruthy())
 
   await act(async () => {
     await fireEvent.press(screen.getByTestId('receipt-review-submit'))
   })
 
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/(tabs)'))
+  await waitFor(() => expect(screen.getByTestId('receipt-review-success')).toBeTruthy())
+
+  await fireEvent.press(screen.getByTestId('receipt-review-open-fridge'))
+  expect(router.replace).toHaveBeenCalledWith('/(tabs)/fridge')
+})
+
+test('rows are collapsed until opened, and a row can be dropped from the receipt', async () => {
+  await renderWithProviders(<ReceiptReviewScreen imageUri="file://receipt.jpg" />)
+
+  await waitFor(() => expect(screen.getByTestId('receipt-item-0-toggle')).toBeTruthy())
+  expect(screen.queryByTestId('receipt-item-0-name')).toBeNull()
+
+  await fireEvent.press(screen.getByTestId('receipt-item-0-toggle'))
+  expect(screen.getByTestId('receipt-item-0-name').props.value).toBe('Lait demi-écrémé')
+
+  await fireEvent.press(screen.getByTestId('receipt-item-0-remove'))
+
+  await waitFor(() => expect(screen.queryByText('Lait demi-écrémé')).toBeNull())
+})
+
+test('an invalid line is named, opened and marked instead of failing with one string', async () => {
+  await renderWithProviders(<ReceiptReviewScreen imageUri="file://receipt.jpg" />)
+
+  await waitFor(() => expect(screen.getByTestId('receipt-item-0-toggle')).toBeTruthy())
+
+  await fireEvent.press(screen.getByTestId('receipt-item-0-toggle'))
+  await fireEvent.changeText(screen.getByTestId('receipt-item-0-quantity'), 'deux')
+  await fireEvent.press(screen.getByTestId('receipt-item-0-toggle'))
+
+  await act(async () => {
+    await fireEvent.press(screen.getByTestId('receipt-review-submit'))
+  })
+
+  await waitFor(() => expect(screen.getByTestId('receipt-item-0-quantity-error')).toBeTruthy())
+  expect(screen.getByTestId('receipt-review-error')).toBeTruthy()
+})
+
+test('bulk location puts every item in the chosen place', async () => {
+  await renderWithProviders(<ReceiptReviewScreen imageUri="file://receipt.jpg" />)
+
+  await waitFor(() => expect(screen.getByTestId('receipt-review-all-freezer')).toBeTruthy())
+
+  await fireEvent.press(screen.getByTestId('receipt-review-all-freezer'))
+  await fireEvent.press(screen.getByTestId('receipt-item-0-toggle'))
+
+  expect(screen.getByTestId('receipt-item-0-location-freezer').props.accessibilityState.selected).toBe(true)
 })
 
 test('shows a retry hint when the scan fails', async () => {
@@ -63,9 +112,13 @@ test('shows a retry hint when the scan fails', async () => {
     </ThemeProvider>,
   )
 
-  await waitFor(() => expect(screen.getByText('Extraction impossible, réessaie ou vérifie ta photo.')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText('Extraction impossible, réessaie ou reprends la photo.')).toBeTruthy())
 
-  await fireEvent.press(screen.getByTestId('receipt-review-retry'))
+  // Retry re-reads the same photo rather than sending the user back to the camera.
+  await act(async () => {
+    await fireEvent.press(screen.getByTestId('receipt-review-retry'))
+  })
 
-  expect(router.replace).toHaveBeenCalledWith('/(tabs)/receipts/scan')
+  expect(connector.scanReceipt).toHaveBeenCalledTimes(2)
+  expect(router.replace).not.toHaveBeenCalled()
 })

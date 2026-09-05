@@ -1,30 +1,97 @@
-import { TextInput } from 'react-native'
+import { useState } from 'react'
+import { TextInput, type KeyboardTypeOptions, type TextInputProps } from 'react-native'
 import { Text, YStack } from '../shared/tamagui-typed.js'
+import type { SoftPalette } from '../dashboard/soft-palette.js'
 
+/**
+ * Label above, palette-styled field below — was unstyled `TextInput`
+ * (default text color, no background, `rgba(0,0,0,0.15)` border) so it
+ * only ever worked on a light card; on `FormCard`'s dark-mode
+ * `gradientBottom` (near-black) the default near-black input text and
+ * near-invisible border made every field unreadable ("noir sur noir").
+ * Mirrors `AuthField`'s recipe so it stays legible in both themes.
+ *
+ * Three things a usability critique caught, all of them shared by every
+ * form in the app because they all render through here:
+ * — `minHeight: 44`. `padding: 10` + `fontSize: 15` measured ~39pt, under
+ *   the touch-target floor, on every field of every product form.
+ * — `keyboardType`. Quantities and dates opened the full QWERTY keyboard;
+ *   a caller that asks for `numeric` now gets it.
+ * — a per-field `error`, announced as a live region. Errors used to appear
+ *   as one string at the bottom of a long card, with nothing marking which
+ *   field was wrong and nothing announced to a screen reader.
+ */
 export function FormField({
   testID,
   label,
   value,
   onChangeText,
-  color,
+  palette,
+  keyboardType,
+  placeholder,
+  autoCapitalize,
+  hint,
+  error,
 }: {
   testID: string
   label: string
   value: string
   onChangeText: (text: string) => void
-  color: string
+  palette: SoftPalette
+  keyboardType?: KeyboardTypeOptions
+  placeholder?: string
+  autoCapitalize?: TextInputProps['autoCapitalize']
+  /** Quiet helper line under the field — the expected format, an example. */
+  hint?: string
+  error?: string | null
 }) {
+  const [focused, setFocused] = useState(false)
+  const borderColor = error ? palette.expired : focused ? palette.accentLime : 'transparent'
+
   return (
     <YStack gap="$1">
-      <Text fontSize={12} fontWeight="700" color={color}>
+      <Text fontSize={12} fontWeight="700" color={palette.ink}>
         {label}
       </Text>
       <TextInput
         testID={testID}
         value={value}
         onChangeText={onChangeText}
-        style={{ borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', borderRadius: 10, padding: 10, fontSize: 15 }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        accessibilityLabel={label}
+        keyboardType={keyboardType}
+        placeholder={placeholder}
+        autoCapitalize={autoCapitalize}
+        placeholderTextColor={palette.inkSecondary}
+        style={{
+          // minHeight, not height: large Dynamic Type needs room to grow.
+          minHeight: 44,
+          borderRadius: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          fontSize: 15,
+          color: palette.ink,
+          backgroundColor: palette.cream,
+          borderWidth: 2,
+          borderColor,
+        }}
       />
+      {error ? (
+        <Text
+          testID={`${testID}-error`}
+          fontSize={12}
+          fontWeight="600"
+          color={palette.expiredText}
+          accessibilityLiveRegion="polite"
+        >
+          {error}
+        </Text>
+      ) : hint ? (
+        <Text fontSize={11} fontWeight="500" color={palette.inkSecondary}>
+          {hint}
+        </Text>
+      ) : null}
     </YStack>
   )
 }
