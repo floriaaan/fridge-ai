@@ -1,7 +1,8 @@
-import { Pressable } from 'react-native'
-import { Text, YStack } from '../shared/tamagui-typed.js'
-import { pointerCursor } from '../shared/hover.js'
+import { Animated, Pressable } from 'react-native'
+import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
+import { ChevronRightIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { FormField } from '../fridge/form-field.js'
 import { LOCATIONS } from '../../domain/fridge/location.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
@@ -21,66 +22,214 @@ export interface EditableReceiptItem {
   expiresAt: string
 }
 
+export type ReceiptItemErrors = Partial<Record<'name' | 'quantity' | 'price' | 'expiresAt', string>>
+
 const LOCATION_LABELS: Record<LocationValue, string> = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' }
 
+/**
+ * Collapsed by default: one summary line per item, tap to open.
+ *
+ * Every item used to render six text inputs and a location picker, all
+ * expanded, always — a 20-line receipt was 120 visible text fields, so the
+ * feature built to replace typing produced strictly more of it. The AI's
+ * extraction is meant to be *approved*, not retyped; the fields are still
+ * one tap away for the lines it got wrong.
+ */
 export function ReceiptItemRow({
   index,
   item,
+  expanded,
+  onToggle,
   onChange,
+  onRemove,
+  errors,
 }: {
   index: number
   item: EditableReceiptItem
+  expanded: boolean
+  onToggle: () => void
   onChange: (item: EditableReceiptItem) => void
+  onRemove: () => void
+  errors?: ReceiptItemErrors
 }) {
   const palette = useSoftPalette()
+  const hover = useHoverPress()
+  const hasError = Boolean(errors && Object.keys(errors).length > 0)
 
   function set<K extends keyof EditableReceiptItem>(key: K, value: EditableReceiptItem[K]) {
     onChange({ ...item, [key]: value })
   }
 
-  return (
-    <YStack backgroundColor={palette.gradientBottom} borderRadius={16} padding="$3" gap="$2" marginBottom="$2">
-      <FormField testID={`receipt-item-${index}-name`} label="Nom" value={item.name} onChangeText={(v) => set('name', v)} color={palette.ink} />
-      <FormField testID={`receipt-item-${index}-quantity`} label="Quantité" value={item.quantity} onChangeText={(v) => set('quantity', v)} color={palette.ink} />
-      <FormField testID={`receipt-item-${index}-unit`} label="Unité" value={item.unit} onChangeText={(v) => set('unit', v)} color={palette.ink} />
-      <FormField testID={`receipt-item-${index}-category`} label="Catégorie" value={item.category} onChangeText={(v) => set('category', v)} color={palette.ink} />
-      <FormField testID={`receipt-item-${index}-price`} label="Prix" value={item.price} onChangeText={(v) => set('price', v)} color={palette.ink} />
-      <FormField
-        testID={`receipt-item-${index}-expires-at`}
-        label="Date de péremption (AAAA-MM-JJ)"
-        value={item.expiresAt}
-        onChangeText={(v) => set('expiresAt', v)}
-        color={palette.ink}
-      />
+  const summary = [
+    item.quantity.trim().length > 0 ? `${item.quantity} ${item.unit}`.trim() : null,
+    LOCATION_LABELS[item.location],
+    item.price.trim().length > 0 ? `${item.price} €` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
-      <YStack gap="$1">
-        <Text fontSize={12} fontWeight="700" color={palette.ink}>
-          Emplacement
-        </Text>
-        <YStack flexDirection="row" gap="$2">
-          {LOCATIONS.map((loc) => (
-            <Pressable
-              key={loc}
-              testID={`receipt-item-${index}-location-${loc}`}
-              onPress={() => set('location', loc)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: item.location === loc }}
-              style={pointerCursor}
-            >
-              <YStack
-                backgroundColor={item.location === loc ? palette.accentLime : palette.mintPale}
-                borderRadius={999}
-                paddingVertical="$1.5"
-                paddingHorizontal="$3"
-              >
-                <Text fontSize={12} fontWeight="700" color={item.location === loc ? palette.accentLimeText : palette.mintPaleText}>
-                  {LOCATION_LABELS[loc]}
+  return (
+    <YStack
+      backgroundColor={palette.gradientBottom}
+      borderRadius={16}
+      padding="$2"
+      gap="$2"
+      marginBottom="$2"
+      style={{
+        // Card-float shadow (DESIGN.md's shadow vocabulary) — this row
+        // shares its background color with the card it sits inside, so
+        // without a shadow it has no visible boundary at all.
+        shadowColor: hasError ? palette.expired : palette.shadowCool,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: hasError ? 0.35 : 0.1,
+        shadowRadius: 18,
+        elevation: 2,
+      }}
+    >
+      <XStack alignItems="center" gap="$2">
+        <Pressable
+          testID={`receipt-item-${index}-toggle`}
+          onPress={onToggle}
+          onHoverIn={hover.onHoverIn}
+          onHoverOut={hover.onHoverOut}
+          onPressIn={hover.onPressIn}
+          onPressOut={hover.onPressOut}
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          accessibilityLabel={`${item.name || 'Article sans nom'} — ${summary}`}
+          accessibilityHint={expanded ? 'Replier cet article' : 'Modifier cet article'}
+          style={[pointerCursor, { flex: 1 }]}
+        >
+          <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
+            <XStack alignItems="center" gap="$3" minHeight={44} paddingHorizontal="$2">
+              <YStack flex={1}>
+                <Text fontSize={14} fontWeight="700" color={hasError ? palette.expiredText : palette.ink} numberOfLines={1}>
+                  {item.name || 'Article sans nom'}
+                </Text>
+                <Text fontSize={12} fontWeight="500" color={palette.inkSecondary} numberOfLines={1}>
+                  {summary}
                 </Text>
               </YStack>
-            </Pressable>
-          ))}
+              <Animated.View style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }}>
+                <ChevronRightIcon size={16} color={palette.inkSecondary} />
+              </Animated.View>
+            </XStack>
+          </Animated.View>
+        </Pressable>
+
+        {/* There was no way to drop a line the AI misread — a "SAC PLASTIQUE
+            0,03" had to be imported into the fridge as a product. */}
+        <Pressable
+          testID={`receipt-item-${index}-remove`}
+          onPress={onRemove}
+          accessibilityRole="button"
+          accessibilityLabel={`Retirer ${item.name || 'cet article'} du ticket`}
+          style={pointerCursor}
+        >
+          <YStack width={44} height={44} borderRadius={999} alignItems="center" justifyContent="center" backgroundColor={palette.expiredBg}>
+            <XIcon size={15} color={palette.expiredText} />
+          </YStack>
+        </Pressable>
+      </XStack>
+
+      {expanded ? (
+        <YStack gap="$2" paddingHorizontal="$2" paddingBottom="$2">
+          <FormField
+            testID={`receipt-item-${index}-name`}
+            label="Nom"
+            value={item.name}
+            onChangeText={(v) => set('name', v)}
+            palette={palette}
+            error={errors?.name}
+          />
+          <XStack gap="$2">
+            <YStack flex={1}>
+              <FormField
+                testID={`receipt-item-${index}-quantity`}
+                label="Quantité"
+                value={item.quantity}
+                onChangeText={(v) => set('quantity', v)}
+                palette={palette}
+                keyboardType="decimal-pad"
+                error={errors?.quantity}
+              />
+            </YStack>
+            <YStack flex={1}>
+              <FormField
+                testID={`receipt-item-${index}-unit`}
+                label="Unité"
+                value={item.unit}
+                onChangeText={(v) => set('unit', v)}
+                palette={palette}
+                autoCapitalize="none"
+              />
+            </YStack>
+          </XStack>
+          <XStack gap="$2">
+            <YStack flex={1}>
+              <FormField
+                testID={`receipt-item-${index}-category`}
+                label="Catégorie"
+                value={item.category}
+                onChangeText={(v) => set('category', v)}
+                palette={palette}
+              />
+            </YStack>
+            <YStack flex={1}>
+              <FormField
+                testID={`receipt-item-${index}-price`}
+                label="Prix (€)"
+                value={item.price}
+                onChangeText={(v) => set('price', v)}
+                palette={palette}
+                keyboardType="decimal-pad"
+                error={errors?.price}
+              />
+            </YStack>
+          </XStack>
+          <FormField
+            testID={`receipt-item-${index}-expires-at`}
+            label="Date de péremption"
+            value={item.expiresAt}
+            onChangeText={(v) => set('expiresAt', v)}
+            palette={palette}
+            keyboardType="numbers-and-punctuation"
+            placeholder="AAAA-MM-JJ"
+            hint="Laisse vide si le produit se garde longtemps."
+            error={errors?.expiresAt}
+          />
+
+          <YStack gap="$1">
+            <Text fontSize={12} fontWeight="700" color={palette.ink}>
+              Emplacement
+            </Text>
+            <XStack gap="$2" flexWrap="wrap">
+              {LOCATIONS.map((loc) => (
+                <Pressable
+                  key={loc}
+                  testID={`receipt-item-${index}-location-${loc}`}
+                  onPress={() => set('location', loc)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: item.location === loc }}
+                  style={pointerCursor}
+                >
+                  <XStack
+                    alignItems="center"
+                    minHeight={44}
+                    paddingHorizontal="$3"
+                    borderRadius={999}
+                    backgroundColor={item.location === loc ? palette.accentLime : palette.mintPale}
+                  >
+                    <Text fontSize={12} fontWeight="700" color={item.location === loc ? palette.accentLimeText : palette.mintPaleText}>
+                      {LOCATION_LABELS[loc]}
+                    </Text>
+                  </XStack>
+                </Pressable>
+              ))}
+            </XStack>
+          </YStack>
         </YStack>
-      </YStack>
+      ) : null}
     </YStack>
   )
 }

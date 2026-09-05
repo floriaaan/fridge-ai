@@ -12,17 +12,31 @@ const baseItem: EditableReceiptItem = {
   expiresAt: '',
 }
 
+const noop = () => {}
+
+function renderRow(props: Partial<React.ComponentProps<typeof ReceiptItemRow>> = {}) {
+  return render(
+    <ThemeProvider>
+      <ReceiptItemRow
+        index={0}
+        item={baseItem}
+        expanded
+        onToggle={noop}
+        onChange={noop}
+        onRemove={noop}
+        {...props}
+      />
+    </ThemeProvider>,
+  )
+}
+
 // @testing-library/react-native v14: render() AND fireEvent (press/changeText/
 // scroll) are async by default, both return a Promise — every call below must
 // be awaited (cf. login-form.test.tsx's comment; this bit the mobile test
 // harness once already).
 test('editing the name calls onChange with the updated item', async () => {
   const onChange = jest.fn()
-  await render(
-    <ThemeProvider>
-      <ReceiptItemRow index={0} item={baseItem} onChange={onChange} />
-    </ThemeProvider>,
-  )
+  await renderRow({ onChange })
 
   await fireEvent.changeText(screen.getByTestId('receipt-item-0-name'), 'Lait entier')
 
@@ -31,13 +45,32 @@ test('editing the name calls onChange with the updated item', async () => {
 
 test('selecting a location pill calls onChange with the new location', async () => {
   const onChange = jest.fn()
-  await render(
-    <ThemeProvider>
-      <ReceiptItemRow index={0} item={baseItem} onChange={onChange} />
-    </ThemeProvider>,
-  )
+  await renderRow({ onChange })
 
   await fireEvent.press(screen.getByTestId('receipt-item-0-location-freezer'))
 
   expect(onChange).toHaveBeenCalledWith({ ...baseItem, location: 'freezer' })
+})
+
+test('a collapsed row shows a summary and no fields', async () => {
+  await renderRow({ expanded: false })
+
+  expect(screen.getByText('Lait')).toBeTruthy()
+  expect(screen.getByText('2 L · Frigo · 2.4 €')).toBeTruthy()
+  expect(screen.queryByTestId('receipt-item-0-name')).toBeNull()
+})
+
+test('the row can be removed from the receipt', async () => {
+  const onRemove = jest.fn()
+  await renderRow({ expanded: false, onRemove })
+
+  await fireEvent.press(screen.getByTestId('receipt-item-0-remove'))
+
+  expect(onRemove).toHaveBeenCalled()
+})
+
+test('a field error is shown on the field it belongs to', async () => {
+  await renderRow({ errors: { quantity: 'Quantité invalide.' } })
+
+  expect(screen.getByTestId('receipt-item-0-quantity-error')).toBeTruthy()
 })
