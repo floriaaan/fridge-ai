@@ -51,6 +51,10 @@ export interface SoftPalette {
   // The shopping list's paper-list surface + its dashed tear-line between
   // rows — a deliberate, screen-scoped exception to the system's "no
   // borders" rule (see DESIGN.md Shapes), not a drift from it.
+  // expo-blur's `tint` for the mobile bottom nav's frosted glass pill — an
+  // audit caught this hardcoded to `'light'` regardless of scheme, so the
+  // pill stayed a light frosted glass even against a dark-mode ground.
+  blurTint: 'light' | 'dark'
   paperCard: string
   paperRule: string
   paperBindingStrip: string
@@ -89,6 +93,8 @@ export interface SoftPalette {
   expiredBg: string
   expiredText: string
   cardShadow: string
+  /** The dimming layer behind a modal sheet — darker in dark mode, where the sheet itself is dim. */
+  scrim: string
 }
 
 const light: SoftPalette = {
@@ -116,6 +122,7 @@ const light: SoftPalette = {
   // that's the whole "mat around a print" effect — so keep this one a
   // clear step below pure white, never at or above it.
   layoutSurface: '#EEE6DC',
+  blurTint: 'light',
   // Legal-pad yellow, not off-white — the follow-up feedback asked for
   // the notepad cue committed to, not hinted at. Still soft/muted (not
   // neon/highlighter yellow) so it reads as paper, not a warning sticker.
@@ -157,6 +164,7 @@ const light: SoftPalette = {
   expiredBg: '#FBDCD4',
   expiredText: '#B23A2E',
   cardShadow: 'rgba(15,43,29,0.14)',
+  scrim: 'rgba(15,43,29,0.40)',
 }
 
 const dark: SoftPalette = {
@@ -185,6 +193,7 @@ const dark: SoftPalette = {
   // (layoutSurface) — the same relative rule as light mode, just shifted
   // into the dark range instead of inverted.
   layoutSurface: '#100C07',
+  blurTint: 'dark',
   paperCard: '#2B2410',
   paperBindingStrip: '#3A2F16',
   paperHole: '#4A3B1E',
@@ -225,6 +234,7 @@ const dark: SoftPalette = {
   expiredBg: '#3B1712',
   expiredText: '#F0968A',
   cardShadow: 'rgba(0,0,0,0.45)',
+  scrim: 'rgba(0,0,0,0.62)',
 }
 
 export function useSoftPalette(): SoftPalette {

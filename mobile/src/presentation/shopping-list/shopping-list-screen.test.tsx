@@ -46,7 +46,7 @@ test("tapping the row's Modifier action navigates to the item's edit route", asy
   expect(router.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/(tabs)/shopping-list/[id]/edit' }))
 })
 
-test("tapping the row's Supprimer action deletes the item and refreshes the list", async () => {
+test("the row's Supprimer action asks first, then deletes", async () => {
   const connector = new FakeFridgeConnector()
   const deleteSpy = jest.spyOn(connector, 'deleteShoppingItem')
   await renderScreen(connector)
@@ -55,8 +55,22 @@ test("tapping the row's Supprimer action deletes the item and refreshes the list
   const targetTestId = before[0].props.testID as string
   await fireEvent.press(before[0])
 
+  // Nothing is gone yet: the sheet names the item and offers a way out.
+  expect(deleteSpy).not.toHaveBeenCalled()
+  await fireEvent.press(screen.getByTestId('shopping-list-delete-confirm'))
+
   await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1))
   await waitFor(() => expect(screen.queryByTestId(targetTestId, { includeHiddenElements: true })).toBeNull())
+})
+
+test('a long press opens the same actions as the swipe, for anyone who cannot swipe', async () => {
+  await renderScreen()
+
+  const rows = await screen.findAllByTestId(/^shopping-row-fake-item-/)
+  await fireEvent(rows[0], 'longPress')
+
+  expect(screen.getByTestId('shopping-list-edit-confirm')).toBeTruthy()
+  expect(screen.getByTestId('shopping-list-delete-confirm')).toBeTruthy()
 })
 
 test('a failed delete shows a hint instead of removing the row', async () => {
@@ -67,7 +81,20 @@ test('a failed delete shows a hint instead of removing the row', async () => {
   const deleteButtons = await screen.findAllByTestId(/^shopping-row-delete-/, { includeHiddenElements: true })
   const targetTestId = deleteButtons[0].props.testID as string
   await fireEvent.press(deleteButtons[0])
+  await fireEvent.press(screen.getByTestId('shopping-list-delete-confirm'))
 
   await waitFor(() => expect(screen.getByText('Suppression impossible.')).toBeTruthy())
   expect(screen.queryByTestId(targetTestId, { includeHiddenElements: true })).toBeTruthy()
+})
+
+test('an empty list hands over the next action', async () => {
+  const connector = new FakeFridgeConnector()
+  jest.spyOn(connector, 'getShoppingItems').mockResolvedValue([])
+  await renderScreen(connector)
+
+  await waitFor(() => expect(screen.getByTestId('shopping-list-empty-add')).toBeTruthy())
+
+  await fireEvent.press(screen.getByTestId('shopping-list-empty-add'))
+
+  expect(router.push).toHaveBeenCalledWith('/(tabs)/shopping-list/new')
 })
