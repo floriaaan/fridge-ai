@@ -9,7 +9,7 @@ import { Animated, Image, Pressable } from 'react-native'
 import { Text, XStack, YStack } from './tamagui-typed.js'
 import { pointerCursor, useHoverPress } from './hover.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ChefHatIcon, HomeIcon, PackageIcon, ScanLineIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
+import { ChefHatIcon, HomeIcon, PackageIcon, ScanLineIcon, SettingsIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
 
 const carrotIllustration = require('../../../assets/illustrations/carrot-3d.png')
 
@@ -70,6 +70,7 @@ export function Sidebar({
   onOpenFrigo,
   onOpenRecettes,
   onOpenCourses,
+  onOpenReglages,
   onScan,
 }: {
   palette: SoftPalette
@@ -78,6 +79,9 @@ export function Sidebar({
   onOpenFrigo: () => void
   onOpenRecettes: () => void
   onOpenCourses: () => void
+  /** Desktop had no route to Réglages at all: the only entrance was an
+   *  11px text link in the dashboard's corner. */
+  onOpenReglages: () => void
   onScan: () => void
 }) {
   const scanHover = useHoverPress()
@@ -122,6 +126,13 @@ export function Sidebar({
           icon={<ShoppingCartIcon size={17} color={active === 'courses' ? palette.accentLimeText : palette.inkSecondary} />}
           label="Courses"
           onPress={onOpenCourses}
+          palette={palette}
+        />
+        <SidebarItem
+          active={false}
+          icon={<SettingsIcon size={17} color={palette.inkSecondary} />}
+          label="Réglages"
+          onPress={onOpenReglages}
           palette={palette}
         />
       </YStack>
