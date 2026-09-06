@@ -37,7 +37,14 @@ test('pressing the backdrop calls onClose', async () => {
     </ThemeProvider>,
   )
 
-  await fireEvent.press(screen.getByTestId('action-sheet-backdrop'))
+  // The scrim is deliberately out of the accessibility tree — it is an
+  // unlabeled full-screen surface, and "Annuler" is the exit that says what it
+  // does — so the query has to opt into hidden elements to reach it. That it
+  // is hidden is the assertion, not an inconvenience.
+  const backdrop = screen.getByTestId('action-sheet-backdrop', { includeHiddenElements: true })
+  expect(backdrop.props.accessibilityElementsHidden).toBe(true)
+
+  await fireEvent.press(backdrop)
 
   expect(onClose).toHaveBeenCalledTimes(1)
 })

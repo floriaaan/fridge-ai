@@ -110,7 +110,7 @@ export function Sidebar({
         <SidebarItem
           active={active === 'frigo'}
           icon={<PackageIcon size={17} color={active === 'frigo' ? palette.accentLimeText : palette.inkSecondary} />}
-          label="Frigo"
+          label="Garde-manger"
           onPress={onOpenFrigo}
           palette={palette}
         />
