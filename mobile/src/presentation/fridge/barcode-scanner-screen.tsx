@@ -92,7 +92,7 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
             justifyContent="center"
             backgroundColor="rgba(0,0,0,0.45)"
           >
-            <XIcon size={22} color="#FFFFFF" />
+            <XIcon size={22} color={palette.onDark} />
           </YStack>
         </Pressable>
       </SafeAreaView>

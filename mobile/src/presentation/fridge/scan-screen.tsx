@@ -29,7 +29,7 @@ export function ScanScreen() {
           Scanner
         </Text>
         <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
-          Remplis le frigo sans rien taper.
+          Remplis le garde-manger sans rien taper.
         </Text>
       </YStack>
 

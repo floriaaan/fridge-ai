@@ -16,7 +16,9 @@ import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
-import { BackButton } from '../shared/back-button.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
+import { Skeleton, SkeletonGroup, SkeletonRow } from '../shared/skeleton.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { useHint } from '../shared/hint-bubble.js'
@@ -24,7 +26,7 @@ import { goBack } from '../shared/navigation.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { StatusChip } from '../dashboard/status-chip.js'
-import { CircleCheckIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { CircleCheckIcon, PackageIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { daysUntilExpiry, expiryLabel, statusOf } from '../dashboard/product-status.js'
 import { useProductQuery } from '../../application/fridge/product.query.js'
 import { useDeleteProductMutation } from '../../application/fridge/delete-product.mutation.js'
@@ -36,6 +38,7 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
   const palette = useSoftPalette()
   const queryClient = useQueryClient()
   const product = useProductQuery(productId)
+  const refresh = usePullToRefresh(() => product.refetch())
   const deleteProduct = useDeleteProductMutation()
   const updateProduct = useUpdateProductMutation()
   const [hint, showHint] = useHint()
@@ -72,12 +75,13 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
   }
 
   const header = (
-    <XStack alignItems="center" gap="$3">
-      <BackButton onPress={() => goBack('/(tabs)/fridge')} ink={palette.ink} cream={palette.cream} />
-      <Text fontSize={20} fontWeight="800" color={palette.ink}>
-        Produit
-      </Text>
-    </XStack>
+    <ScreenHeader
+      palette={palette}
+      tint={palette.cabinetEnamel}
+      icon={(color) => <PackageIcon size={19} color={color} />}
+      title="Produit"
+      onBack={() => goBack('/(tabs)/fridge')}
+    />
   )
 
   // The post-delete frame used to be a naked `<Text>` outside AppShell — no
@@ -85,26 +89,39 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
   // may not unmount the screen.
   if (deleted) {
     return (
-      <AppShell nav={{ kind: 'stack' }}>
-        {header}
+      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
         <YStack alignItems="center" gap="$2" marginTop="$8">
           <Text testID="fridge-detail-deleted" fontSize={15} fontWeight="700" color={palette.ink}>
             Produit supprimé
           </Text>
           <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
-            Il a disparu du frigo de tout le foyer.
+            Il a disparu du garde-manger de tout le foyer.
           </Text>
         </YStack>
       </AppShell>
     )
   }
 
+  if (product.isPending) {
+    return (
+      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
+        <SkeletonGroup label="Chargement du produit">
+          <Skeleton width="64%" height={22} />
+          <Skeleton width="36%" height={13} />
+          <YStack marginTop="$4" gap="$1">
+            <SkeletonRow />
+            <SkeletonRow />
+          </YStack>
+        </SkeletonGroup>
+      </AppShell>
+    )
+  }
+
   if (!product.data) {
     return (
-      <AppShell nav={{ kind: 'stack' }}>
-        {header}
+      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
         <YStack marginTop="$5">
-          <Text color={palette.inkSecondary}>{product.isLoading ? 'Chargement...' : 'Produit introuvable.'}</Text>
+          <Text color={palette.inkSecondary}>Produit introuvable.</Text>
         </YStack>
       </AppShell>
     )
@@ -119,8 +136,7 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
 
   return (
     <>
-    <AppShell nav={{ kind: 'stack' }} hint={hint}>
-      {header}
+    <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh} header={header}>
       <YStack gap="$3" marginTop="$5">
         <Text fontSize={24} fontWeight="800" color={palette.ink} lineHeight={30}>
           {p.name}
@@ -163,7 +179,7 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
 
           <AuthButton
             testID="fridge-detail-delete"
-            label="Retirer du frigo"
+            label="Retirer du garde-manger"
             variant="secondary"
             onPress={() => setConfirming(true)}
           />
@@ -186,11 +202,11 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
       visible={confirming}
       onClose={() => setConfirming(false)}
       title={`Retirer « ${p.name} » ?`}
-      description="C’est définitif, et le produit disparaît aussi du frigo des autres membres du foyer."
+      description="C’est définitif, et le produit disparaît aussi du garde-manger des autres membres du foyer."
       options={[
         {
           testID: 'fridge-detail-delete-confirm',
-          label: 'Retirer du frigo',
+          label: 'Retirer du garde-manger',
           icon: (color) => <XIcon size={18} color={color} />,
           tint: palette.expired,
           destructive: true,

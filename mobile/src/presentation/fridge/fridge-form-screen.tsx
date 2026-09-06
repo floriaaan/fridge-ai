@@ -18,11 +18,23 @@ import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { AppShell } from '../shared/app-shell.js'
 import { BackButton } from '../shared/back-button.js'
 import { FormCard } from '../shared/form-card.js'
+import { Chip, CHIP_ICON_SIZE } from '../shared/chip.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ScanLineIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import {
+  ArchiveIcon,
+  CalendarIcon,
+  PackageIcon,
+  PencilIcon,
+  RefrigeratorIcon,
+  ScaleIcon,
+  ScanLineIcon,
+  SnowflakeIcon,
+  TagIcon,
+  XIcon,
+} from '../dashboard/dashboard-icons.js'
 import { daysUntilExpiry, expiryLabel } from '../dashboard/product-status.js'
 import { FormField } from './form-field.js'
 import { useProductQuery } from '../../application/fridge/product.query.js'
@@ -36,6 +48,13 @@ import type { LocationValue } from '../../domain/fridge/location.js'
 type FridgeFormMode = { mode: 'create' } | { mode: 'edit'; productId: string }
 
 const LOCATION_LABELS: Record<LocationValue, string> = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' }
+
+/** Same glyph per compartment as the fridge screen's filters and shelf headers. */
+const LOCATION_ICONS: Record<LocationValue, (color: string) => React.ReactNode> = {
+  fridge: (color) => <RefrigeratorIcon size={CHIP_ICON_SIZE} color={color} />,
+  freezer: (color) => <SnowflakeIcon size={CHIP_ICON_SIZE} color={color} />,
+  pantry: (color) => <ArchiveIcon size={CHIP_ICON_SIZE} color={color} />,
+}
 
 /** The units a fridge actually holds. Free text stays available beside them. */
 const UNIT_SUGGESTIONS = ['g', 'kg', 'mL', 'L', 'pièce(s)']
@@ -236,7 +255,10 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
         >
           <XStack alignItems="center" gap="$3">
             <BackButton onPress={handleBack} ink={palette.ink} cream={palette.cream} />
-            <Text fontSize={20} fontWeight="800" color={palette.ink}>
+            <YStack width={38} height={38} borderRadius={13} backgroundColor={palette.cream} alignItems="center" justifyContent="center">
+              <PackageIcon size={19} color={palette.ink} />
+            </YStack>
+            <Text fontSize={20} fontWeight="800" color={palette.ink} flex={1}>
               {props.mode === 'create' ? 'Ajouter un produit' : 'Modifier le produit'}
             </Text>
           </XStack>
@@ -269,6 +291,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                 onChangeText={edit(setName)}
                 palette={palette}
                 error={fieldErrors.name}
+                icon={(color) => <PencilIcon size={13} color={color} />}
               />
 
               <XStack gap="$2">
@@ -282,6 +305,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                     keyboardType="number-pad"
                     hint="Nombre entier"
                     error={fieldErrors.amount}
+                    icon={(color) => <ScaleIcon size={13} color={color} />}
                   />
                 </YStack>
                 <YStack flex={1}>
@@ -295,7 +319,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                   />
                 </YStack>
               </XStack>
-              <XStack gap="$2" flexWrap="wrap">
+              <XStack gap="$3" flexWrap="wrap">
                 {UNIT_SUGGESTIONS.map((suggestion) => (
                   <Chip
                     key={suggestion}
@@ -304,6 +328,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                     selected={unit === suggestion}
                     onPress={() => edit(setUnit)(suggestion)}
                     palette={palette}
+                    size="dense"
                   />
                 ))}
               </XStack>
@@ -315,9 +340,10 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                 onChangeText={edit(setCategory)}
                 palette={palette}
                 hint={`Sert à trier tes produits. Vide = « ${DEFAULT_CATEGORY} ».`}
+                icon={(color) => <TagIcon size={13} color={color} />}
               />
               {categorySuggestions.length > 0 ? (
-                <XStack gap="$2" flexWrap="wrap">
+                <XStack gap="$3" flexWrap="wrap">
                   {categorySuggestions.map((suggestion) => (
                     <Chip
                       key={suggestion}
@@ -342,8 +368,9 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                   placeholder="AAAA-MM-JJ"
                   hint={expiryDays !== null ? expiryLabel(expiryDays) : undefined}
                   error={fieldErrors.expiresAt}
+                  icon={(color) => <CalendarIcon size={13} color={color} />}
                 />
-                <XStack gap="$2" flexWrap="wrap">
+                <XStack gap="$3" flexWrap="wrap">
                   {DATE_SHORTCUTS.map((shortcut) => (
                     <Chip
                       key={shortcut.label}
@@ -352,16 +379,20 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                       selected={shortcut.days === null ? expiresAt === '' : expiresAt === isoDay(shortcut.days)}
                       onPress={() => edit(setExpiresAt)(shortcut.days === null ? '' : isoDay(shortcut.days))}
                       palette={palette}
+                      size="dense"
                     />
                   ))}
                 </XStack>
               </YStack>
 
               <YStack gap="$1">
-                <Text fontSize={12} fontWeight="700" color={palette.ink}>
-                  Emplacement
-                </Text>
-                <XStack gap="$2" flexWrap="wrap">
+                <XStack alignItems="center" gap="$1.5">
+                  <ArchiveIcon size={13} color={palette.inkSecondary} />
+                  <Text fontSize={12} fontWeight="700" color={palette.ink}>
+                    Emplacement
+                  </Text>
+                </XStack>
+                <XStack gap="$3" flexWrap="wrap">
                   {LOCATIONS.map((loc) => (
                     <Chip
                       key={loc}
@@ -370,6 +401,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                       selected={location === loc}
                       onPress={() => edit(setLocation)(loc)}
                       palette={palette}
+                      icon={LOCATION_ICONS[loc]}
                     />
                   ))}
                 </XStack>
@@ -449,43 +481,6 @@ function ScanAction({ palette, onPress }: { palette: SoftPalette; onPress: () =>
           </YStack>
         </XStack>
       </Animated.View>
-    </Pressable>
-  )
-}
-
-function Chip({
-  testID,
-  label,
-  selected,
-  onPress,
-  palette,
-}: {
-  testID: string
-  label: string
-  selected: boolean
-  onPress: () => void
-  palette: SoftPalette
-}) {
-  return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={label}
-      style={pointerCursor}
-    >
-      <XStack
-        alignItems="center"
-        minHeight={44}
-        paddingHorizontal="$3.5"
-        borderRadius={999}
-        backgroundColor={selected ? palette.accentLime : palette.mintPale}
-      >
-        <Text fontSize={12} fontWeight="700" color={selected ? palette.accentLimeText : palette.mintPaleText}>
-          {label}
-        </Text>
-      </XStack>
     </Pressable>
   )
 }
