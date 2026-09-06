@@ -29,7 +29,7 @@ const pocketIdConfigured = Boolean(pocketIdClientId && pocketIdClientSecret && p
 export const auth = betterAuth({
   database: { db, type: 'postgres' },
   secret: env.get('BETTER_AUTH_SECRET').release(),
-  baseURL: env.get('APP_URL'),
+  baseURL: env.get('NETWORK_URL'),
   trustedOrigins: env
     .get('CORS_ORIGIN', '')
     .split(',')

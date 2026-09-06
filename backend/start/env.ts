@@ -10,6 +10,11 @@ export default await Env.create(new URL('../', import.meta.url), {
   // App
   APP_KEY: Env.schema.secret(),
   APP_URL: Env.schema.string({ format: 'url', tld: false }),
+  // HOST is 0.0.0.0 so the server answers on the LAN, which makes APP_URL
+  // unusable as an outward-facing address: better-auth hands its baseURL to
+  // PocketID as the OAuth redirect_uri, and the phone has to reach it too.
+  // NETWORK_URL is that same server under the machine's LAN IP.
+  NETWORK_URL: Env.schema.string({ format: 'url', tld: false }),
 
   // better-auth session/cookie signing key — cf. instance.ts.
   BETTER_AUTH_SECRET: Env.schema.secret(),
