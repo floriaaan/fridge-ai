@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { ConnectorProvider } from '../../application/shared/connector-context.js'
 import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-connector.js'
+import { fakeProducts } from '../../infrastructure/fake/fixtures/product.fixture.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { FridgeFormScreen } from './fridge-form-screen.js'
 
@@ -61,8 +62,10 @@ test('edit mode pre-fills the form from the existing product', async () => {
   await waitFor(() => expect(screen.getByTestId('fridge-form-name').props.value).toBe('Lait demi-écrémé'))
   expect(screen.getByTestId('fridge-form-amount').props.value).toBe('1')
   expect(screen.getByTestId('fridge-form-unit').props.value).toBe('L')
-  // fake-product-1's fixture expiresAt is '2026-08-30T00:00:00.000Z' — prefilled as a plain date.
-  expect(screen.getByTestId('fridge-form-expires-at').props.value).toBe('2026-08-30')
+  // The fixture dates are relative to today, so the expectation is too: the
+  // milk is due tomorrow, prefilled as a plain date.
+  const tomorrow = fakeProducts.find((product) => product.id === 'fake-product-1')?.expiresAt?.slice(0, 10)
+  expect(screen.getByTestId('fridge-form-expires-at').props.value).toBe(tomorrow)
 })
 
 test('submitting with an expiresAt value round-trips it into the create payload as an ISO string', async () => {

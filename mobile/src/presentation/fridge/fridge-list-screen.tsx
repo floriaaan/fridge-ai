@@ -5,6 +5,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { AppShell, useAppShellLayout } from '../shared/app-shell.js'
 import { Chip, CHIP_ICON_SIZE } from '../shared/chip.js'
+import { ChipGroupSeparator } from '../shared/chip-group-separator.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { pullToRefreshControl, usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { SkeletonList } from '../shared/skeleton.js'
@@ -171,22 +172,6 @@ function AddProductButton({ palette, testID }: { palette: SoftPalette; testID: s
 const WINDOW_ICONS: Record<ExpiryWindow, (size: number, color: string) => React.ReactNode> = {
   week: (size, color) => <TriangleAlertIcon size={size} color={color} />,
   expired: (size, color) => <CircleXIcon size={size} color={color} />,
-}
-
-/**
- * The break between the two questions the chip row asks.
- *
- * The row carries two axes — *how long has it got* (the expiry windows) and
- * *where is it* (the compartments) — and they are not alternatives to each
- * other: a window and a compartment can both be on. Without a break the row
- * reads as one list of six mutually exclusive options.
- *
- * A hairline is not a container border (DESIGN.md's ban is on outlining
- * surfaces); it is a mark *between* two groups of controls, which is the one
- * job a rule does better than colour or shadow inside a single scrolling line.
- */
-function ChipGroupSeparator({ palette }: { palette: SoftPalette }) {
-  return <YStack width={1} height={20} borderRadius={1} backgroundColor={palette.shelfEdge} marginHorizontal="$1" />
 }
 
 /**

@@ -27,6 +27,7 @@
  * ground, so dark.shadowCool/shadowWarm are warm light glows.
  */
 import { useColorScheme } from 'react-native'
+import type { ColorSchemeName } from 'react-native'
 export interface SoftPalette {
   gradientTop: string
   gradientBottom: string
@@ -107,6 +108,23 @@ export interface SoftPalette {
   navCardTeal: string
   navCardViolet: string
   cream: string
+  /**
+   * A pill sitting *on* a `cream` card. Not `gradientBottom`: that token is the
+   * page/content ground, so in dark mode a `gradientBottom` pill on a `cream`
+   * card reads as a hole punched through the row rather than a chip on it.
+   */
+  creamPill: string
+  /**
+   * The hairline that makes a `creamPill` visible on a `cream` card.
+   *
+   * `creamPill` has to stay near-white to keep its label above 4.5:1 — every
+   * darker fill trades the text contrast away — which leaves the fill itself at
+   * 1.08:1 against the card, i.e. not a pill at all but loose floating text.
+   * The shape does the work the fill cannot: ~1.7:1 light, ~2.0:1 dark. A
+   * control-sized mark, not an outlined surface — DESIGN.md's border ban is
+   * about containers.
+   */
+  creamPillEdge: string
   creamText: string
   lavender: string
   lavenderText: string
@@ -192,6 +210,8 @@ const light: SoftPalette = {
   navCardTeal: '#1F7A62',
   navCardViolet: '#6355A8',
   cream: '#FDF6E8',
+  creamPill: '#FFFFFF',
+  creamPillEdge: '#C9BEA8',
   creamText: '#7A6B47',
   lavender: '#EFEAFB',
   lavenderText: '#635B85',
@@ -276,6 +296,10 @@ const dark: SoftPalette = {
   navCardTeal: '#1F7A62',
   navCardViolet: '#6355A8',
   cream: '#241F17',
+  // Lighter than the card, the way white is lighter than cream in daylight —
+  // ≈7.5:1 with creamText, ≈5.2:1 with inkSecondary.
+  creamPill: '#3A3324',
+  creamPillEdge: '#6A5F47',
   creamText: '#D9C79A',
   lavender: '#1E1B2A',
   lavenderText: '#C0B7E6',
@@ -297,7 +321,12 @@ const dark: SoftPalette = {
 /** The light palette, for tests that render a palette-taking component outside a screen. */
 export const lightPaletteForTests: SoftPalette = light
 
+/** The palette for a scheme, for the few callers that resolve one outside a component tree. */
+export function paletteFor(scheme: ColorSchemeName): SoftPalette {
+  return scheme === 'dark' ? dark : light
+}
+
 export function useSoftPalette(): SoftPalette {
   const scheme = useColorScheme()
-  return scheme === 'dark' ? dark : light
+  return paletteFor(scheme)
 }

@@ -263,6 +263,12 @@ export const StoreIcon = icon([
 
 // Dashboard: the "Accès rapide" section, whose content is literally a grid of
 // two nav tiles.
+export const EllipsisIcon = icon([
+  { cx: '12', cy: '12', r: '1' },
+  { cx: '19', cy: '12', r: '1' },
+  { cx: '5', cy: '12', r: '1' },
+])
+
 export const LayoutGridIcon = icon([
   { d: 'M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z' },
   { d: 'M15 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z' },

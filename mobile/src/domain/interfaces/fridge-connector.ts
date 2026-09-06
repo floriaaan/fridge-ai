@@ -36,6 +36,7 @@ export interface FridgeConnector {
   getRecipe(recipeId: string): Promise<Recipe | null>
   /** `POST /api/recipes/generate` — the backend saves what it generates, so the list query is stale afterwards. */
   generateRecipes(prompt?: string): Promise<Result<Recipe[], ApiError>>
+  deleteRecipe(recipeId: string): Promise<Result<void, ApiError>>
   getProducts(params?: { location?: LocationValue; expiringWithinDays?: number }): Promise<Product[]>
   getProduct(productId: string): Promise<Product | null>
   createProduct(input: CreateProductInput): Promise<Result<Product, ApiError>>

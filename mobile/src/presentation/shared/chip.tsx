@@ -33,7 +33,7 @@
 import type { ReactNode } from 'react'
 import { Animated, Pressable } from 'react-native'
 import { Text, XStack } from './tamagui-typed.js'
-import { pointerCursor, useHoverPress } from './hover.js'
+import { pointerCursor, pressAreaSlop, useHoverPress } from './hover.js'
 import { ripple } from './material.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 
@@ -81,7 +81,9 @@ export function Chip({
       accessibilityState={{ selected }}
       accessibilityLabel={accessibilityLabel ?? label}
       android_ripple={ripple(selected ? palette.accentLimeText : palette.mintPaleText)}
-      style={pointerCursor}
+      // `hitSlop` on native, the same slop as margin/padding on web, which
+      // ignores the prop — without it the chip is its drawn 32pt in a browser.
+      style={[pointerCursor, pressAreaSlop(slop, 4)]}
     >
       <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
         <XStack
