@@ -13,6 +13,8 @@ tasks:
         ignore_error: true
       - cmd: cp -n backend/.env.example backend/.env
         ignore_error: true
+      - cmd: cp -n mobile/.env.example mobile/.env
+        ignore_error: true
 
   dev:
     desc: Run the backend dev server locally (HMR), Postgres in Docker.
