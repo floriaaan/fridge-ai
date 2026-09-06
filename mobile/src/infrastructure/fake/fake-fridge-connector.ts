@@ -22,6 +22,20 @@ import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
 import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.js'
 import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
 
+/**
+ * How long the fake pretends the AI is thinking, in milliseconds.
+ *
+ * The fake answered `generateRecipes` synchronously, so the composer's
+ * blocking overlay appeared and vanished inside one frame and the flow read as
+ * instantaneous — which is the one thing the real call is not. A loader you
+ * cannot see is a loader you cannot judge, and every design decision about the
+ * wait (what it says, how it moves, whether it blocks) was being made blind.
+ *
+ * Roughly what a provider takes for a short completion. It is a *fake's*
+ * constant: nothing in production reads it.
+ */
+const DEFAULT_AI_LATENCY_MS = 2200
+
 /** In-memory only, resets on every reload — UI iteration without a running backend. */
 export class FakeFridgeConnector implements FridgeConnector {
   private session: Session | null = null
@@ -36,6 +50,17 @@ export class FakeFridgeConnector implements FridgeConnector {
   private generatedRecipes: Recipe[] = []
   private nextRecipeId = 1
   private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
+  private readonly aiLatencyMs: number
+
+  /** `aiLatencyMs: 0` for tests that want the generated data and not the wait. */
+  constructor({ aiLatencyMs = DEFAULT_AI_LATENCY_MS }: { aiLatencyMs?: number } = {}) {
+    this.aiLatencyMs = aiLatencyMs
+  }
+
+  private pretendToThink(): Promise<void> {
+    if (this.aiLatencyMs <= 0) return Promise.resolve()
+    return new Promise((resolve) => setTimeout(resolve, this.aiLatencyMs))
+  }
 
   async getSession(): Promise<Session | null> {
     return this.session
@@ -144,9 +169,13 @@ export class FakeFridgeConnector implements FridgeConnector {
    * states without a provider key.
    */
   async generateRecipes(prompt?: string): Promise<Result<Recipe[], ApiError>> {
+    // Before the empty-fridge check, not after: the real call spends the same
+    // seconds whatever it is about to answer, and a failure that returns
+    // instantly while a success takes two seconds teaches the wrong shape.
+    await this.pretendToThink()
     const usable = this.products.filter((p) => p.expiresAt !== null)
     if (usable.length === 0) {
-      return Result.err({ type: 'no_products', message: 'Ajoute des produits au frigo pour générer une recette.' })
+      return Result.err({ type: 'no_products', message: 'Ajoute des produits au garde-manger pour générer une recette.' })
     }
     const soonest = [...usable].sort(
       (a, b) => new Date(a.expiresAt ?? 0).getTime() - new Date(b.expiresAt ?? 0).getTime(),
@@ -156,7 +185,7 @@ export class FakeFridgeConnector implements FridgeConnector {
     const recipe: Recipe = {
       id: `fake-recipe-generated-${this.nextRecipeId++}`,
       title: `Idée express : ${used[0].name.toLowerCase()}`,
-      description: prompt ? `Généré à partir de : ${prompt}` : 'Généré à partir des produits qui périment le plus vite.',
+      description: prompt ? `Généré à partir de : ${prompt}` : 'Généré à partir de ce qu’il faut finir en premier.',
       source: 'ai_generated',
       instructions: used
         .map((product, index) => `${index + 1}. Préparer ${product.name.toLowerCase()} et réserver.`)

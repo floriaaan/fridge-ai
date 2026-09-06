@@ -226,3 +226,33 @@ test('setActiveAiProvider() rejects a provider that is not in availableProviders
 
   expect(result.ok).toBe(false)
 })
+
+test('generating a recipe takes time, the way the model it stands in for does', async () => {
+  jest.useFakeTimers({ doNotFake: ['queueMicrotask'] })
+  try {
+    const connector = new FakeFridgeConnector()
+    let settled = false
+    const pending = connector.generateRecipes().then((result) => {
+      settled = true
+      return result
+    })
+
+    await Promise.resolve()
+    expect(settled).toBe(false)
+
+    await jest.advanceTimersByTimeAsync(5000)
+    const result = await pending
+
+    expect(result.ok).toBe(true)
+  } finally {
+    jest.useRealTimers()
+  }
+})
+
+test('the latency is a constructor knob, so a test that only wants the data pays nothing', async () => {
+  const connector = new FakeFridgeConnector({ aiLatencyMs: 0 })
+
+  const result = await connector.generateRecipes()
+
+  expect(result.ok).toBe(true)
+})
