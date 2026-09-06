@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import { Text, YStack } from '../shared/tamagui-typed.js'
+import { KeyboardAvoidingView, Platform } from 'react-native'
 import { AppShell } from '../shared/app-shell.js'
-import { BackButton } from '../shared/back-button.js'
+import { ScreenHeader } from '../shared/screen-header.js'
 import { FormCard } from '../shared/form-card.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
+import { PencilIcon, ScaleIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
 import { FormField } from '../fridge/form-field.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
 import { useCreateShoppingItemMutation } from '../../application/shopping-list/create-shopping-item.mutation.js'
@@ -87,17 +89,30 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
   }
 
   return (
-    <AppShell nav={{ kind: 'stack' }}>
-      <XStack alignItems="center" gap="$3">
-        <BackButton onPress={() => router.back()} ink={palette.ink} cream={palette.cream} />
-        <Text fontSize={20} fontWeight="800" color={palette.ink}>
-          {props.mode === 'create' ? 'Ajouter un article' : "Modifier l'article"}
-        </Text>
-      </XStack>
-
-      <YStack marginTop="$5">
+    <AppShell
+      nav={{ kind: 'stack' }}
+      header={
+        <ScreenHeader
+          palette={palette}
+          icon={(color) => <ShoppingCartIcon size={19} color={color} />}
+          title={props.mode === 'create' ? 'Ajouter un article' : "Modifier l'article"}
+          onBack={() => router.back()}
+        />
+      }
+    >
+      {/* The one form screen that was missing it: three fields and a submit
+          pill, with the keyboard free to cover the pill. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <YStack marginTop="$2">
         <FormCard palette={palette} gap="$3">
-          <FormField testID="shopping-item-form-name" label="Nom" value={name} onChangeText={setName} palette={palette} />
+          <FormField
+            testID="shopping-item-form-name"
+            label="Nom"
+            value={name}
+            onChangeText={setName}
+            palette={palette}
+            icon={(color) => <PencilIcon size={13} color={color} />}
+          />
           <FormField
             testID="shopping-item-form-amount"
             label="Quantité"
@@ -105,6 +120,7 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
             onChangeText={setAmount}
             palette={palette}
             keyboardType="number-pad"
+            icon={(color) => <ScaleIcon size={13} color={color} />}
           />
           <FormField
             testID="shopping-item-form-unit"
@@ -130,6 +146,7 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
           />
         </FormCard>
       </YStack>
+      </KeyboardAvoidingView>
     </AppShell>
   )
 }

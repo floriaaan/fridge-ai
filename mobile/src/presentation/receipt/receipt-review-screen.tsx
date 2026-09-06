@@ -16,19 +16,20 @@
  * landed in the fridge.
  */
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Platform, Pressable } from 'react-native'
+import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell, shellContentStyle, useAppShellLayout } from '../shared/app-shell.js'
-import { BackButton } from '../shared/back-button.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { PulseDots } from '../shared/pulse-dots.js'
 import { FormCard } from '../shared/form-card.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { pointerCursor } from '../shared/hover.js'
 import { goBack } from '../shared/navigation.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { CircleCheckIcon } from '../dashboard/dashboard-icons.js'
+import { CalendarIcon, CircleCheckIcon, ReceiptIcon, StoreIcon, WalletIcon } from '../dashboard/dashboard-icons.js'
 import { FormField } from '../fridge/form-field.js'
 import { ReceiptItemRow, type EditableReceiptItem, type ReceiptItemErrors } from './receipt-item-row.js'
 import { useScanReceiptMutation } from '../../application/receipt/scan-receipt.mutation.js'
@@ -223,31 +224,28 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
   }
 
   const header = (
-    <XStack alignItems="center" gap="$3">
-      <BackButton onPress={() => goBack('/(tabs)/receipts')} ink={palette.ink} cream={palette.cream} />
-      <YStack flex={1}>
-        <Text fontSize={20} fontWeight="800" color={palette.ink}>
-          Vérifier le ticket
-        </Text>
-        {items.length > 0 && imported === null ? (
-          <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
-            {items.length} article{items.length > 1 ? 's' : ''} extrait{items.length > 1 ? 's' : ''} — corrige ce qui cloche, le reste part tel quel.
-          </Text>
-        ) : null}
-      </YStack>
-    </XStack>
+    <ScreenHeader
+      palette={palette}
+      icon={(color) => <ReceiptIcon size={19} color={color} />}
+      title="Vérifier le ticket"
+      subtitle={
+        items.length > 0 && imported === null
+          ? `${items.length} article${items.length > 1 ? 's' : ''} extrait${items.length > 1 ? 's' : ''} — corrige ce qui cloche, le reste part tel quel.`
+          : undefined
+      }
+      onBack={() => goBack('/receipts')}
+    />
   )
 
   if (imported !== null) {
     return (
-      <AppShell nav={nav}>
-        {header}
+      <AppShell nav={nav} header={header}>
         <YStack alignItems="center" gap="$3" marginTop="$8">
           <YStack width={64} height={64} borderRadius={999} backgroundColor={palette.freshBg} alignItems="center" justifyContent="center">
             <CircleCheckIcon size={30} color={palette.freshText} />
           </YStack>
           <Text testID="receipt-review-success" fontSize={20} fontWeight="800" color={palette.ink} textAlign="center">
-            {imported} produit{imported > 1 ? 's' : ''} ajouté{imported > 1 ? 's' : ''} au frigo
+            {imported} produit{imported > 1 ? 's' : ''} ajouté{imported > 1 ? 's' : ''} au garde-manger
           </Text>
           <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} textAlign="center">
             Ton foyer les voit déjà.
@@ -255,14 +253,14 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
           <YStack width="100%" gap="$2" marginTop="$4">
             <AuthButton
               testID="receipt-review-open-fridge"
-              label="Voir le frigo"
+              label="Voir le garde-manger"
               onPress={() => router.replace('/(tabs)/fridge')}
             />
             <AuthButton
               testID="receipt-review-scan-another"
               label="Scanner un autre ticket"
               variant="secondary"
-              onPress={() => router.replace('/(tabs)/receipts/scan')}
+              onPress={() => router.replace('/receipts/scan')}
             />
           </YStack>
         </YStack>
@@ -272,10 +270,12 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
 
   if (scanReceipt.isPending && items.length === 0) {
     return (
-      <AppShell nav={nav}>
-        {header}
+      <AppShell nav={nav} header={header}>
         <YStack alignItems="center" gap="$3" marginTop="$8">
-          <ActivityIndicator size="large" color={palette.accentLime} />
+          {/* The same wait, drawn the same way as the recipe composer's — see
+              DESIGN.md: a wait with no measurable progress is `PulseDots`, not
+              the platform's wheel. This one is the app's longest. */}
+          <PulseDots palette={palette} size={12} testID="receipt-reading-dots" label="Lecture du ticket en cours" />
           <Text fontSize={15} fontWeight="700" color={palette.ink}>
             Lecture du ticket…
           </Text>
@@ -289,8 +289,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
 
   if (scanError) {
     return (
-      <AppShell nav={nav}>
-        {header}
+      <AppShell nav={nav} header={header}>
         <YStack gap="$3" marginTop="$8">
           <Text fontSize={14} color={palette.expiredText} textAlign="center">
             {scanError}
@@ -308,7 +307,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
             testID="receipt-review-retake"
             label="Reprendre la photo"
             variant="secondary"
-            onPress={() => router.replace('/(tabs)/receipts/scan')}
+            onPress={() => router.replace('/receipts/scan')}
           />
         </YStack>
       </AppShell>
@@ -317,7 +316,6 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
 
   const listHeader = (
     <YStack gap="$4" marginBottom="$2">
-      {header}
       {/* The shot itself: the user has to be able to check a line against
           the paper it came from. It was passed in and never displayed. */}
       <Image
@@ -336,7 +334,14 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
         }}
       />
       <FormCard palette={palette} gap="$3">
-        <FormField testID="receipt-review-store-name" label="Magasin" value={storeName} onChangeText={setStoreName} palette={palette} />
+        <FormField
+          testID="receipt-review-store-name"
+          label="Magasin"
+          value={storeName}
+          onChangeText={setStoreName}
+          palette={palette}
+          icon={(color) => <StoreIcon size={13} color={color} />}
+        />
         <XStack gap="$2">
           <YStack flex={1}>
             <FormField
@@ -347,6 +352,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
               palette={palette}
               keyboardType="numbers-and-punctuation"
               placeholder="AAAA-MM-JJ"
+              icon={(color) => <CalendarIcon size={13} color={color} />}
             />
           </YStack>
           <YStack flex={1}>
@@ -357,6 +363,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
               onChangeText={setTotalAmount}
               palette={palette}
               keyboardType="decimal-pad"
+              icon={(color) => <WalletIcon size={13} color={color} />}
             />
           </YStack>
         </XStack>
@@ -412,7 +419,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
   )
 
   return (
-    <AppShell nav={nav} scrollable={false}>
+    <AppShell nav={nav} scrollable={false} header={header}>
       <KeyboardAvoidingView
         style={{ flex: 1, minHeight: 0 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -2,45 +2,52 @@ import { Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
-import { BackButton } from '../shared/back-button.js'
+import { ScreenHeader } from '../shared/screen-header.js'
 import { goBack } from '../shared/navigation.js'
 import { pointerCursor } from '../shared/hover.js'
-import { ChevronRightIcon } from '../dashboard/dashboard-icons.js'
+import { ChevronRightIcon, ReceiptIcon, StoreIcon } from '../dashboard/dashboard-icons.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { useReceiptQuery } from '../../application/receipt/receipt.query.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
+import { SkeletonGroup, SkeletonRow, Skeleton } from '../shared/skeleton.js'
 
 export function ReceiptDetailScreen({ receiptId }: { receiptId: string }) {
   const palette = useSoftPalette()
   const query = useReceiptQuery(receiptId)
+  const refresh = usePullToRefresh(() => query.refetch())
 
   const header = (
-    <XStack alignItems="center" gap="$3">
-      <BackButton onPress={() => goBack('/(tabs)/receipts')} ink={palette.ink} cream={palette.cream} />
-      <Text fontSize={20} fontWeight="800" color={palette.ink}>
-        Ticket
-      </Text>
-    </XStack>
+    <ScreenHeader
+      palette={palette}
+      icon={(color) => <ReceiptIcon size={19} color={color} />}
+      title="Ticket"
+      onBack={() => goBack('/receipts')}
+    />
   )
 
   // Was `return null`: a blank white screen with no chrome, no back button
   // and nothing for a screen reader to announce, for the whole load.
   if (query.isPending) {
     return (
-      <AppShell nav={{ kind: 'stack' }}>
-        {header}
-        <YStack marginTop="$8" alignItems="center">
-          <Text fontSize={14} fontWeight="500" color={palette.inkSecondary}>
-            Chargement du ticket…
-          </Text>
-        </YStack>
+      <AppShell nav={{ kind: 'stack' }} header={header}>
+        {/* The shape of the ticket that is coming — a total, then its rows —
+            so the layout does not jump under the thumb when it lands. */}
+        <SkeletonGroup label="Chargement du ticket">
+          <Skeleton width="46%" height={18} />
+          <Skeleton width="30%" height={12} />
+          <YStack marginTop="$4" gap="$1">
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </YStack>
+        </SkeletonGroup>
       </AppShell>
     )
   }
 
   if (!query.data) {
     return (
-      <AppShell nav={{ kind: 'stack' }}>
-        {header}
+      <AppShell nav={{ kind: 'stack' }} header={header}>
         <YStack alignItems="center" justifyContent="center" marginTop="$8">
           <Text fontSize={14} color={palette.ink}>
             Ticket introuvable.
@@ -53,20 +60,20 @@ export function ReceiptDetailScreen({ receiptId }: { receiptId: string }) {
   const { receipt, products } = query.data
 
   return (
-    <AppShell nav={{ kind: 'stack' }}>
-      <XStack alignItems="center" gap="$3">
-        <BackButton onPress={() => goBack('/(tabs)/receipts')} ink={palette.ink} cream={palette.cream} />
-        <YStack>
-          <Text fontSize={20} fontWeight="800" color={palette.ink}>
-            {receipt.storeName}
-          </Text>
-          <Text fontSize={13} color={palette.inkSecondary} marginTop="$0.5">
-            {receipt.scannedAt.slice(0, 10)} · {receipt.totalAmount.toFixed(2)} €
-          </Text>
-        </YStack>
-      </XStack>
-
-      <YStack marginTop="$5" gap="$2">
+    <AppShell
+      nav={{ kind: 'stack' }}
+      refresh={refresh}
+      header={
+        <ScreenHeader
+          palette={palette}
+          icon={(color) => <StoreIcon size={19} color={color} />}
+          title={receipt.storeName}
+          subtitle={`${receipt.scannedAt.slice(0, 10)} · ${receipt.totalAmount.toFixed(2)} €`}
+          onBack={() => goBack('/receipts')}
+        />
+      }
+    >
+      <YStack marginTop="$4" gap="$2">
         <Text fontSize={13} fontWeight="700" color={palette.inkSecondary}>
           {products.length} produit{products.length > 1 ? 's' : ''} importé{products.length > 1 ? 's' : ''}
         </Text>
