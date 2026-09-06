@@ -5,6 +5,7 @@ import { pointerCursor, useHoverPress } from './hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { ChevronRightIcon } from '../dashboard/dashboard-icons.js'
+import { ripple } from './material.js'
 
 export interface ActionSheetOption {
   testID: string
@@ -30,6 +31,7 @@ function ActionSheetRow({ option, palette }: { option: ActionSheetOption; palett
       onPressOut={hover.onPressOut}
       accessibilityRole="button"
       accessibilityLabel={option.label}
+      android_ripple={ripple(option.destructive ? palette.expiredText : palette.ink)}
       style={pointerCursor}
     >
       <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
@@ -86,11 +88,20 @@ export function ActionSheet({
 
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        testID="action-sheet-backdrop"
-        onPress={onClose}
-        style={{ flex: 1, backgroundColor: palette.scrim, justifyContent: 'flex-end' }}
-      >
+      <YStack flex={1} justifyContent="flex-end">
+        {/* The scrim is a sibling behind the sheet, not its parent. It used to
+            wrap it, which meant a screen reader met a full-screen unlabeled
+            button as the first thing in the app's only modal — and hiding that
+            button from the accessibility tree hid every option inside it too.
+            As a sibling it can be hidden safely; the accessible way out is the
+            "Annuler" row, which says what it does. */}
+        <Pressable
+          testID="action-sheet-backdrop"
+          onPress={onClose}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: palette.scrim }}
+        />
         {/* `edges={['bottom']}`: keeps the floating gap below clear of the home indicator,
             same intent as AppShell's own SafeAreaView — a plain `useSafeAreaInsets()` read
             requires a `SafeAreaProvider` ancestor the app never mounts one of. The padding
@@ -132,7 +143,7 @@ export function ActionSheet({
             </Pressable>
           </YStack>
         </SafeAreaView>
-      </Pressable>
+      </YStack>
     </Modal>
   )
 }

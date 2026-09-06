@@ -20,7 +20,7 @@ export function goToProductScan() {
 }
 
 export function goToReceiptScan() {
-  router.navigate('/(tabs)/receipts/scan')
+  router.navigate('/receipts/scan')
 }
 
 export function useScanSheet() {
@@ -39,6 +39,10 @@ export function useScanSheet() {
     <ActionSheet
       visible={visible}
       onClose={closeScanSheet}
+      // Every other sheet in the app names the decision; this one shipped
+      // without a `title`, so the app's largest, most-reachable control opened
+      // two unframed choices.
+      title="Scanner quoi ?"
       options={[
         {
           testID: 'scan-sheet-product',

@@ -73,6 +73,10 @@ export function CameraPermissionModal({
                 onPressOut={closeHover.onPressOut}
                 accessibilityRole="button"
                 accessibilityLabel="Fermer"
+                // The glyph is 20pt; the press area is not. Without this the
+                // tappable region was the size of the icon — the only control
+                // in the app under the 44pt floor.
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={pointerCursor}
               >
                 <XIcon size={20} color={palette.inkSecondary} />

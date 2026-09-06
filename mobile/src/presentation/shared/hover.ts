@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AccessibilityInfo, Animated, Platform } from 'react-native'
+import { IS_ANDROID } from './material.js'
 
 // Web-only pointer cursor — RN silently ignores unknown style keys on native,
 // so this is safe to spread unconditionally, but Platform.select keeps intent explicit.
@@ -39,11 +40,18 @@ export function useReduceMotion(): boolean {
  * signal — a press did register) but instantly, via `Animated.timing`
  * with `duration: 0`, instead of a bouncy spring: the craft floor's rule
  * is "preserve state change and hierarchy," not "kill all feedback."
+ *
+ * **On Android the scale does not apply at all.** Material's touch feedback is
+ * a ripple bounded by the control, and a control that both ripples and shrinks
+ * reads as two responses to one tap. Callers pass `android_ripple={ripple(…)}`
+ * (see material.ts) and get a flat `scale` of 1 here, so the same component
+ * feels like iOS on iOS and like Material on Android without a fork.
  */
 export function useHoverPress() {
   const [scale] = useState(() => new Animated.Value(1))
   const reduceMotion = useReduceMotion()
   function to(value: number, friction: number) {
+    if (IS_ANDROID) return
     if (reduceMotion) {
       Animated.timing(scale, { toValue: value, duration: 0, useNativeDriver: true }).start()
       return
