@@ -146,10 +146,12 @@ export class ReceiptSchema extends BaseModel {
 }
 
 export class RecipeSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'householdId', 'id', 'imageKey', 'instructions', 'preparationTime', 'source', 'tags', 'title'] as const
+  static $columns = ['createdAt', 'createdBy', 'description', 'householdId', 'id', 'imageKey', 'instructions', 'preparationTime', 'source', 'tags', 'title'] as const
   $columns = RecipeSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare createdBy: string | null
   @column()
   declare description: string | null
   @column()
@@ -168,6 +170,23 @@ export class RecipeSchema extends BaseModel {
   declare tags: any
   @column()
   declare title: string
+}
+
+export class RecipeCookSchema extends BaseModel {
+  static $columns = ['cookedAt', 'cookedBy', 'householdId', 'id', 'productsUsed', 'recipeId'] as const
+  $columns = RecipeCookSchema.$columns
+  @column.dateTime()
+  declare cookedAt: DateTime
+  @column()
+  declare cookedBy: string | null
+  @column()
+  declare householdId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare productsUsed: number
+  @column()
+  declare recipeId: string
 }
 
 export class RecipeIngredientSchema extends BaseModel {

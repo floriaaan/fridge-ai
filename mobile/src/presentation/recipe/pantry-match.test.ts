@@ -33,6 +33,10 @@ function recipe(title: string, labels: string[], { productIds = [], createdAt = 
   return {
     id: title,
     title,
+    createdBy: null,
+    cookCount: 0,
+    lastCookedAt: null,
+    lastCookedBy: null,
     description: null,
     source: 'ai_generated',
     instructions: '1. Cuisiner.',

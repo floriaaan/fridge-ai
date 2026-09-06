@@ -9,6 +9,17 @@ export interface RecipeIngredient {
 
 export interface Recipe {
   id: string
+  /**
+   * Who put it in the library, and what the foyer has done with it since.
+   *
+   * `createdBy` / `lastCookedBy` are user ids resolved against the household's
+   * own member list — a member who has left resolves to nothing rather than to
+   * a name the foyer no longer knows. `null` on rows that predate attribution.
+   */
+  createdBy: string | null
+  cookCount: number
+  lastCookedAt: string | null
+  lastCookedBy: string | null
   title: string
   description: string | null
   source: string

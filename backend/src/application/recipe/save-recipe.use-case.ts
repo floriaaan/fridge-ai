@@ -18,6 +18,8 @@ export interface SaveRecipeIngredientInput {
 
 export interface SaveRecipeInput {
   householdId: string
+  /** The member doing it — the library is shared, so every row records who added it. */
+  createdBy: string
   title: string
   source: string
   instructions: string
@@ -55,6 +57,7 @@ export class SaveRecipe implements UseCase<SaveRecipeInput, ResultType<Recipe, V
     const recipe = Recipe.create({
       id: this.idGenerator.next(),
       householdId: input.householdId,
+      createdBy: input.createdBy,
       title: input.title,
       source: source.value,
       instructions: input.instructions,

@@ -25,3 +25,14 @@ export const saveRecipeValidator = vine.compile(
     ingredients: vine.array(ingredientSchema).minLength(1),
   }),
 )
+
+/**
+ * The products this meal used up. Optional and allowed to be empty: "j'ai
+ * cuisiné" is worth recording even when nothing left the garde-manger, and an
+ * id that no longer exists is skipped rather than failing the meal.
+ */
+export const cookRecipeValidator = vine.compile(
+  vine.object({
+    productIds: vine.array(vine.string().trim().minLength(1)).optional(),
+  }),
+)

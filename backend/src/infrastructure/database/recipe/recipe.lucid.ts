@@ -13,6 +13,9 @@ export default class RecipeModel extends BaseModel {
   @column({ columnName: 'household_id' })
   declare householdId: string
 
+  @column({ columnName: 'created_by' })
+  declare createdBy: string | null
+
   @column()
   declare title: string
 

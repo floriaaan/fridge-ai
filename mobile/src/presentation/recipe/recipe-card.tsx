@@ -45,6 +45,7 @@ export function RecipeCard({
   match,
   palette,
   corner,
+  provenance,
   deleting = false,
   onPress,
   onOpenActions,
@@ -54,6 +55,12 @@ export function RecipeCard({
   match: PantryMatch | null
   palette: SoftPalette
   corner: RecipeCorner
+  /**
+   * "Cuisinée 2 fois · Camille, hier", or `null` when there is nothing true to
+   * say. The library is the foyer's most shared artefact and rendered no trace
+   * of who put a row there or whether anyone had ever made it.
+   */
+  provenance: string | null
   /** Confirmed for deletion and awaiting the server — the row is inert, not merely dimmed. */
   deleting?: boolean
   onPress: () => void
@@ -103,6 +110,7 @@ export function RecipeCard({
           accessibilityLabel={[
             recipe.title,
             deleting ? 'suppression en cours' : null,
+            provenance,
             spokenPantry,
             recipe.preparationTime ? `${recipe.preparationTime} minutes` : null,
           ]
@@ -118,6 +126,11 @@ export function RecipeCard({
             {recipe.description ? (
               <Text fontSize={12} fontWeight="500" color={palette.inkSecondary} lineHeight={17} numberOfLines={2}>
                 {recipe.description}
+              </Text>
+            ) : null}
+            {provenance ? (
+              <Text fontSize={11} fontWeight="600" color={palette.creamText}>
+                {provenance}
               </Text>
             ) : null}
             <XStack gap="$1.5" flexWrap="wrap" marginTop="$0.5">

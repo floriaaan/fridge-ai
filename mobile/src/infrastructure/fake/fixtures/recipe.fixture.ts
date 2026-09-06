@@ -1,8 +1,16 @@
 import type { Recipe } from '../../../domain/recipe/recipe.js'
 
+/** The demo foyer's two members — `fake-user-1` is the signed-in one (see `session.fixture.ts`). */
+const CAMILLE = 'fake-user-2'
+const ME = 'fake-user-1'
+
 export const fakeRecipes: Recipe[] = [
   {
     id: 'fake-recipe-1',
+    createdBy: ME,
+    cookCount: 0,
+    lastCookedAt: null,
+    lastCookedBy: null,
     title: 'Poêlée poulet-épinards',
     description: 'Rapide, utilise le poulet et les épinards proches de la péremption.',
     source: 'ai_generated',
@@ -20,6 +28,12 @@ export const fakeRecipes: Recipe[] = [
   },
   {
     id: 'fake-recipe-2',
+    // Someone else's, and the foyer has made it twice — the two facts the
+    // library row exists to carry.
+    createdBy: CAMILLE,
+    cookCount: 2,
+    lastCookedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    lastCookedBy: CAMILLE,
     title: 'Yaourts glacés maison',
     description: 'Pour les yaourts à consommer aujourd’hui.',
     source: 'ai_generated',
@@ -32,6 +46,10 @@ export const fakeRecipes: Recipe[] = [
   },
   {
     id: 'fake-recipe-3',
+    createdBy: null,
+    cookCount: 0,
+    lastCookedAt: null,
+    lastCookedBy: null,
     title: 'Riz sauté aux petits pois',
     description: null,
     source: 'manual',
