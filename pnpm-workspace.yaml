@@ -2,6 +2,7 @@ packages:
   - backend
   - mobile
 allowBuilds:
+  '@embedded-postgres/darwin-arm64': true
   '@embedded-postgres/linux-x64': false
   '@google/genai': false
   '@swc/core': true
