@@ -18,7 +18,7 @@ export default function SignUpScreen() {
   }
 
   return (
-    <AuthShell title="Crée ton compte" subtitle="Un foyer partagé, un frigo à jour pour tout le monde.">
+    <AuthShell title="Crée ton compte" subtitle="Un foyer partagé, un garde-manger à jour pour tout le monde.">
       <SignupForm onSuccess={handleSuccess} />
       <AuthMethodButtons onSuccess={handleSuccess} />
       <Link href="/(auth)/sign-in" asChild>

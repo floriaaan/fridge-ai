@@ -1,10 +1,21 @@
 import type { ReactNode } from 'react'
-import { Animated, Pressable } from 'react-native'
+import { ActivityIndicator, Animated, Pressable } from 'react-native'
 import { Text } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
+import { ripple } from '../shared/material.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 
-/** Full-width pill, lime (primary) or outlined warm-mocha (secondary) — spring hover/press like every other control in the app. */
+/**
+ * Full-width pill, lime (primary) or outlined warm-mocha (secondary) — spring
+ * hover/press on iOS and web, a bounded Material ripple on Android.
+ *
+ * While `pending`, the leading slot swaps the button's icon for a spinner and
+ * the label swaps to `pendingLabel`. The label alone was doing the work
+ * before ("Connexion…"), which is a state you have to *read*: at arm's length,
+ * holding groceries, a button that has visibly changed shape is the faster
+ * signal, and the spinner is the only element on it that says the wait is
+ * still running rather than stuck.
+ */
 export function AuthButton({
   label,
   pendingLabel,
@@ -36,7 +47,8 @@ export function AuthButton({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: pending }}
+      accessibilityState={{ disabled: pending, busy: pending }}
+      android_ripple={ripple(isPrimary ? palette.accentLimeText : palette.ink)}
       style={pointerCursor}
     >
       <Animated.View
@@ -66,7 +78,15 @@ export function AuthButton({
           borderColor: palette.ink,
         }}
       >
-        {icon}
+        {pending ? (
+          <ActivityIndicator
+            testID={testID ? `${testID}-spinner` : undefined}
+            size="small"
+            color={isPrimary ? palette.accentLimeText : palette.ink}
+          />
+        ) : (
+          icon
+        )}
         <Text fontSize={14} fontWeight="800" color={isPrimary ? palette.accentLimeText : palette.ink}>
           {pending ? (pendingLabel ?? label) : label}
         </Text>
