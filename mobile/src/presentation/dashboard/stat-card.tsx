@@ -1,7 +1,10 @@
+import { Animated, Pressable } from 'react-native'
 import { Text, YStack } from '../shared/tamagui-typed.js'
+import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import type { SoftPalette } from './soft-palette.js'
 
 export function StatCard({
+  testID,
   bg,
   labelColor,
   valueColor,
@@ -12,7 +15,10 @@ export function StatCard({
   secondary,
   corner,
   palette,
+  onPress,
+  accessibilityLabel,
 }: {
+  testID?: string
   bg: string
   labelColor: string
   valueColor: string
@@ -20,10 +26,21 @@ export function StatCard({
   icon: React.ReactNode
   label: string
   value: string
-  /** Optional third line under `value` — smaller, `labelColor`-toned (e.g. an email under an account name). Settings' account/household cards use this; the dashboard's metric cards don't need it. */
+  /** Optional third line under `value` — smaller, `labelColor`-toned. No caller passes it today: Réglages' account and foyer cards moved to `IdentityCard`, which owns the "card that carries a name" shape. */
   secondary?: string
   corner: 'a' | 'b' | 'c'
   palette: SoftPalette
+  /**
+   * Makes the card the way *into* what it counts. A metric that names a set of
+   * products and then refuses to show them is a dead end dressed as a summary
+   * — the whole reason these three became links.
+   *
+   * Optional, because a card that leads nowhere must stay inert rather than
+   * spring under the finger and do nothing.
+   */
+  onPress?: () => void
+  /** What a screen reader announces; the drawn label is only half the sentence ("Cette semaine" · "3"). */
+  accessibilityLabel?: string
 }) {
   // Three slightly different asymmetric corner sets so the row of pastel
   // cards reads as expressive/organic rather than three identical stamps.
@@ -34,7 +51,9 @@ export function StatCard({
         ? { borderTopLeftRadius: 14, borderTopRightRadius: 26, borderBottomRightRadius: 14, borderBottomLeftRadius: 26 }
         : { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomRightRadius: 14, borderBottomLeftRadius: 14 }
 
-  return (
+  const hover = useHoverPress()
+
+  const card = (
     <YStack
       flex={1}
       backgroundColor={bg}
@@ -59,5 +78,31 @@ export function StatCard({
         ) : null}
       </YStack>
     </YStack>
+  )
+
+  if (!onPress) return card
+
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      onHoverIn={hover.onHoverIn}
+      onHoverOut={hover.onHoverOut}
+      onPressIn={hover.onPressIn}
+      onPressOut={hover.onPressOut}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      // The card used to *be* the row's flex child; it is now two levels down,
+      // and every level has to carry the stretch or the row equalises the
+      // wrappers while the pastel fills inside them keep their own content
+      // heights — three cards of three different heights, which is what web
+      // showed ("Dates dépassées" wraps to two lines where the others don't).
+      // `alignSelf: 'stretch'` is the belt to `flex: 1`'s braces: it pins the
+      // cross-axis size even where the parent's `align-items` is not inherited
+      // the way React Native's own layout engine assumes.
+      style={[{ flex: 1, alignSelf: 'stretch' }, pointerCursor]}
+    >
+      <Animated.View style={{ flex: 1, alignSelf: 'stretch', transform: [{ scale: hover.scale }] }}>{card}</Animated.View>
+    </Pressable>
   )
 }

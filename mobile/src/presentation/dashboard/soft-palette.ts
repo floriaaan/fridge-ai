@@ -40,6 +40,8 @@ export interface SoftPalette {
   // has one place to change instead of hunting down raw "#FFFFFF"
   // literals (an audit finding: 8+ existed before this token did).
   onDark: string
+  /** Secondary text on a saturated fill (a NavCard subtitle) — white at 85%, which still clears 4.5:1 on navcard-teal/violet. */
+  onDarkSecondary: string
   // The hero card's two status-pill colors (soon/expired), tuned
   // specifically for its dark warm background — distinct from
   // soonText/expiredText below, which are tuned for the light pastel
@@ -47,6 +49,15 @@ export interface SoftPalette {
   // audit fix: they existed as bare hex literals with no token at all.
   soonOnDark: string
   expiredOnDark: string
+  /**
+   * The status pills that sit *on* the hero card (and on the recipe detail's
+   * hero) — a translucent black wash rather than a solid fill, so the ember
+   * glow still reads through them. It existed four times as a bare
+   * `rgba(0,0,0,0.28)` literal, which is exactly the drift `onDark` was
+   * tokenized to stop; `soonOnDark`/`expiredOnDark` above are contrast-tuned
+   * against this value, so the three have to move together.
+   */
+  heroPillFill: string
   layoutSurface: string
   // The shopping list's paper-list surface + its dashed tear-line between
   // rows — a deliberate, screen-scoped exception to the system's "no
@@ -61,6 +72,24 @@ export interface SoftPalette {
   paperHole: string
   paperRing: string
   penMark: string
+  // The fridge screen's appliance surfaces — a second disclosed, screen-scoped
+  // material exception, the same kind as the shopping list's legal pad above.
+  // Deliberately COOL where the rest of the system is warm: an enamel cabinet
+  // reads as an appliance precisely because it is the one cold surface in a
+  // warm pantry, and the two never sit on the same screen.
+  cabinetEnamel: string
+  cabinetLiner: string
+  cabinetSeal: string
+  /** The interior light wash across the top of the liner. Carries its own alpha: the dark theme's lamp is dimmer than the light theme's, and one shared opacity could not say that. */
+  cabinetColdLight: string
+  /** A shelf's glass plate, and the front lip that catches the light under it. */
+  shelfGlass: string
+  shelfEdge: string
+  /** A product sitting on a shelf. */
+  cabinetRowSurface: string
+  /** Text on the liner — secondary is tinted cool from the liner's own hue, never flat gray. */
+  cabinetInk: string
+  cabinetInkSecondary: string
   // Two shadow colors, not one — a warm shadow reads right on the warm
   // layoutSurface/hero surfaces, a cooler one on the mint/white ground.
   // Named per the "Warm-Shadow-on-Warm-Ground" rule in DESIGN.md.
@@ -110,12 +139,14 @@ const light: SoftPalette = {
   brandDeepText: '#FFFFFF',
   brandDeepTextSecondary: 'rgba(255,255,255,0.82)',
   onDark: '#FFFFFF',
+  onDarkSecondary: 'rgba(255,255,255,0.85)',
   // ~5.4:1 and ~4.6:1 against a rgba(0,0,0,0.28) overlay on brandDeep —
   // see the commit that tuned these when brandDeep was softened; both
   // dropped below 4.5:1 against the lighter mocha at the overlay's
   // original rgba(255,255,255,0.14).
   soonOnDark: '#F0C46E',
   expiredOnDark: '#F0968A',
+  heroPillFill: 'rgba(0,0,0,0.28)',
   // The tablet/desktop layout surround (sidebar included) — near-white
   // with a warm brown tint, deliberately much lighter than brandDeep. The
   // content panel (gradientBottom, #FFFFFF) must read as lighter still —
@@ -132,6 +163,18 @@ const light: SoftPalette = {
   paperHole: '#C9B76B',
   paperRing: '#D8D8D8',
   penMark: '#2F7D4F',
+  // Enamel body a clear step darker than the liner it frames, so the cabinet
+  // reads as a box with a lit inside rather than one flat cool rectangle.
+  cabinetEnamel: '#E3EBEE',
+  cabinetLiner: '#F2F7F9',
+  cabinetSeal: '#D3DFE4',
+  cabinetColdLight: 'rgba(191,227,242,0.55)',
+  shelfGlass: 'rgba(150,196,214,0.42)',
+  shelfEdge: '#B4CED8',
+  cabinetRowSurface: '#FFFFFF',
+  cabinetInk: '#16211A',
+  // ≈5.3:1 on the liner, ≈5.5:1 on a white row.
+  cabinetInkSecondary: '#5A6B72',
   shadowCool: '#0F2B1D',
   shadowWarm: '#3A2E20',
   accentLime: '#C4E538',
@@ -187,8 +230,10 @@ const dark: SoftPalette = {
   brandDeepText: '#FFFFFF',
   brandDeepTextSecondary: 'rgba(255,255,255,0.82)',
   onDark: '#FFFFFF',
+  onDarkSecondary: 'rgba(255,255,255,0.85)',
   soonOnDark: '#F0C46E',
   expiredOnDark: '#F0968A',
+  heroPillFill: 'rgba(0,0,0,0.28)',
   // Content (gradientBottom) stays lighter than the surround
   // (layoutSurface) — the same relative rule as light mode, just shifted
   // into the dark range instead of inverted.
@@ -200,6 +245,18 @@ const dark: SoftPalette = {
   paperRing: '#5A5A5A',
   paperRule: 'rgba(242,236,227,0.16)',
   penMark: '#5FCB8B',
+  // Same relationship, inverted the way the rest of the dark pass is: the
+  // liner is LIGHTER than the body, because the light is inside the fridge.
+  cabinetEnamel: '#12171A',
+  cabinetLiner: '#1B2226',
+  cabinetSeal: '#0C1012',
+  cabinetColdLight: 'rgba(95,168,199,0.20)',
+  shelfGlass: 'rgba(120,170,190,0.20)',
+  shelfEdge: '#324650',
+  cabinetRowSurface: '#242D32',
+  cabinetInk: '#F2ECE3',
+  // ≈6.2:1 on a row, ≈7.2:1 on the liner.
+  cabinetInkSecondary: '#9FB0B7',
   // Shadows as warm light glows, not darkened hex — a shadowColor this
   // dark would be invisible against an already-near-black ground.
   shadowCool: '#F4EBD9',
@@ -236,6 +293,9 @@ const dark: SoftPalette = {
   cardShadow: 'rgba(0,0,0,0.45)',
   scrim: 'rgba(0,0,0,0.62)',
 }
+
+/** The light palette, for tests that render a palette-taking component outside a screen. */
+export const lightPaletteForTests: SoftPalette = light
 
 export function useSoftPalette(): SoftPalette {
   const scheme = useColorScheme()

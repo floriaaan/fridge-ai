@@ -1,6 +1,7 @@
 import { router } from 'expo-router'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { HouseholdDashboard } from '../../presentation/dashboard/household-dashboard.js'
+import type { ExpiryWindow } from '../../presentation/dashboard/product-status.js'
 
 export default function HomeScreen() {
   const session = useSessionQuery()
@@ -10,10 +11,16 @@ export default function HomeScreen() {
       userName={session.data?.user.name ?? ''}
       onOpenRecettes={() => router.push('/(tabs)/recipes')}
       onOpenCourses={() => router.push('/(tabs)/shopping-list')}
-      onOpenFridge={() => router.push('/(tabs)/fridge')}
+      // The stat cards open the cabinet on what they just counted — see
+      // `(tabs)/fridge/index.tsx`, which turns `status` back into a filter.
+      onOpenFridge={(window?: ExpiryWindow) =>
+        router.navigate(window ? { pathname: '/(tabs)/fridge', params: { status: window } } : '/(tabs)/fridge')
+      }
       onOpenProduct={(productId) => router.navigate({ pathname: '/(tabs)/fridge/[id]', params: { id: productId } })}
       onAddProduct={() => router.navigate('/(tabs)/fridge/new')}
-      onOpenSettings={() => router.push('/(tabs)/settings')}
+      onOpenSettings={() => router.push('/settings')}
+      onOpenReceipts={() => router.push('/receipts')}
+      onOpenHousehold={() => router.push('/household')}
     />
   )
 }

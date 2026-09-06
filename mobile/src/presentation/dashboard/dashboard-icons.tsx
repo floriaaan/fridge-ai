@@ -119,6 +119,8 @@ export const LogOutIcon = icon([
 
 // Settings screen: "Historique des tickets" row chevron.
 export const ChevronRightIcon = icon([{ d: 'm9 18 6-6-6-6' }])
+// The Recettes composer's disclosure — rotates 180° when the panel opens.
+export const ChevronDownIcon = icon([{ d: 'm6 9 6 6 6-6' }])
 
 // Dashboard header: the Réglages entry (Lucide `settings-2` — the gear's
 // tooth path reads as mush at 19px, the sliders shape survives).
@@ -143,4 +145,127 @@ export const RefreshIcon = icon([
   { d: 'M21 3v5h-5' },
   { d: 'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16' },
   { d: 'M8 16H3v5' },
+])
+
+// BackButton. Was the literal character `←` set in a Text — a unicode glyph
+// standing in for an icon, so it carried the font's own weight and baseline
+// instead of this file's 2px round stroke, and shifted shape per platform.
+export const ArrowLeftIcon = icon([{ d: 'M19 12H5' }, { d: 'm12 19-7-7 7-7' }])
+
+// Search fields (the fridge list's own filter field).
+export const SearchIcon = icon([{ cx: '11', cy: '11', r: '8' }, { d: 'm21 21-4.3-4.3' }])
+
+// "+ Ajouter" buttons — same reason as ArrowLeftIcon: the `+` was typed, not drawn.
+export const PlusIcon = icon([{ d: 'M5 12h14' }, { d: 'M12 5v14' }])
+
+// Form labels: the expiry date field and its shortcut chips.
+export const CalendarIcon = icon([
+  { d: 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' },
+  { d: 'M3 10h18' },
+  { d: 'M8 2v4' },
+  { d: 'M16 2v4' },
+])
+
+// Form label: the free-text product name.
+export const PencilIcon = icon([
+  {
+    d: 'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z',
+  },
+  { d: 'm15 5 4 4' },
+])
+
+// Form label: category, and the OpenFoodFacts category suggestions.
+export const TagIcon = icon([
+  {
+    d: 'M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z',
+  },
+  { cx: '7.5', cy: '7.5', r: '.5' },
+])
+
+// Form label: quantity + unit.
+export const ScaleIcon = icon([
+  { d: 'm16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z' },
+  { d: 'm2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z' },
+  { d: 'M7 21h10' },
+  { d: 'M12 3v18' },
+  { d: 'M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2' },
+])
+
+// The three storage locations — used on the location chips, the fridge
+// screen's compartment filters, and each shelf's own header. One icon per
+// location everywhere, so "Congélateur" is recognisable before it is read.
+export const RefrigeratorIcon = icon([
+  { d: 'M5 6a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z' },
+  { d: 'M5 10h14' },
+  { d: 'M15 7v6' },
+])
+export const SnowflakeIcon = icon([
+  { d: 'M12 2v20' },
+  { d: 'm4.93 4.93 14.14 14.14' },
+  { d: 'M19.07 4.93 4.93 19.07' },
+  { d: 'm9 5 3-3 3 3' },
+  { d: 'm15 19-3 3-3-3' },
+  { d: 'M2 12h20' },
+])
+export const ArchiveIcon = icon([
+  { d: 'M20 3H4a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z' },
+  { d: 'M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8' },
+  { d: 'M10 12h4' },
+])
+
+// "Tout" — the compartment filter that clears the other three.
+export const LayersIcon = icon([
+  {
+    d: 'M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z',
+  },
+  { d: 'm22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65' },
+  { d: 'm22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65' },
+])
+
+// The recipe composer's six group labels. Six different questions in one
+// scroll is exactly the case where an icon distinguishes — the same argument
+// that put a glyph on FormField's label and on ScreenHeader. The chips inside
+// each group carry none: four identical clocks down a row is decoration.
+export const UtensilsIcon = icon([
+  { d: 'M16 2v20' },
+  { d: 'M19 2a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3' },
+  { d: 'M3 2v7a4 4 0 0 0 8 0V2' },
+  { d: 'M7 2v20' },
+])
+export const ClockIcon = icon([{ cx: '12', cy: '12', r: '10' }, { d: 'M12 6v6l4 2' }])
+export const GlobeIcon = icon([
+  { cx: '12', cy: '12', r: '10' },
+  { d: 'M2 12h20' },
+  { d: 'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z' },
+])
+
+// "À éviter" — deliberately not CircleXIcon, which is the committed "date
+// dépassée" status glyph and would read as an error on a field that is only
+// ever an optional preference.
+export const BanIcon = icon([{ cx: '12', cy: '12', r: '10' }, { d: 'm4.9 4.9 14.2 14.2' }])
+
+// Recipe generation — the one place in the app where "the AI made this" is
+// the honest label for what the button does.
+export const SparklesIcon = icon([
+  {
+    d: 'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z',
+  },
+  { d: 'M20 3v4' },
+  { d: 'M22 5h-4' },
+])
+
+// Receipt review: the shop the ticket came from.
+export const StoreIcon = icon([
+  { d: 'm2 7 1.5-4A1 1 0 0 1 4.45 2h15.1a1 1 0 0 1 .95.69L22 7' },
+  { d: 'M2 7h20v2a3 3 0 0 1-6 0 3 3 0 0 1-4 0 3 3 0 0 1-4 0 3 3 0 0 1-6 0z' },
+  { d: 'M4 12v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8' },
+])
+
+// Dashboard: the "Accès rapide" section, whose content is literally a grid of
+// two nav tiles.
+export const LayoutGridIcon = icon([
+  { d: 'M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z' },
+  { d: 'M15 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z' },
+  { d: 'M4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z' },
+  { d: 'M15 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z' },
 ])
