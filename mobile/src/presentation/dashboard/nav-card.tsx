@@ -67,7 +67,7 @@ export function NavCard({
             <Text fontSize={15} fontWeight="800" color={palette.onDark}>
               {title}
             </Text>
-            <Text fontSize={12} fontWeight="600" color="rgba(255,255,255,0.85)" marginTop="$0.5" numberOfLines={1}>
+            <Text fontSize={12} fontWeight="600" color={palette.onDarkSecondary} marginTop="$0.5" numberOfLines={1}>
               {subtitle}
             </Text>
           </YStack>

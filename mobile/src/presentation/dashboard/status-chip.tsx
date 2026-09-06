@@ -9,7 +9,7 @@ function StatusIcon({ status, size, color }: { status: ProductStatus; size: numb
 }
 
 function statusLabel(status: ProductStatus): string {
-  return status === 'expired' ? 'Expiré' : status === 'soon' ? 'Bientôt' : 'Frais'
+  return status === 'expired' ? 'Dépassé' : status === 'soon' ? 'En premier' : 'Frais'
 }
 
 /** A small colored pill carrying the product's status as icon + word, not color alone. */
