@@ -1,4 +1,4 @@
-import { Slot } from 'expo-router'
+import { Stack } from 'expo-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -15,7 +15,22 @@ export default function RootLayout() {
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <ConnectorProvider connector={connector}>
-            <Slot />
+            {/* A Stack, not a Slot. `Réglages`, `Foyer` and `Historique des
+                tickets` used to live inside `(tabs)/`, where iOS's
+                `NativeTabs` only routes to the five declared triggers — so
+                `router.push('/settings')` was a silent no-op on iOS and the
+                only entrance to settings was dead. They are pushed screens,
+                never tabs (`AppShell`'s `{ kind: 'stack' }`), so they now sit
+                here as siblings of the tab group, which needs a real stack
+                navigator at the root to push onto. URLs are unchanged: `(tabs)`
+                is a group, so `/settings` was already `/settings`. */}
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="settings" />
+              <Stack.Screen name="household" />
+              <Stack.Screen name="receipts" />
+            </Stack>
           </ConnectorProvider>
         </QueryClientProvider>
       </ThemeProvider>

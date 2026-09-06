@@ -18,7 +18,7 @@ function IosTabs() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="fridge">
         <NativeTabs.Trigger.Icon sf={{ default: 'shippingbox', selected: 'shippingbox.fill' }} />
-        <NativeTabs.Trigger.Label>Frigo</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Garde-manger</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="recipes">
         <NativeTabs.Trigger.Icon sf="fork.knife" />
@@ -41,7 +41,7 @@ function DefaultTabs() {
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}>
       <Tabs.Screen name="index" options={{ title: 'Accueil' }} />
-      <Tabs.Screen name="fridge" options={{ title: 'Frigo' }} />
+      <Tabs.Screen name="fridge" options={{ title: 'Garde-manger' }} />
       <Tabs.Screen name="recipes" options={{ title: 'Recettes' }} />
       <Tabs.Screen name="shopping-list" options={{ title: 'Liste de courses' }} />
     </Tabs>
