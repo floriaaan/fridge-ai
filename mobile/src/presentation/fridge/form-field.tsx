@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { TextInput, type KeyboardTypeOptions, type TextInputProps } from 'react-native'
-import { Text, YStack } from '../shared/tamagui-typed.js'
+import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 
 /**
@@ -20,6 +20,11 @@ import type { SoftPalette } from '../dashboard/soft-palette.js'
  * — a per-field `error`, announced as a live region. Errors used to appear
  *   as one string at the bottom of a long card, with nothing marking which
  *   field was wrong and nothing announced to a screen reader.
+ *
+ * The label takes an optional `icon`, drawn at 13px in `inkSecondary` beside
+ * it. It sits on the label rather than inside the input because a glyph
+ * inside the field competes with the caret and the placeholder for the same
+ * line, and because a form of five fields is scanned by its labels.
  */
 export function FormField({
   testID,
@@ -32,6 +37,7 @@ export function FormField({
   autoCapitalize,
   hint,
   error,
+  icon,
 }: {
   testID: string
   label: string
@@ -44,15 +50,20 @@ export function FormField({
   /** Quiet helper line under the field — the expected format, an example. */
   hint?: string
   error?: string | null
+  /** Small glyph beside the label — `(color) => <TagIcon size={13} color={color} />`. */
+  icon?: (color: string) => ReactNode
 }) {
   const [focused, setFocused] = useState(false)
   const borderColor = error ? palette.expired : focused ? palette.accentLime : 'transparent'
 
   return (
     <YStack gap="$1">
-      <Text fontSize={12} fontWeight="700" color={palette.ink}>
-        {label}
-      </Text>
+      <XStack alignItems="center" gap="$1.5">
+        {icon ? icon(palette.inkSecondary) : null}
+        <Text fontSize={12} fontWeight="700" color={palette.ink}>
+          {label}
+        </Text>
+      </XStack>
       <TextInput
         testID={testID}
         value={value}
