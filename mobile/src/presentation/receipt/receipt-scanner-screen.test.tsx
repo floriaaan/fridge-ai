@@ -44,7 +44,7 @@ test('capturing a photo navigates to the review screen with its uri', async () =
   })
 
   expect(router.replace).toHaveBeenCalledWith({
-    pathname: '/(tabs)/receipts/review',
+    pathname: '/receipts/review',
     params: { imageUri: 'file://receipt.jpg' },
   })
 })
@@ -62,7 +62,7 @@ test('picking a photo from the gallery navigates to the review screen with its u
   })
 
   expect(router.replace).toHaveBeenCalledWith({
-    pathname: '/(tabs)/receipts/review',
+    pathname: '/receipts/review',
     params: { imageUri: 'file://gallery.jpg' },
   })
 })

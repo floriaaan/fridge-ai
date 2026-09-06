@@ -60,12 +60,16 @@ import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { SkeletonList } from '../shared/skeleton.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { useScanSheet } from '../shared/scan-sheet.js'
+import { PillButton } from '../shared/pill-button.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { ChevronRightIcon, ShoppingCartIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { ChevronRightIcon, PlusIcon, ShoppingCartIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { SpiralBinding } from './spiral-binding.js'
 import { ShoppingRow } from './shopping-row.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
@@ -110,6 +114,7 @@ export function ShoppingListScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
   })
 
+  const refresh = usePullToRefresh(() => itemsQuery.refetch())
   const items = itemsQuery.data ?? []
   const unchecked = items.filter((i) => !i.checked)
   const checked = items.filter((i) => i.checked)
@@ -131,41 +136,45 @@ export function ShoppingListScreen() {
 
   return (
     <>
-    <AppShell nav={{ kind: 'tab', tab: 'courses', onScan: openScanSheet }} hint={hint}>
-      <XStack alignItems="center" justifyContent="space-between" gap="$3">
-        <YStack flexShrink={1}>
-          <Text fontSize={20} fontWeight="800" color={palette.ink} numberOfLines={1}>
-            Liste de courses
-          </Text>
-          <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} marginTop="$0.5">
-            {itemsQuery.isPending
-              ? 'Chargement...'
-              : `${unchecked.length} article${unchecked.length > 1 ? 's' : ''} restant${unchecked.length > 1 ? 's' : ''}`}
-          </Text>
-        </YStack>
-        <Pressable
-          testID="shopping-list-add"
-          onPress={() => router.push('/(tabs)/shopping-list/new')}
-          hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-          accessibilityRole="button"
-          accessibilityLabel="Ajouter un article"
-          style={pointerCursor}
-        >
-          <XStack
-            backgroundColor={palette.accentLime}
-            borderRadius={999}
-            paddingVertical="$2.5"
-            paddingHorizontal="$3"
-            minHeight={44}
-            alignItems="center"
-          >
-            <Text fontSize={13} fontWeight="800" color={palette.accentLimeText}>
-              + Ajouter
-            </Text>
-          </XStack>
-        </Pressable>
-      </XStack>
-
+    <AppShell nav={{ kind: 'tab', tab: 'courses', onScan: openScanSheet }} hint={hint} refresh={refresh}
+      header={
+        <ScreenHeader
+          palette={palette}
+          icon={(color) => <ShoppingCartIcon size={19} color={color} />}
+          title="Liste de courses"
+          subtitle={
+            itemsQuery.isPending
+              ? undefined
+              : `${unchecked.length} article${unchecked.length > 1 ? 's' : ''} restant${unchecked.length > 1 ? 's' : ''}`
+          }
+          trailing={
+            <Pressable
+              testID="shopping-list-add"
+              onPress={() => router.push('/(tabs)/shopping-list/new')}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              accessibilityRole="button"
+              accessibilityLabel="Ajouter un article"
+              style={pointerCursor}
+            >
+              <XStack
+                backgroundColor={palette.accentLime}
+                borderRadius={999}
+                gap="$1.5"
+                paddingVertical="$2.5"
+                paddingHorizontal="$3"
+                minHeight={44}
+                alignItems="center"
+              >
+                <PlusIcon size={15} color={palette.accentLimeText} />
+                <Text fontSize={13} fontWeight="800" color={palette.accentLimeText}>
+                  Ajouter
+                </Text>
+              </XStack>
+            </Pressable>
+          }
+        />
+      }
+    >
       {itemsQuery.isError ? (
         <XStack alignItems="center" gap="$3" backgroundColor={palette.expiredBg} borderRadius={14} padding="$3" marginTop="$4">
           <Text fontSize={13} fontWeight="600" color={palette.expiredText} flex={1}>
@@ -196,19 +205,12 @@ export function ShoppingListScreen() {
           <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} textAlign="center">
             Ajoute ce qui manque, ou pars d’une recette pour la remplir d’un coup.
           </Text>
-          <Pressable
+          <PillButton
             testID="shopping-list-empty-add"
+            label="Ajouter un article"
             onPress={() => router.push('/(tabs)/shopping-list/new')}
-            accessibilityRole="button"
-            accessibilityLabel="Ajouter un article"
-            style={pointerCursor}
-          >
-            <XStack alignItems="center" minHeight={44} paddingHorizontal="$5" borderRadius={999} backgroundColor={palette.accentLime}>
-              <Text fontSize={14} fontWeight="800" color={palette.accentLimeText}>
-                Ajouter un article
-              </Text>
-            </XStack>
-          </Pressable>
+            palette={palette}
+          />
         </YStack>
       ) : null}
 
@@ -235,6 +237,11 @@ export function ShoppingListScreen() {
         >
           <SpiralBinding palette={palette} />
           <YStack paddingHorizontal="$2">
+            {itemsQuery.isPending ? (
+              <YStack paddingVertical="$2">
+                <SkeletonList rows={4} label="Chargement de la liste" palette={palette} />
+              </YStack>
+            ) : null}
             {unchecked.map((item, index) => (
               <ShoppingRow
                 key={item.id}

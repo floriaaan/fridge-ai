@@ -18,6 +18,7 @@ import { HandDrawnCheck } from './hand-drawn-check.js'
 import { CheckedName } from './checked-name.js'
 import { useQuietRowFeedback } from './use-quiet-row-feedback.js'
 import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
+import { ripple } from '../shared/material.js'
 
 export function ShoppingRow({
   item,
@@ -97,6 +98,7 @@ export function ShoppingRow({
         accessibilityState={{ checked: item.checked }}
         accessibilityLabel={`${item.name}, ${item.quantity.amount} ${item.quantity.unit}`}
         accessibilityHint="Appui long pour modifier ou supprimer"
+        android_ripple={ripple(palette.ink)}
         style={pointerCursor}
       >
         <Animated.View

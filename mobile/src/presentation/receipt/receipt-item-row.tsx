@@ -2,7 +2,7 @@ import { Animated, Pressable } from 'react-native'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { ChevronRightIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { CalendarIcon, ChevronRightIcon, PencilIcon, ScaleIcon, TagIcon, WalletIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { FormField } from '../fridge/form-field.js'
 import { LOCATIONS } from '../../domain/fridge/location.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
@@ -141,6 +141,7 @@ export function ReceiptItemRow({
             onChangeText={(v) => set('name', v)}
             palette={palette}
             error={errors?.name}
+            icon={(color) => <PencilIcon size={13} color={color} />}
           />
           <XStack gap="$2">
             <YStack flex={1}>
@@ -152,6 +153,7 @@ export function ReceiptItemRow({
                 palette={palette}
                 keyboardType="decimal-pad"
                 error={errors?.quantity}
+                icon={(color) => <ScaleIcon size={13} color={color} />}
               />
             </YStack>
             <YStack flex={1}>
@@ -173,6 +175,7 @@ export function ReceiptItemRow({
                 value={item.category}
                 onChangeText={(v) => set('category', v)}
                 palette={palette}
+                icon={(color) => <TagIcon size={13} color={color} />}
               />
             </YStack>
             <YStack flex={1}>
@@ -184,6 +187,7 @@ export function ReceiptItemRow({
                 palette={palette}
                 keyboardType="decimal-pad"
                 error={errors?.price}
+                icon={(color) => <WalletIcon size={13} color={color} />}
               />
             </YStack>
           </XStack>
@@ -197,6 +201,7 @@ export function ReceiptItemRow({
             placeholder="AAAA-MM-JJ"
             hint="Laisse vide si le produit se garde longtemps."
             error={errors?.expiresAt}
+            icon={(color) => <CalendarIcon size={13} color={color} />}
           />
 
           <YStack gap="$1">

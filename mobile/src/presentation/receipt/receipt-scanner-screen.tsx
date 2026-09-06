@@ -18,7 +18,7 @@ export function ReceiptScannerScreen() {
   const [capturing, setCapturing] = useState(false)
 
   function goToReview(imageUri: string) {
-    router.replace({ pathname: '/(tabs)/receipts/review', params: { imageUri } })
+    router.replace({ pathname: '/receipts/review', params: { imageUri } })
   }
 
   async function handleCapture() {
@@ -47,7 +47,7 @@ export function ReceiptScannerScreen() {
         message="L'accès à la caméra est nécessaire pour scanner un ticket de caisse."
         canAskAgain={permission?.canAskAgain ?? true}
         onRequestPermission={requestPermission}
-        onClose={() => goBack('/(tabs)/receipts')}
+        onClose={() => goBack('/receipts')}
         requestTestID="receipt-scanner-request-permission"
         closeTestID="receipt-scanner-permission-close"
       >
@@ -82,7 +82,7 @@ export function ReceiptScannerScreen() {
       />
       <YStack position="absolute" bottom="14%" left={0} right={0} alignItems="center" style={{ pointerEvents: 'none' }}>
         <YStack backgroundColor="rgba(0,0,0,0.45)" borderRadius={999} paddingVertical="$2" paddingHorizontal="$4">
-          <Text fontSize={13} fontWeight="700" color="#FFFFFF">
+          <Text fontSize={13} fontWeight="700" color={palette.onDark}>
             Cadre le ticket entier, bien à plat
           </Text>
         </YStack>
@@ -90,7 +90,7 @@ export function ReceiptScannerScreen() {
       <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
         <Pressable
           testID="receipt-scanner-close"
-          onPress={() => goBack('/(tabs)/receipts')}
+          onPress={() => goBack('/receipts')}
           accessibilityRole="button"
           accessibilityLabel="Fermer le scanner"
           style={[pointerCursor, { padding: 12 }]}
@@ -105,7 +105,7 @@ export function ReceiptScannerScreen() {
             justifyContent="center"
             backgroundColor="rgba(0,0,0,0.45)"
           >
-            <XIcon size={22} color="#FFFFFF" />
+            <XIcon size={22} color={palette.onDark} />
           </YStack>
         </Pressable>
       </SafeAreaView>
@@ -132,7 +132,7 @@ export function ReceiptScannerScreen() {
             accessibilityLabel="Prendre la photo"
             style={pointerCursor}
           >
-            <YStack width={64} height={64} borderRadius={32} backgroundColor={palette.accentLime} borderWidth={4} borderColor="#FFFFFF" />
+            <YStack width={64} height={64} borderRadius={32} backgroundColor={palette.accentLime} borderWidth={4} borderColor={palette.onDark} />
           </Pressable>
         </YStack>
       </SafeAreaView>
