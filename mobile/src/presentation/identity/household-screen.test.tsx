@@ -36,11 +36,11 @@ test('names the household and lists its members', async () => {
 test('an owner sees the invite code and can rotate it', async () => {
   await renderHousehold()
 
-  await waitFor(() => expect(screen.getByTestId('household-invite-code')).toHaveTextContent('FRIDGE-4KQ2'))
+  await waitFor(() => expect(screen.getByTestId('household-invite-code')).toHaveTextContent('K4Q2M7XP'))
 
   await fireEvent.press(screen.getByTestId('household-regenerate'))
 
-  await waitFor(() => expect(screen.getByTestId('household-invite-code')).toHaveTextContent('FRIDGE-NEW1'))
+  await waitFor(() => expect(screen.getByTestId('household-invite-code')).toHaveTextContent('FAKE0001'))
 })
 
 test('a member without an invite code never sees that section', async () => {

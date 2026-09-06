@@ -10,14 +10,22 @@
  * fix; depending on a package that cannot resolve its own runtime import is
  * not.
  */
-import { Circle, Path, Polyline, Svg } from 'react-native-svg'
+import { Circle, Path, Polyline, Rect, Svg } from 'react-native-svg'
 
 interface IconProps {
   size: number
   color: string
 }
 
-type IconSegment = { d?: string; cx?: string; cy?: string; r?: string; points?: string }
+type IconSegment = {
+  d?: string
+  cx?: string
+  cy?: string
+  r?: string
+  points?: string
+  /** Lucide draws several glyphs from `<rect>`; expressing those as path data loses the rounded corners. */
+  rect?: { x: string; y: string; width: string; height: string; rx?: string }
+}
 
 function icon(paths: IconSegment[]) {
   return function DashboardIcon({ size, color }: IconProps) {
@@ -28,6 +36,8 @@ function icon(paths: IconSegment[]) {
             <Path key={i} d={p.d} stroke={color} />
           ) : p.points ? (
             <Polyline key={i} points={p.points} stroke={color} />
+          ) : p.rect ? (
+            <Rect key={i} {...p.rect} stroke={color} fill="none" />
           ) : (
             <Circle key={i} cx={p.cx} cy={p.cy} r={p.r} stroke={color} />
           ),
@@ -274,4 +284,37 @@ export const LayoutGridIcon = icon([
   { d: 'M15 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z' },
   { d: 'M4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z' },
   { d: 'M15 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z' },
+])
+
+export const QrCodeIcon = icon([
+  { rect: { x: '3', y: '3', width: '5', height: '5', rx: '1' } },
+  { rect: { x: '16', y: '3', width: '5', height: '5', rx: '1' } },
+  { rect: { x: '3', y: '16', width: '5', height: '5', rx: '1' } },
+  { d: 'M21 16h-3a2 2 0 0 0-2 2v3' },
+  { d: 'M21 21v.01' },
+  { d: 'M12 7v3a2 2 0 0 1-2 2H7' },
+  { d: 'M3 12h.01' },
+  { d: 'M12 3h.01' },
+  { d: 'M12 16v.01' },
+  { d: 'M16 12h1' },
+  { d: 'M21 12v.01' },
+  { d: 'M12 21v-1' },
+])
+
+export const ClipboardIcon = icon([
+  { rect: { x: '8', y: '2', width: '8', height: '4', rx: '1' } },
+  { d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' },
+])
+
+export const CopyIcon = icon([
+  { rect: { x: '8', y: '8', width: '14', height: '14', rx: '2' } },
+  { d: 'M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2' },
+])
+
+export const ShareIcon = icon([
+  { cx: '18', cy: '5', r: '3' },
+  { cx: '6', cy: '12', r: '3' },
+  { cx: '18', cy: '19', r: '3' },
+  { d: 'M8.59 13.51 15.42 17.49' },
+  { d: 'M15.41 6.51 8.59 10.49' },
 ])

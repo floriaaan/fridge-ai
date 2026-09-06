@@ -100,14 +100,39 @@ export class HttpFridgeConnector implements FridgeConnector {
     await authClient.signOut()
   }
 
+  /**
+   * `null` means the server said this account has no foyer. A failed read
+   * **throws**, so TanStack marks the query `isError` rather than `data: null`.
+   *
+   * It used to answer `null` for both, and that conflation is now load-bearing
+   * in the wrong direction: `(tabs)/_layout` reads this query to decide
+   * whether to send someone to the onboarding, so a dropped connection in a
+   * kitchen on one bar of signal would have told an existing member their
+   * foyer was gone and offered them a form to create a second one. The Foyer
+   * screen's own `isError` branch — three states, written precisely so a
+   * failed read is not reported as "tu n'appartiens à aucun foyer" — could
+   * never fire either, for the same reason.
+   */
   async getHousehold(): Promise<Household | null> {
-    try {
-      const result = await apiFetch<{ household: Household | null }>('/api/households/mine')
-      return result.ok ? result.value.household : null
-    } catch (error) {
-      console.warn('Failed to get household:', error)
-      return null
-    }
+    const result = await apiFetch<{ household: Household | null }>('/api/households/mine')
+    if (!result.ok) throw new Error(result.error.message)
+    return result.value.household
+  }
+
+  async createHousehold(name: string): Promise<Result<Household, ApiError>> {
+    const result = await apiFetch<{ household: Household }>('/api/households', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    })
+    return result.ok ? Result.ok(result.value.household) : Result.err(result.error)
+  }
+
+  async joinHousehold(inviteCode: string): Promise<Result<Household, ApiError>> {
+    const result = await apiFetch<{ household: Household }>('/api/households/join', {
+      method: 'POST',
+      body: JSON.stringify({ inviteCode }),
+    })
+    return result.ok ? Result.ok(result.value.household) : Result.err(result.error)
   }
 
   async regenerateInviteCode(): Promise<Result<string, ApiError>> {

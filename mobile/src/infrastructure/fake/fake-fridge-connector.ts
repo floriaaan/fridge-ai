@@ -1,6 +1,7 @@
 import { Result } from '../../domain/shared/result.js'
 import { fakeSession } from './fixtures/session.fixture.js'
 import { fakeHousehold } from './fixtures/household.fixture.js'
+import { normalizeInviteCode } from '../../domain/identity/invite-code.js'
 import { fakeShoppingItems } from './fixtures/shopping-item.fixture.js'
 import { fakeRecipes } from './fixtures/recipe.fixture.js'
 import { fakeProducts } from './fixtures/product.fixture.js'
@@ -39,8 +40,27 @@ const DEFAULT_AI_LATENCY_MS = 2200
 /** In-memory only, resets on every reload — UI iteration without a running backend. */
 export class FakeFridgeConnector implements FridgeConnector {
   private session: Session | null = null
-  private household: Household = { ...fakeHousehold, members: fakeHousehold.members.map((m) => ({ ...m })) }
+  /**
+   * Nullable, because "signed in with no foyer yet" is a real state the app
+   * now has a whole route group for. The fake used to hand every session the
+   * same fixture household unconditionally, which made the onboarding
+   * literally unreachable in dev: the gate that sends a foyer-less account to
+   * `(onboarding)` could never fire against it.
+   *
+   * Which method leaves it null is the honest part: `signUpEmail` creates a
+   * brand-new account and therefore has no foyer, `signInEmail`/`signInSocial`
+   * return to one that already exists. So signing up is how you reach the
+   * onboarding in dev — the same way you reach it in production, and how a
+   * test reaches it too.
+   *
+   * It still *starts* on the fixture, because most screens are exercised
+   * against a connector nobody signed into and they are all foyer screens: a
+   * default of null would have made every one of them render its "no
+   * household" branch instead of the thing under test.
+   */
+  private household: Household | null = { ...fakeHousehold, members: fakeHousehold.members.map((m) => ({ ...m })) }
   private nextInviteCode = 1
+  private nextHouseholdId = 2
   private shoppingItems: ShoppingItem[] = fakeShoppingItems.map((item) => ({ ...item }))
   private products: Product[] = fakeProducts.map((p) => ({ ...p }))
   private nextProductId = 1
@@ -79,21 +99,30 @@ export class FakeFridgeConnector implements FridgeConnector {
     ]
   }
 
+  private restoreFixtureHousehold(): Household {
+    this.household = { ...fakeHousehold, members: fakeHousehold.members.map((m) => ({ ...m })) }
+    return this.household
+  }
+
   async signInEmail(email: string, password: string): Promise<Result<Session, ApiError>> {
     if (!email || !password) {
       return Result.err({ type: 'invalid_credentials', message: 'Email ou mot de passe invalide.' })
     }
     this.session = { user: { ...fakeSession.user, email } }
+    this.restoreFixtureHousehold()
     return Result.ok(this.session)
   }
 
   async signUpEmail(email: string, _password: string, name: string): Promise<Result<Session, ApiError>> {
     this.session = { user: { ...fakeSession.user, email, name } }
+    // A new account has no foyer. This is what makes `(onboarding)` reachable.
+    this.household = null
     return Result.ok(this.session)
   }
 
   async signInSocial(): Promise<Result<Session, ApiError>> {
     this.session = fakeSession
+    this.restoreFixtureHousehold()
     return Result.ok(this.session)
   }
 
@@ -102,19 +131,75 @@ export class FakeFridgeConnector implements FridgeConnector {
   }
 
   async getHousehold(): Promise<Household | null> {
+    if (!this.household) return null
     return { ...this.household, members: this.household.members.map((m) => ({ ...m })) }
   }
 
+  async createHousehold(name: string): Promise<Result<Household, ApiError>> {
+    if (this.household) {
+      return Result.err({ type: 'already_in_household', message: 'Vous appartenez déjà à un foyer.' })
+    }
+    const trimmed = name.trim()
+    if (trimmed.length === 0 || trimmed.length > 80) {
+      return Result.err({ type: 'validation_failed', message: 'Le nom du foyer doit faire entre 1 et 80 caractères.' })
+    }
+    this.household = {
+      id: `fake-household-${this.nextHouseholdId++}`,
+      name: trimmed,
+      // Eight characters of [A-Z0-9], like the real generator — see the fixture.
+      inviteCode: this.nextFakeInviteCode(),
+      role: 'owner',
+      members: [
+        {
+          userId: this.session?.user.id ?? 'fake-user-1',
+          name: this.session?.user.name ?? 'Toi',
+          role: 'owner',
+          joinedAt: new Date().toISOString(),
+        },
+      ],
+    }
+    return Result.ok((await this.getHousehold()) as Household)
+  }
+
+  async joinHousehold(inviteCode: string): Promise<Result<Household, ApiError>> {
+    if (this.household) {
+      return Result.err({ type: 'already_in_household', message: 'Vous appartenez déjà à un foyer.' })
+    }
+    // Only the fixture's own code opens the fixture foyer; every other
+    // well-formed code takes the rejection branch, so both outcomes are
+    // reachable in dev without a backend.
+    if (normalizeInviteCode(inviteCode) !== fakeHousehold.inviteCode) {
+      return Result.err({ type: 'invalid_invite_code', message: "Code d'invitation invalide." })
+    }
+    // Joining makes you a member, never the owner — and the backend omits
+    // `inviteCode` entirely for a member, which is what the Foyer screen gates
+    // its invite section on.
+    const household = this.restoreFixtureHousehold()
+    household.role = 'member'
+    delete household.inviteCode
+    household.members.push({
+      userId: this.session?.user.id ?? 'fake-user-3',
+      name: this.session?.user.name ?? 'Toi',
+      role: 'member',
+      joinedAt: new Date().toISOString(),
+    })
+    return Result.ok((await this.getHousehold()) as Household)
+  }
+
+  private nextFakeInviteCode(): string {
+    return `FAKE${String(this.nextInviteCode++).padStart(4, '0')}`
+  }
+
   async regenerateInviteCode(): Promise<Result<string, ApiError>> {
-    if (this.household.role !== 'owner') {
+    if (this.household?.role !== 'owner') {
       return Result.err({ type: 'forbidden', message: 'Seul le propriétaire du foyer peut régénérer le code.' })
     }
-    this.household.inviteCode = `FRIDGE-NEW${this.nextInviteCode++}`
+    this.household.inviteCode = this.nextFakeInviteCode()
     return Result.ok(this.household.inviteCode)
   }
 
   async removeHouseholdMember(userId: string): Promise<Result<void, ApiError>> {
-    if (this.household.role !== 'owner') {
+    if (this.household?.role !== 'owner') {
       return Result.err({ type: 'forbidden', message: 'Seul le propriétaire du foyer peut retirer un membre.' })
     }
     const index = this.household.members.findIndex((m) => m.userId === userId)
@@ -124,7 +209,11 @@ export class FakeFridgeConnector implements FridgeConnector {
   }
 
   async leaveHousehold(): Promise<Result<void, ApiError>> {
-    this.household.members = this.household.members.filter((m) => m.userId !== this.session?.user.id)
+    // Null, not "the same household minus me". Either branch of the real
+    // backend — an owner deleting the foyer, a member being removed from it —
+    // leaves `GET /households/mine` answering null for this account, and the
+    // gate that decides where a foyer-less user lands reads exactly that.
+    this.household = null
     return Result.ok(undefined)
   }
 

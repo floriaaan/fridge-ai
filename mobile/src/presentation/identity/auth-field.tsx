@@ -6,14 +6,25 @@ import { useSoftPalette } from '../dashboard/soft-palette.js'
 /** Label above, rounded field below, lime focus ring — replaces the raw Tamagui `Input`. */
 export function AuthField({
   label,
+  labelColor,
   testID,
   ...inputProps
-}: TextInputProps & { label: string; testID?: string }) {
+}: TextInputProps & {
+  label: string
+  /**
+   * Overrides the label's ink for a field sitting on a *colored* card — the
+   * threshold's "Nom du foyer" lives on the mocha surface, where the system's
+   * flat `inkSecondary` is both unreadable and against the rule that
+   * secondary text on a colored card is tinted from that card's own hue.
+   */
+  labelColor?: string
+  testID?: string
+}) {
   const palette = useSoftPalette()
   const [focused, setFocused] = useState(false)
   return (
     <YStack gap="$1.5">
-      <Text fontSize={12} fontWeight="600" color={palette.inkSecondary}>
+      <Text fontSize={12} fontWeight="600" color={labelColor ?? palette.inkSecondary}>
         {label}
       </Text>
       <TextInput
