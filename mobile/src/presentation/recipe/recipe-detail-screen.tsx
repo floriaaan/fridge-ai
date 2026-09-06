@@ -20,11 +20,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { AppShell } from '../shared/app-shell.js'
-import { BackButton } from '../shared/back-button.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
+import { Skeleton, SkeletonGroup, SkeletonRow } from '../shared/skeleton.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { CircleCheckIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
+import { ChefHatIcon, CircleCheckIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
 import { useRecipeQuery } from '../../application/recipe/recipe.query.js'
 import { useCreateShoppingItemMutation } from '../../application/shopping-list/create-shopping-item.mutation.js'
 import { goBack } from '../shared/navigation.js'
@@ -47,26 +49,47 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
   const palette = useSoftPalette()
   const queryClient = useQueryClient()
   const recipe = useRecipeQuery(recipeId)
+  const refresh = usePullToRefresh(() => recipe.refetch())
   const createItem = useCreateShoppingItemMutation()
   const [hint, showHint] = useHint()
   const [adding, setAdding] = useState(false)
 
   const header = (
-    <XStack alignItems="center" gap="$3">
-      <BackButton onPress={() => goBack('/(tabs)/recipes')} ink={palette.ink} cream={palette.cream} />
-      <Text fontSize={20} fontWeight="800" color={palette.ink}>
-        Recette
-      </Text>
-    </XStack>
+    <ScreenHeader
+      palette={palette}
+      icon={(color) => <ChefHatIcon size={19} color={color} />}
+      title="Recette"
+      onBack={() => goBack('/(tabs)/recipes')}
+    />
   )
+
+  if (recipe.isPending) {
+    return (
+      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
+        <SkeletonGroup label="Chargement de la recette">
+          <Skeleton width="70%" height={22} />
+          <Skeleton width="40%" height={13} />
+          <YStack marginTop="$4" gap="$2">
+            <Skeleton height={12} />
+            <Skeleton height={12} />
+            <Skeleton width="80%" height={12} />
+          </YStack>
+          <YStack marginTop="$4" gap="$1">
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </YStack>
+        </SkeletonGroup>
+      </AppShell>
+    )
+  }
 
   if (!recipe.data) {
     return (
-      <AppShell nav={{ kind: 'stack' }}>
-        {header}
+      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
         <YStack marginTop="$5" gap="$3">
           <Text fontSize={14} color={palette.inkSecondary}>
-            {recipe.isPending ? 'Chargement de la recette…' : 'Recette introuvable.'}
+            Recette introuvable.
           </Text>
           {recipe.isError ? (
             <Pressable
@@ -124,8 +147,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
   }
 
   return (
-    <AppShell nav={{ kind: 'stack' }} hint={hint}>
-      {header}
+    <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh} header={header}>
 
       <YStack
         marginTop="$5"
@@ -154,14 +176,14 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
         ) : null}
         <XStack gap="$2" flexWrap="wrap">
           {data.preparationTime ? (
-            <XStack backgroundColor="rgba(0,0,0,0.28)" borderRadius={999} paddingVertical="$1.5" paddingHorizontal="$3">
+            <XStack backgroundColor={palette.heroPillFill} borderRadius={999} paddingVertical="$1.5" paddingHorizontal="$3">
               <Text fontSize={12} fontWeight="700" color={palette.brandDeepText}>
                 {data.preparationTime} min
               </Text>
             </XStack>
           ) : null}
           {data.tags.map((tag) => (
-            <XStack key={tag} backgroundColor="rgba(0,0,0,0.28)" borderRadius={999} paddingVertical="$1.5" paddingHorizontal="$3">
+            <XStack key={tag} backgroundColor={palette.heroPillFill} borderRadius={999} paddingVertical="$1.5" paddingHorizontal="$3">
               <Text fontSize={12} fontWeight="700" color={palette.brandDeepText}>
                 {tag}
               </Text>
@@ -173,7 +195,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
       {owned.length > 0 ? (
         <IngredientGroup
           testID="recipe-owned"
-          title="Déjà dans ton frigo"
+          title="Déjà dans ton garde-manger"
           items={owned}
           bg={palette.mintPale}
           labelColor={palette.mintPaleText}

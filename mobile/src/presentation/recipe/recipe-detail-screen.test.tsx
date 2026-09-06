@@ -33,7 +33,8 @@ test('shows the recipe with its numbered steps', async () => {
 })
 
 test('separates what the foyer already owns from what it has to buy', async () => {
-  const connector = new FakeFridgeConnector()
+  // No AI latency: this test wants the generated recipe's shape, not the wait.
+  const connector = new FakeFridgeConnector({ aiLatencyMs: 0 })
   // A generated recipe is the case where the backend links ingredients to
   // real products; the seeded fixtures carry none.
   await connector.generateRecipes()

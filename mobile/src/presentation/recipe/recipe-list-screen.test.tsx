@@ -39,32 +39,18 @@ test('a recipe card opens that recipe instead of a "bientôt disponible" toast',
   expect(router.push).toHaveBeenCalledWith({ pathname: '/(tabs)/recipes/[id]', params: { id: 'fake-recipe-1' } })
 })
 
-test('generating opens the recipe it just produced', async () => {
+test('the generate card opens the composer sheet rather than firing a request', async () => {
   renderList()
 
   await waitFor(() => expect(screen.getByTestId('recipes-generate')).toBeTruthy())
 
   fireEvent.press(screen.getByTestId('recipes-generate'))
 
-  await waitFor(() =>
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/(tabs)/recipes/[id]',
-      params: { id: 'fake-recipe-generated-1' },
-    }),
-  )
+  expect(router.push).toHaveBeenCalledWith('/(tabs)/recipes/generate')
 })
 
-test('a generation that has nothing to cook from says why', async () => {
-  const connector = new FakeFridgeConnector()
-  jest.spyOn(connector, 'getProducts').mockResolvedValue([])
-  jest
-    .spyOn(connector, 'generateRecipes')
-    .mockResolvedValue({ ok: false, error: { type: 'no_products', message: 'Ajoute des produits au frigo pour générer une recette.' } })
-  renderList(connector)
+test('the generate card names the products it will cook from', async () => {
+  renderList()
 
-  await waitFor(() => expect(screen.getByTestId('recipes-generate')).toBeTruthy())
-
-  fireEvent.press(screen.getByTestId('recipes-generate'))
-
-  await waitFor(() => expect(screen.getByText('Ajoute des produits au frigo pour générer une recette.')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText(/^À partir de : /)).toBeTruthy())
 })

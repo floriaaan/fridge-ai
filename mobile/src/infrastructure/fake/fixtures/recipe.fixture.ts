@@ -21,7 +21,7 @@ export const fakeRecipes: Recipe[] = [
   {
     id: 'fake-recipe-2',
     title: 'Yaourts glacés maison',
-    description: 'Pour les yaourts qui périment aujourd’hui.',
+    description: 'Pour les yaourts à consommer aujourd’hui.',
     source: 'ai_generated',
     instructions: '1. Mixer les yaourts avec du miel.\n2. Congeler 4h en bac.\n3. Servir en boules.',
     preparationTime: 10,
