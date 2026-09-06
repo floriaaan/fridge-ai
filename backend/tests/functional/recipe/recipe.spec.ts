@@ -91,6 +91,135 @@ test.group('recipe: generate, suggestions, save, list, detail, delete', (group) 
     afterDelete.assertStatus(404)
   })
 
+  test('a recipe records who wrote it into the library', async ({ client, assert }) => {
+    const cookie = await signUpWithHousehold(client, 'recipe-author@example.com')
+
+    const save = await client
+      .post('/api/recipes')
+      .headers({ cookie })
+      .json({
+        title: 'Salade de tomates',
+        source: 'user',
+        instructions: 'Couper, assaisonner.',
+        ingredients: [{ label: 'Tomate', quantity: 3, unit: 'piece' }],
+      })
+    save.assertStatus(201)
+
+    // The library is shared, so a row that names nobody is a row four people
+    // cannot tell apart.
+    assert.isString(save.body().recipe.createdBy)
+    assert.equal(save.body().recipe.cookCount, 0)
+    assert.isNull(save.body().recipe.lastCookedAt)
+  })
+
+  test('cooking a recipe consumes its products and is counted', async ({ client, assert }) => {
+    const cookie = await signUpWithHousehold(client, 'recipe-cooked@example.com')
+
+    const product = await client
+      .post('/api/products')
+      .headers({ cookie })
+      .json({
+        name: 'Épinards frais',
+        quantity: { amount: 200, unit: 'g' },
+        location: 'fridge',
+        category: 'Légumes',
+      })
+    product.assertStatus(201)
+    const productId = product.body().product.id
+
+    const save = await client
+      .post('/api/recipes')
+      .headers({ cookie })
+      .json({
+        title: 'Poêlée d’épinards',
+        source: 'user',
+        instructions: 'Faire revenir.',
+        ingredients: [{ label: 'Épinards frais', quantity: 200, unit: 'g' }],
+      })
+    const recipeId = save.body().recipe.id
+
+    const cooked = await client
+      .post(`/api/recipes/${recipeId}/cooked`)
+      .headers({ cookie })
+      .json({ productIds: [productId] })
+    cooked.assertStatus(200)
+    assert.equal(cooked.body().recipe.cookCount, 1)
+    assert.isString(cooked.body().recipe.lastCookedAt)
+    assert.isString(cooked.body().recipe.lastCookedBy)
+
+    // The point of the whole action: the spinach is out of the garde-manger,
+    // so the dashboard's expiry counts fall for the right reason and "Ce soir"
+    // stops recommending the same dish for the same product tomorrow.
+    const gone = await client.get(`/api/products/${productId}`).headers({ cookie })
+    gone.assertStatus(404)
+
+    // Twice is twice — the log appends rather than overwriting.
+    await client.post(`/api/recipes/${recipeId}/cooked`).headers({ cookie }).json({})
+    const detail = await client.get(`/api/recipes/${recipeId}`).headers({ cookie })
+    assert.equal(detail.body().recipe.cookCount, 2)
+  })
+
+  test('cooking cannot reach into another household fridge', async ({ client, assert }) => {
+    const cookieA = await signUpWithHousehold(client, 'recipe-cook-a@example.com')
+    const product = await client
+      .post('/api/products')
+      .headers({ cookie: cookieA })
+      .json({
+        name: 'Épinards frais',
+        quantity: { amount: 200, unit: 'g' },
+        location: 'fridge',
+        category: 'Légumes',
+      })
+    const foreignProductId = product.body().product.id
+
+    const cookieB = await signUpWithHousehold(client, 'recipe-cook-b@example.com')
+    const save = await client
+      .post('/api/recipes')
+      .headers({ cookie: cookieB })
+      .json({
+        title: 'Poêlée',
+        source: 'user',
+        instructions: 'Cuire.',
+        ingredients: [{ label: 'Épinards' }],
+      })
+    const recipeId = save.body().recipe.id
+
+    // The cook is recorded; the other foyer's fridge is untouched.
+    const cooked = await client
+      .post(`/api/recipes/${recipeId}/cooked`)
+      .headers({ cookie: cookieB })
+      .json({ productIds: [foreignProductId] })
+    cooked.assertStatus(200)
+    assert.equal(cooked.body().recipe.cookCount, 1)
+
+    const survivor = await client
+      .get(`/api/products/${foreignProductId}`)
+      .headers({ cookie: cookieA })
+    survivor.assertStatus(200)
+  })
+
+  test('cooking a recipe from another household returns 404, not a leak', async ({ client }) => {
+    const cookieA = await signUpWithHousehold(client, 'recipe-cook-leak-a@example.com')
+    const save = await client
+      .post('/api/recipes')
+      .headers({ cookie: cookieA })
+      .json({
+        title: 'Salade',
+        source: 'user',
+        instructions: 'Couper.',
+        ingredients: [{ label: 'Tomate' }],
+      })
+    const recipeId = save.body().recipe.id
+
+    const cookieB = await signUpWithHousehold(client, 'recipe-cook-leak-b@example.com')
+    const cooked = await client
+      .post(`/api/recipes/${recipeId}/cooked`)
+      .headers({ cookie: cookieB })
+      .json({})
+    cooked.assertStatus(404)
+    cooked.assertBodyContains({ error: { type: 'recipe_not_found' } })
+  })
+
   test('save rejects an unknown source', async ({ client }) => {
     const cookie = await signUpWithHousehold(client, 'recipe-badsource@example.com')
     const response = await client

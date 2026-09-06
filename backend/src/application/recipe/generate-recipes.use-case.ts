@@ -15,6 +15,8 @@ import type { Result as ResultType } from '#domain/shared/result'
 
 export interface GenerateRecipesInput {
   householdId: string
+  /** The member doing it — the library is shared, so every row records who added it. */
+  createdBy: string
   prompt?: string
 }
 
@@ -66,6 +68,7 @@ export class GenerateRecipes implements UseCase<
       Recipe.create({
         id: this.idGenerator.next(),
         householdId: input.householdId,
+        createdBy: input.createdBy,
         title: draft.title,
         description: draft.description,
         source: source.value,

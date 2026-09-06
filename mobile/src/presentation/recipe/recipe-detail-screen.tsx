@@ -30,6 +30,10 @@ import { ActionSheet } from '../shared/action-sheet.js'
 import { useDeleteRecipeMutation } from '../../application/recipe/delete-recipe.mutation.js'
 import { useRecipeQuery } from '../../application/recipe/recipe.query.js'
 import { useProductsQuery } from '../../application/fridge/products.query.js'
+import { useHouseholdQuery } from '../../application/identity/household.query.js'
+import { useSessionQuery } from '../../application/identity/session.query.js'
+import { useCookRecipeMutation } from '../../application/recipe/cook-recipe.mutation.js'
+import { provenanceLine } from './attribution.js'
 import { matchPantry, splitIngredients } from './pantry-match.js'
 import { useCreateShoppingItemMutation } from '../../application/shopping-list/create-shopping-item.mutation.js'
 import { goBack } from '../shared/navigation.js'
@@ -56,6 +60,9 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
   // split is a join between them, so refreshing one half would let the two
   // disagree — the same rule the list screen follows.
   const productsQuery = useProductsQuery()
+  const householdQuery = useHouseholdQuery()
+  const sessionQuery = useSessionQuery()
+  const cookRecipe = useCookRecipeMutation()
   const refresh = usePullToRefresh(
     () => recipe.refetch(),
     () => productsQuery.refetch(),
@@ -64,6 +71,8 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
   const [hint, showHint] = useHint()
   const [adding, setAdding] = useState(false)
   const [confirmingDeletion, setConfirmingDeletion] = useState(false)
+  const [confirmingCook, setConfirmingCook] = useState(false)
+  const [cooking, setCooking] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const deleteRecipe = useDeleteRecipeMutation()
 
@@ -211,6 +220,62 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
     ? splitIngredients(data, match)
     : { owned: [], missing: data.ingredients }
   const preparation = steps(data.instructions)
+  const provenance = provenanceLine(data, householdQuery.data, sessionQuery.data?.user.id)
+
+  /**
+   * Consuming is what makes the loop close, and it is destructive on shared
+   * state — so it is confirmed by the same ActionSheet as deletion, naming
+   * exactly what leaves the fridge. Nothing to consume is still worth
+   * recording: "on l'a refaite" is a fact about the recipe.
+   */
+  async function confirmCooked() {
+    const data = recipe.data
+    setConfirmingCook(false)
+    if (!data) return
+    setCooking(true)
+    const productIds = match ? owned.map((i) => match.byIngredient.get(i.id)?.id).filter((id): id is string => !!id) : []
+    const result = await cookRecipe.mutateAsync({ recipeId: data.id, productIds })
+    setCooking(false)
+    if (!result.ok) {
+      showHint('On n’a pas pu enregistrer — rien n’a bougé dans le garde-manger.')
+      return
+    }
+    // The garde-manger changed, so every screen that reads it is now stale:
+    // the dashboard's counts, the fridge list, and "Ce soir" itself.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['products'] }),
+      queryClient.invalidateQueries({ queryKey: ['recipes'] }),
+      recipe.refetch(),
+    ])
+    showHint(
+      productIds.length > 0
+        ? `C’est noté — ${productIds.length} produit${productIds.length > 1 ? 's sortis' : ' sorti'} du garde-manger`
+        : 'C’est noté',
+    )
+  }
+
+  const cookedSheet = (
+    <ActionSheet
+      visible={confirmingCook}
+      title={recipe.data ? `Tu as cuisiné « ${recipe.data.title} » ?` : ''}
+      description={
+        owned.length > 0
+          ? `${owned.length} produit${owned.length > 1 ? 's quitteront' : ' quittera'} le garde-manger du foyer. C’est définitif.`
+          : 'On le note dans l’historique du foyer. Rien ne quitte le garde-manger.'
+      }
+      options={[
+        {
+          testID: 'recipe-cooked-confirm',
+          label: owned.length > 0 ? 'Oui, sortir les produits' : 'Oui, on l’a cuisinée',
+          icon: (color) => <CircleCheckIcon size={18} color={color} />,
+          tint: palette.mintPale,
+          onPress: confirmCooked,
+        },
+      ]}
+      onClose={() => setConfirmingCook(false)}
+    />
+  )
+
 
   async function handleAddMissing() {
     if (missing.length === 0 || adding) return
@@ -261,6 +326,13 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
         {data.description ? (
           <Text fontSize={13} fontWeight="500" color={palette.brandDeepTextSecondary} lineHeight={19}>
             {data.description}
+          </Text>
+        ) : null}
+        {/* Who, and what the foyer has done with it — the library's most
+            shared artefact was anonymous everywhere it appeared. */}
+        {provenance ? (
+          <Text fontSize={12} fontWeight="600" color={palette.brandDeepTextSecondary}>
+            {provenance}
           </Text>
         ) : null}
         <XStack gap="$2" flexWrap="wrap">
@@ -335,6 +407,28 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
         </Text>
       )}
 
+      {/*
+        "J'ai cuisiné" — the half of the recommendation that was missing.
+        The app told you to cook this to save the épinards, then had no way to
+        hear that it worked: it recommended the same dish for the same product
+        the next evening while the dashboard's overdue count climbed. Under the
+        steps, not above them: it is the thing you press when you are done.
+      */}
+      {pantryKnown ? (
+        <CookedAction
+          testID="recipe-cooked"
+          label={cooking ? 'On note…' : 'J’ai cuisiné'}
+          hint={
+            owned.length > 0
+              ? `${owned.length} produit${owned.length > 1 ? 's' : ''} sortiront du garde-manger`
+              : 'Rien à sortir du garde-manger'
+          }
+          disabled={cooking}
+          onPress={() => setConfirmingCook(true)}
+          palette={palette}
+        />
+      ) : null}
+
       <YStack marginTop="$6" gap="$3">
         <Text fontSize={15} fontWeight="800" color={palette.ink}>
           Préparation
@@ -380,6 +474,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
           </XStack>
         </Pressable>
       </YStack>
+      {cookedSheet}
       {deletionSheet}
     </AppShell>
   )
@@ -441,6 +536,75 @@ function IngredientGroup({
         </Text>
       ))}
     </YStack>
+  )
+}
+
+/**
+ * The quiet counterpart to `PrimaryAction`.
+ *
+ * Not lime: this system spends its one saturated colour on progress and on the
+ * screen's single primary action, which here is still "ajouter les manquants".
+ * Cooking is what you press *after* the dish exists, and it names the
+ * consequence under the label rather than making you open the sheet to find
+ * out what it will take out of the fridge.
+ */
+function CookedAction({
+  testID,
+  label,
+  hint,
+  onPress,
+  disabled,
+  palette,
+}: {
+  testID: string
+  label: string
+  hint: string
+  onPress: () => void
+  disabled?: boolean
+  palette: SoftPalette
+}) {
+  const hover = useHoverPress()
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      disabled={disabled}
+      onHoverIn={hover.onHoverIn}
+      onHoverOut={hover.onHoverOut}
+      onPressIn={hover.onPressIn}
+      onPressOut={hover.onPressOut}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled, busy: !!disabled }}
+      accessibilityLabel={`${label}. ${hint}.`}
+      style={pointerCursor}
+    >
+      <Animated.View style={{ transform: [{ scale: hover.scale }], opacity: disabled ? 0.6 : 1 }}>
+        <XStack
+          marginTop="$5"
+          alignItems="center"
+          gap="$3"
+          minHeight={52}
+          paddingHorizontal="$4"
+          backgroundColor={palette.mintPale}
+          style={{
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 14,
+            borderBottomRightRadius: 20,
+            borderBottomLeftRadius: 14,
+          }}
+        >
+          <CircleCheckIcon size={18} color={palette.mintPaleText} />
+          <YStack flex={1}>
+            <Text fontSize={14} fontWeight="800" color={palette.mintPaleText}>
+              {label}
+            </Text>
+            <Text fontSize={11} fontWeight="500" color={palette.mintPaleText}>
+              {hint}
+            </Text>
+          </YStack>
+        </XStack>
+      </Animated.View>
+    </Pressable>
   )
 }
 

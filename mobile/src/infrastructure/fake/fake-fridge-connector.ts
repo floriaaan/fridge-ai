@@ -169,6 +169,28 @@ export class FakeFridgeConnector implements FridgeConnector {
     return [...this.generatedRecipes, ...this.recipes].find((r) => r.id === recipeId) ?? null
   }
 
+  /**
+   * "J'ai cuisiné": the count goes up and the products the meal used leave the
+   * garde-manger — the fake has to model the consumption, because that is the
+   * whole point of the action and the dashboard reads the same list.
+   */
+  async cookRecipe(recipeId: string, productIds: string[]): Promise<Result<Recipe, ApiError>> {
+    for (const list of [this.generatedRecipes, this.recipes]) {
+      const recipe = list.find((r) => r.id === recipeId)
+      if (!recipe) continue
+      this.products = this.products.filter((product) => !productIds.includes(product.id))
+      const cooked: Recipe = {
+        ...recipe,
+        cookCount: recipe.cookCount + 1,
+        lastCookedAt: new Date().toISOString(),
+        lastCookedBy: this.session?.user.id ?? fakeSession.user.id,
+      }
+      list.splice(list.indexOf(recipe), 1, cooked)
+      return Result.ok(cooked)
+    }
+    return Result.err({ type: 'not_found', message: 'Recette introuvable.' })
+  }
+
   async deleteRecipe(recipeId: string): Promise<Result<void, ApiError>> {
     for (const list of [this.generatedRecipes, this.recipes]) {
       const index = list.findIndex((r) => r.id === recipeId)
@@ -200,6 +222,10 @@ export class FakeFridgeConnector implements FridgeConnector {
     const now = new Date().toISOString()
     const recipe: Recipe = {
       id: `fake-recipe-generated-${this.nextRecipeId++}`,
+      createdBy: this.session?.user.id ?? fakeSession.user.id,
+      cookCount: 0,
+      lastCookedAt: null,
+      lastCookedBy: null,
       title: `Idée express : ${used[0].name.toLowerCase()}`,
       description: prompt ? `Généré à partir de : ${prompt}` : 'Généré à partir de ce qu’il faut finir en premier.',
       source: 'ai_generated',

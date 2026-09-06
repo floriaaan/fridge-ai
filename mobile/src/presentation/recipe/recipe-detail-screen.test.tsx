@@ -99,6 +99,42 @@ test('a recipe can be dropped from the screen where you decide you are done with
   })
 })
 
+test('cooking a recipe takes its products out of the garde-manger and is counted', async () => {
+  const connector = new FakeFridgeConnector()
+  const before = (await connector.getProducts()).length
+  renderRecipe('fake-recipe-1', connector)
+
+  await waitFor(() => expect(screen.getByTestId('recipe-cooked')).toBeTruthy())
+  // The button says what it will take, before the sheet is opened.
+  expect(screen.getByText('2 produits sortiront du garde-manger')).toBeTruthy()
+
+  fireEvent.press(screen.getByTestId('recipe-cooked'))
+  await waitFor(() =>
+    expect(screen.getByText('Tu as cuisiné « Poêlée poulet-épinards » ?')).toBeTruthy(),
+  )
+  fireEvent.press(screen.getByTestId('recipe-cooked-confirm'))
+
+  await waitFor(async () => {
+    // The whole point: the épinards and the riz are gone, so the dashboard's
+    // expiry counts fall for the right reason and "Ce soir" stops recommending
+    // the same dish for the same product tomorrow.
+    const products = await connector.getProducts()
+    expect(products.length).toBe(before - 2)
+    expect(products.map((p) => p.name)).not.toContain('Épinards frais')
+  })
+
+  const cooked = await connector.getRecipe('fake-recipe-1')
+  expect(cooked?.cookCount).toBe(1)
+})
+
+test('the recipe says who put it in the foyer library', async () => {
+  renderRecipe('fake-recipe-2')
+
+  // fake-recipe-2 is Camille's and has been made twice — what the foyer did
+  // with it outranks who typed it in.
+  await waitFor(() => expect(screen.getByText(/Cuisinée 2 fois · Camille/)).toBeTruthy())
+})
+
 test('an unknown recipe says so instead of rendering a blank screen', async () => {
   renderRecipe('nope')
 

@@ -2,8 +2,20 @@ import { AggregateRoot } from '#domain/shared/aggregate-root'
 import { RecipeIngredient } from './recipe-ingredient.entity.js'
 import type { RecipeSource } from './recipe-source.vo.js'
 
+/**
+ * The last time the foyer actually cooked this, and who did.
+ *
+ * `userId` is nullable because a member can leave: the cook happened, and the
+ * screen says so without naming someone who is no longer here.
+ */
+export interface RecipeCook {
+  userId: string | null
+  at: Date
+}
+
 interface RecipeProps {
   householdId: string
+  createdBy: string | null
   title: string
   description: string | null
   source: RecipeSource
@@ -13,6 +25,13 @@ interface RecipeProps {
   imageKey: string | null
   ingredients: RecipeIngredient[]
   createdAt: Date
+  /**
+   * Derived, not a collection: the log lives in `recipe_cook` and grows
+   * without bound, so the aggregate carries the two facts a screen asks for
+   * rather than every row that produced them.
+   */
+  cookCount: number
+  lastCook: RecipeCook | null
 }
 
 export interface CreateRecipeIngredientProps {
@@ -26,6 +45,8 @@ export interface CreateRecipeIngredientProps {
 export interface CreateRecipeProps {
   id: string
   householdId: string
+  /** The member who put it in the library — `null` only for rows that predate attribution. */
+  createdBy?: string | null
   title: string
   source: RecipeSource
   instructions: string
@@ -58,6 +79,7 @@ export class Recipe extends AggregateRoot<string> {
 
     return new Recipe(params.id, {
       householdId: params.householdId,
+      createdBy: params.createdBy ?? null,
       title: params.title,
       description: params.description ?? null,
       source: params.source,
@@ -67,6 +89,8 @@ export class Recipe extends AggregateRoot<string> {
       imageKey: params.imageKey ?? null,
       ingredients,
       createdAt: params.createdAt,
+      cookCount: 0,
+      lastCook: null,
     })
   }
 
@@ -77,6 +101,18 @@ export class Recipe extends AggregateRoot<string> {
 
   get householdId(): string {
     return this.props.householdId
+  }
+
+  get createdBy(): string | null {
+    return this.props.createdBy
+  }
+
+  get cookCount(): number {
+    return this.props.cookCount
+  }
+
+  get lastCook(): RecipeCook | null {
+    return this.props.lastCook
   }
 
   get title(): string {

@@ -22,11 +22,14 @@ import { FormField } from '../fridge/form-field.js'
 import { CORNER_ROTATION, RecipeCard } from './recipe-card.js'
 import { TonightRail } from './tonight-rail.js'
 import { matchPantry, pickTonight } from './pantry-match.js'
+import { provenanceLine } from './attribution.js'
 import { daysUntilExpiry, expiryLabel, sortByExpiry } from '../dashboard/product-status.js'
 import type { PantryMatch } from './pantry-match.js'
 import { useRecipesQuery } from '../../application/recipe/recipes.query.js'
 import { useDeleteRecipeMutation } from '../../application/recipe/delete-recipe.mutation.js'
 import { useProductsQuery } from '../../application/fridge/products.query.js'
+import { useHouseholdQuery } from '../../application/identity/household.query.js'
+import { useSessionQuery } from '../../application/identity/session.query.js'
 import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product } from '../../domain/fridge/product.js'
 
@@ -59,6 +62,10 @@ export function RecipeListScreen() {
 
   const recipesQuery = useRecipesQuery()
   const productsQuery = useProductsQuery()
+  // The foyer's members, to turn the ids a recipe carries into names. A failure
+  // here costs a provenance line, never a recipe.
+  const householdQuery = useHouseholdQuery()
+  const sessionQuery = useSessionQuery()
   const deleteRecipe = useDeleteRecipeMutation()
   const recipes = useMemo(() => recipesQuery.data ?? [], [recipesQuery.data])
   const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data])
@@ -259,6 +266,7 @@ export function RecipeListScreen() {
                 match={matches.get(item.id) ?? null}
                 palette={palette}
                 corner={CORNER_ROTATION[index % CORNER_ROTATION.length]}
+                provenance={provenanceLine(item, householdQuery.data, sessionQuery.data?.user.id)}
                 deleting={deletingId === item.id}
                 onPress={() => openRecipe(item.id)}
                 onOpenActions={() => setPendingDeletion(item)}

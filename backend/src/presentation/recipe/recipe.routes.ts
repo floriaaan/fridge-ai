@@ -14,6 +14,7 @@ router
     router.post('/recipes/generate', [RecipeController, 'generate'])
     router.get('/recipes/suggestions', [RecipeController, 'suggestions'])
     router.get('/recipes/:id', [RecipeController, 'show'])
+    router.post('/recipes/:id/cooked', [RecipeController, 'cooked'])
     router.delete('/recipes/:id', [RecipeController, 'destroy'])
   })
   .prefix('/api')

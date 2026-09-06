@@ -171,6 +171,14 @@ export class HttpFridgeConnector implements FridgeConnector {
     return result.ok ? Result.ok(result.value.recipes) : Result.err(result.error)
   }
 
+  async cookRecipe(recipeId: string, productIds: string[]): Promise<Result<Recipe, ApiError>> {
+    const result = await apiFetch<{ recipe: Recipe }>(`/api/recipes/${recipeId}/cooked`, {
+      method: 'POST',
+      body: JSON.stringify({ productIds }),
+    })
+    return result.ok ? Result.ok(result.value.recipe) : Result.err(result.error)
+  }
+
   async deleteRecipe(recipeId: string): Promise<Result<void, ApiError>> {
     const result = await apiFetch<void>(`/api/recipes/${recipeId}`, { method: 'DELETE' })
     return result.ok ? Result.ok(undefined) : Result.err(result.error)

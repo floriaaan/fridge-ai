@@ -11,6 +11,20 @@ export interface RecipeIngredientDto {
 
 export interface RecipeDto {
   id: string
+  /**
+   * The member who put it in the library, and what the foyer has done with it
+   * since. A shared library whose rows carry no author or history is a pile;
+   * these three fields are what let a screen say "Camille · cuisinée 2 fois"
+   * instead of sorting by a timestamp nobody can see.
+   *
+   * Ids, not names: the client already holds the household's members and
+   * resolves them itself, and a member who has left resolves to nothing rather
+   * than to a name the foyer no longer knows.
+   */
+  createdBy: string | null
+  cookCount: number
+  lastCookedAt: string | null
+  lastCookedBy: string | null
   title: string
   description: string | null
   source: string
@@ -39,6 +53,10 @@ export interface RecipeDraftDto {
 export function toRecipeDto(recipe: Recipe): RecipeDto {
   return {
     id: recipe.id,
+    createdBy: recipe.createdBy,
+    cookCount: recipe.cookCount,
+    lastCookedAt: recipe.lastCook?.at.toISOString() ?? null,
+    lastCookedBy: recipe.lastCook?.userId ?? null,
     title: recipe.title,
     description: recipe.description,
     source: recipe.source.value,
