@@ -31,43 +31,69 @@ function toSession(
 
 export class HttpFridgeConnector implements FridgeConnector {
   async getSession(): Promise<Session | null> {
-    const { data } = await authClient.getSession()
-    return toSession(data)
+    try {
+      const { data } = await authClient.getSession()
+      return toSession(data)
+    } catch (error) {
+      // Return null if session check fails, this prevents blocking app startup
+      console.warn('Failed to get session:', error)
+      return null
+    }
   }
 
   async getAuthMethods(): Promise<AuthMethod[]> {
-    const result = await apiFetch<{ methods: AuthMethod[] }>('/api/auth/methods')
-    return result.ok ? result.value.methods : []
+    try {
+      const result = await apiFetch<{ methods: AuthMethod[] }>('/api/auth/methods')
+      return result.ok ? result.value.methods : []
+    } catch (error) {
+      console.warn('Failed to get auth methods:', error)
+      return []
+    }
   }
 
   async signInEmail(email: string, password: string): Promise<Result<Session, ApiError>> {
-    const { error } = await authClient.signIn.email({ email, password })
-    if (error) {
-      return Result.err({ type: error.code ?? 'sign_in_failed', message: error.message ?? 'Connexion impossible.' })
+    try {
+      const { error } = await authClient.signIn.email({ email, password })
+      if (error) {
+        return Result.err({ type: error.code ?? 'sign_in_failed', message: error.message ?? 'Connexion impossible.' })
+      }
+      const session = await this.getSession()
+      if (!session) return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
+      return Result.ok(session)
+    } catch (error) {
+      console.warn('Failed to sign in email:', error)
+      return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
     }
-    const session = await this.getSession()
-    if (!session) return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
-    return Result.ok(session)
   }
 
   async signUpEmail(email: string, password: string, name: string): Promise<Result<Session, ApiError>> {
-    const { error } = await authClient.signUp.email({ email, password, name })
-    if (error) {
-      return Result.err({ type: error.code ?? 'sign_up_failed', message: error.message ?? 'Inscription impossible.' })
+    try {
+      const { error } = await authClient.signUp.email({ email, password, name })
+      if (error) {
+        return Result.err({ type: error.code ?? 'sign_up_failed', message: error.message ?? 'Inscription impossible.' })
+      }
+      const session = await this.getSession()
+      if (!session) return Result.err({ type: 'sign_up_failed', message: 'Inscription impossible.' })
+      return Result.ok(session)
+    } catch (error) {
+      console.warn('Failed to sign up email:', error)
+      return Result.err({ type: 'sign_up_failed', message: 'Inscription impossible.' })
     }
-    const session = await this.getSession()
-    if (!session) return Result.err({ type: 'sign_up_failed', message: 'Inscription impossible.' })
-    return Result.ok(session)
   }
 
   async signInSocial(provider: 'pocketid'): Promise<Result<Session, ApiError>> {
-    const { error } = await authClient.signIn.social({ provider, callbackURL: '/(tabs)' })
-    if (error) {
-      return Result.err({ type: error.code ?? 'sign_in_failed', message: error.message ?? 'Connexion impossible.' })
+    try {
+      const { error } = await authClient.signIn.social({ provider, callbackURL: '/(tabs)' })
+      if (error) {
+        return Result.err({ type: error.code ?? 'sign_in_failed', message: error.message ?? 'Connexion impossible.' })
+      }
+      const session = await this.getSession()
+      if (!session) return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
+      return Result.ok(session)
+    } catch (error) {
+      console.warn('Failed to sign in social:', error)
+      return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
     }
-    const session = await this.getSession()
-    if (!session) return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
-    return Result.ok(session)
   }
 
   async signOut(): Promise<void> {
@@ -75,8 +101,13 @@ export class HttpFridgeConnector implements FridgeConnector {
   }
 
   async getHousehold(): Promise<Household | null> {
-    const result = await apiFetch<{ household: Household | null }>('/api/households/mine')
-    return result.ok ? result.value.household : null
+    try {
+      const result = await apiFetch<{ household: Household | null }>('/api/households/mine')
+      return result.ok ? result.value.household : null
+    } catch (error) {
+      console.warn('Failed to get household:', error)
+      return null
+    }
   }
 
   async regenerateInviteCode(): Promise<Result<string, ApiError>> {
@@ -138,6 +169,11 @@ export class HttpFridgeConnector implements FridgeConnector {
       body: JSON.stringify(prompt ? { prompt } : {}),
     })
     return result.ok ? Result.ok(result.value.recipes) : Result.err(result.error)
+  }
+
+  async deleteRecipe(recipeId: string): Promise<Result<void, ApiError>> {
+    const result = await apiFetch<void>(`/api/recipes/${recipeId}`, { method: 'DELETE' })
+    return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async getProducts(params?: { location?: LocationValue; expiringWithinDays?: number }): Promise<Product[]> {

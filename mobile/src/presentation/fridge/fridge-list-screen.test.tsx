@@ -54,12 +54,17 @@ function renderWithProviders(children: ReactNode) {
   )
 }
 
-test('renders every fixture product by name', async () => {
+test('renders the fixture products by name, on the shelf each one lives on', async () => {
   await renderWithProviders(<FridgeListScreen />)
 
   await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
-  expect(screen.getByText('Épinards surgelés')).toBeTruthy()
-  expect(screen.getByText('Riz basmati')).toBeTruthy()
+  expect(screen.getByText('Épinards frais')).toBeTruthy()
+
+  // The cupboard has no height in this renderer, so the virtualized list never
+  // windows down to it — filtering is how the test reaches the last shelf, and
+  // it is the same path a user takes.
+  await fireEvent.press(screen.getByTestId('fridge-filter-pantry'))
+  await waitFor(() => expect(screen.getByText('Riz basmati')).toBeTruthy())
 })
 
 test('filtering by "freezer" hides products in other locations', async () => {
@@ -69,7 +74,7 @@ test('filtering by "freezer" hides products in other locations', async () => {
   await fireEvent.press(screen.getByTestId('fridge-filter-freezer'))
 
   await waitFor(() => expect(screen.queryByText('Lait demi-écrémé')).toBeNull())
-  await waitFor(() => expect(screen.getByText('Épinards surgelés')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText('Petits pois surgelés')).toBeTruthy())
 })
 
 test('isExpired is true only for products whose expiry date has already passed', () => {
@@ -87,18 +92,13 @@ test('isExpiringSoon is true only within the window and never for already-expire
   expect(isExpiringSoon(fakeProductExpiringIn(null))).toBe(false)
 })
 
-test('a product whose expiry date has already passed shows a "Dépassé" badge, not "À consommer vite"', async () => {
-  // fake-product-1 expires 2026-08-30T00:00:00.000Z — move the clock well past it.
-  jest.useFakeTimers({ doNotFake: ['queueMicrotask'] })
-  jest.setSystemTime(new Date('2026-09-15T00:00:00.000Z'))
-  try {
-    await renderWithProviders(<FridgeListScreen />)
-    await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
-    expect(screen.getByText('Dépassé')).toBeTruthy()
-    expect(screen.queryByText('À consommer vite')).toBeNull()
-  } finally {
-    jest.useRealTimers()
-  }
+test('a date already gone reads as passed, a date still ahead as something to cook', async () => {
+  // The fixtures are relative to now, so no clock hack: the ham is two days
+  // past and the milk is due tomorrow, whatever day this test runs.
+  await renderWithProviders(<FridgeListScreen />)
+
+  await waitFor(() => expect(screen.getByLabelText(/Jambon blanc.*Date dépassée de 2 j/)).toBeTruthy())
+  expect(screen.getByLabelText(/Lait demi-écrémé.*À consommer demain/)).toBeTruthy()
 })
 
 test('groups products onto a shelf per compartment, and drops shelves that hold nothing', async () => {
@@ -135,17 +135,13 @@ test('opened on the "dates dépassées" window, the cabinet holds only what a pa
 })
 
 test('opened on the "cette semaine" window, the cabinet holds what is still savable', async () => {
-  // Three days before the milk's date: inside the week, and not yet lost.
-  jest.useFakeTimers({ doNotFake: ['queueMicrotask'] })
-  jest.setSystemTime(new Date('2026-08-27T00:00:00.000Z'))
-  try {
-    await renderWithProviders(<FridgeListScreen expiryWindow="week" />)
+  await renderWithProviders(<FridgeListScreen expiryWindow="week" />)
 
-    await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
-    expect(screen.queryByText('Épinards surgelés')).toBeNull()
-  } finally {
-    jest.useRealTimers()
-  }
+  // Due inside the week, so it is still worth cooking…
+  await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
+  // …while a date already gone, and a staple with no date at all, are not.
+  expect(screen.queryByText('Jambon blanc')).toBeNull()
+  expect(screen.queryByText('Riz basmati')).toBeNull()
 })
 
 test('the expiry windows sit in the same chip row as the compartments, and none is on by default', async () => {

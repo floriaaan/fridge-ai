@@ -47,7 +47,7 @@ test('names the real household, not a hardcoded one', async () => {
 test('the hero counts the products actually at risk in the fridge', async () => {
   renderDashboard()
 
-  await waitFor(() => expect(screen.getByText('1 produit à cuisiner en premier')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText('5 produits à cuisiner en premier')).toBeTruthy())
   expect(screen.getByText('1 dépassé')).toBeTruthy()
 })
 
@@ -64,12 +64,13 @@ test('"À racheter" counts the unchecked shopping items, and counts them once', 
 test('the hero is the sum of the two cards beneath it', async () => {
   renderDashboard()
 
-  // The fake fridge holds one product whose date has passed (milk) and two
-  // that are far out — so "cette semaine" is 0, "dépassées" is 1, and the hero
-  // must say 1. It used to count its own −∞…3 window instead.
-  await waitFor(() => expect(screen.getByText('1 produit à cuisiner en premier')).toBeTruthy())
+  // The fake fridge holds one product whose date has passed (the ham), four due
+  // inside the week and one staple with no date — so "cette semaine" is 4,
+  // "dépassées" is 1, and the hero must say 5. It used to count its own −∞…3
+  // window instead.
+  await waitFor(() => expect(screen.getByText('5 produits à cuisiner en premier')).toBeTruthy())
   expect(screen.getByLabelText('Dates dépassées, 1 produit')).toBeTruthy()
-  expect(screen.getByLabelText('Cette semaine, 0 produit')).toBeTruthy()
+  expect(screen.getByLabelText('Cette semaine, 4 produits')).toBeTruthy()
 })
 
 test('a product in the preview opens that product', async () => {

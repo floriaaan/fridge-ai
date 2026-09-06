@@ -129,13 +129,29 @@ function goToTab(tab: SidebarSection) {
  */
 const IS_NATIVE_TAB_PLATFORM = Platform.OS === 'ios'
 
+/** The fixed desktop sidebar, and the `$4` of `layoutSurface` around the content pane. */
+const SIDEBAR_WIDTH = 220
+const FRAME_PADDING = 16
+
 /** Layout facts a screen needs to build its own scroll container against (see `scrollable={false}`). */
-export function useAppShellLayout(nav: AppShellNav) {
+export function useAppShellLayout(nav: AppShellNav, contentMaxWidth = 640) {
   const { width } = useWindowDimensions()
   const isWide = width >= TABLET_BREAKPOINT
   const hasMobileNav = nav.kind === 'tab' && !isWide
   const isNativeTabBar = hasMobileNav && IS_NATIVE_TAB_PLATFORM
-  return { isWide, hasMobileNav, isNativeTabBar }
+  /**
+   * The measure a screen may actually draw into, padding excluded.
+   *
+   * A screen that sizes a child off `useWindowDimensions` is wrong on desktop
+   * by the whole frame: the sidebar and the pane's margin are not content. At
+   * the 768pt breakpoint the window is 768 and the column is 476 — a card sized
+   * `min(640, width) - 40` came out 600 and pushed everything beside it off the
+   * screen, silently, because it lived in a horizontal ScrollView. Only above
+   * ~872pt did the two numbers happen to agree.
+   */
+  const paneWidth = isWide && nav.kind !== 'modal' ? width - SIDEBAR_WIDTH - FRAME_PADDING * 2 : width
+  const contentWidth = Math.max(240, Math.min(paneWidth, isWide ? contentMaxWidth : width) - 40)
+  return { isWide, hasMobileNav, isNativeTabBar, contentWidth }
 }
 
 /** The padding/max-width recipe every AppShell-driven scroll container shares. */
@@ -350,8 +366,22 @@ export function AppShell({ nav, hint, contentMaxWidth = 640, scrollable = true, 
     <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
       <BlobBackground blobStrong={palette.blobStrong} blobSoft={palette.blobSoft} ground={palette.gradientBottom} />
       {/* `left`/`right` too: once the orientation lock came off, a landscape
-          notch would otherwise eat the header's back button. */}
-      <SafeAreaView style={{ flex: 1, minHeight: 0 }} edges={isWide ? ['left', 'right'] : ['top', 'bottom', 'left', 'right']}>
+          notch would otherwise eat the header's back button.
+
+          **No `bottom` edge when a mobile nav is drawn.** Both bottom chromes
+          are absolutely positioned *outside* this SafeAreaView and carry their
+          own inset — Material's bar wraps itself in `edges={['bottom']}`, the
+          iOS/web pill sits on a fixed 18pt. Insetting the scroll surface too
+          ended it above the home indicator, so the list stopped dead at the tab
+          bar with a band of bare ground under it instead of scrolling beneath
+          the floating pill, which is the whole point of a floating pill. The
+          room the chrome needs is already reserved by `shellContentStyle`'s
+          `paddingBottom`. A `kind: 'stack'` screen has no bottom chrome, so it
+          keeps the edge. */}
+      <SafeAreaView
+        style={{ flex: 1, minHeight: 0 }}
+        edges={isWide ? ['left', 'right'] : hasMobileNav ? ['top', 'left', 'right'] : ['top', 'bottom', 'left', 'right']}
+      >
         {header ? <PinnedHeader contentStyle={contentStyle}>{header}</PinnedHeader> : null}
         {scrollable ? (
           <ScrollView

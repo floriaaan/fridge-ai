@@ -47,6 +47,12 @@ export class FakeFridgeConnector implements FridgeConnector {
   private nextShoppingItemId = 1
   private receipts: Receipt[] = fakeReceipts.map((r) => ({ ...r }))
   private nextReceiptId = 1
+  /**
+   * A copy, not the module fixture: `deleteRecipe` mutates this list, and a
+   * fake that spliced the shared array would delete the recipe for every other
+   * connector instance in the same test run.
+   */
+  private recipes: Recipe[] = fakeRecipes.map((r) => ({ ...r }))
   private generatedRecipes: Recipe[] = []
   private nextRecipeId = 1
   private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
@@ -156,11 +162,21 @@ export class FakeFridgeConnector implements FridgeConnector {
   }
 
   async getRecipes(): Promise<Recipe[]> {
-    return [...this.generatedRecipes, ...fakeRecipes]
+    return [...this.generatedRecipes, ...this.recipes]
   }
 
   async getRecipe(recipeId: string): Promise<Recipe | null> {
-    return [...this.generatedRecipes, ...fakeRecipes].find((r) => r.id === recipeId) ?? null
+    return [...this.generatedRecipes, ...this.recipes].find((r) => r.id === recipeId) ?? null
+  }
+
+  async deleteRecipe(recipeId: string): Promise<Result<void, ApiError>> {
+    for (const list of [this.generatedRecipes, this.recipes]) {
+      const index = list.findIndex((r) => r.id === recipeId)
+      if (index === -1) continue
+      list.splice(index, 1)
+      return Result.ok(undefined)
+    }
+    return Result.err({ type: 'not_found', message: 'Recette introuvable.' })
   }
 
   /**

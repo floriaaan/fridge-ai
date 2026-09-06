@@ -46,17 +46,56 @@ test('separates what the foyer already owns from what it has to buy', async () =
   expect(screen.getByText('Tu as tout ce qu’il faut.')).toBeTruthy()
 })
 
-test('missing ingredients can be pushed onto the shopping list in one tap', async () => {
+test('the split agrees with the count the list card printed, on a recipe the backend never linked', async () => {
+  // `fake-recipe-1` carries `productId: null` on all three ingredients — the
+  // shape every AI-generated recipe has in production. Splitting on that field
+  // put all three under "À prévoir" while the list card said "2 sur 3 chez
+  // toi", so the app offered to buy back the spinach it had just said you own.
   const connector = new FakeFridgeConnector()
   renderRecipe('fake-recipe-1', connector)
 
-  await waitFor(() => expect(screen.getByTestId('recipe-add-missing')).toBeTruthy())
+  await waitFor(() => expect(screen.getByTestId('recipe-owned')).toBeTruthy())
+  expect(screen.getByText('Estimé d’après les noms de tes produits.')).toBeTruthy()
+  expect(screen.getByTestId('recipe-missing')).toBeTruthy()
+})
+
+test('only the ingredients the foyer lacks are pushed onto the shopping list', async () => {
+  const connector = new FakeFridgeConnector()
+  // The shopping list fixture already names some of these, so the assertion is
+  // on what this tap *adds*, not on what the list ends up holding.
+  const before = (await connector.getShoppingItems()).length
+  renderRecipe('fake-recipe-1', connector)
+
+  await waitFor(() => expect(screen.getByTestId('recipe-owned')).toBeTruthy())
 
   fireEvent.press(screen.getByTestId('recipe-add-missing'))
 
   await waitFor(async () => {
     const items = await connector.getShoppingItems()
-    expect(items.map((i) => i.name)).toEqual(expect.arrayContaining(['Filet de poulet', 'Épinards frais', 'Riz basmati']))
+    // One ingredient added — the chicken. The spinach and the rice are in the
+    // garde-manger and must not be bought again.
+    expect(items.length).toBe(before + 1)
+    expect(items[items.length - 1].name).toBe('Filet de poulet')
+  })
+})
+
+test('a recipe can be dropped from the screen where you decide you are done with it', async () => {
+  const connector = new FakeFridgeConnector()
+  renderRecipe('fake-recipe-1', connector)
+
+  await waitFor(() => expect(screen.getByTestId('recipe-detail-actions')).toBeTruthy())
+
+  fireEvent.press(screen.getByTestId('recipe-detail-actions'))
+
+  // Same sheet, same consequence named, as the list's own entrance.
+  await waitFor(() => expect(screen.getByText('Supprimer « Poêlée poulet-épinards » ?')).toBeTruthy())
+  expect(screen.getByText('Elle disparaît aussi pour les autres membres du foyer, et c’est définitif.')).toBeTruthy()
+
+  fireEvent.press(screen.getByTestId('recipe-detail-delete-confirm'))
+
+  await waitFor(async () => {
+    const remaining = await connector.getRecipes()
+    expect(remaining.map((r) => r.id)).not.toContain('fake-recipe-1')
   })
 })
 

@@ -24,13 +24,16 @@ import { ScreenHeader } from '../shared/screen-header.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { Skeleton, SkeletonGroup, SkeletonRow } from '../shared/skeleton.js'
 import { useHint } from '../shared/hint-bubble.js'
-import { useSoftPalette } from '../dashboard/soft-palette.js'
-import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ChefHatIcon, CircleCheckIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
+import { useSoftPalette, type SoftPalette } from '../dashboard/soft-palette.js'
+import { BanIcon, ChefHatIcon, ChevronRightIcon, CircleCheckIcon, EllipsisIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
+import { ActionSheet } from '../shared/action-sheet.js'
+import { useDeleteRecipeMutation } from '../../application/recipe/delete-recipe.mutation.js'
 import { useRecipeQuery } from '../../application/recipe/recipe.query.js'
+import { useProductsQuery } from '../../application/fridge/products.query.js'
+import { matchPantry, splitIngredients } from './pantry-match.js'
 import { useCreateShoppingItemMutation } from '../../application/shopping-list/create-shopping-item.mutation.js'
 import { goBack } from '../shared/navigation.js'
-import type { RecipeIngredient } from '../../domain/recipe/recipe.js'
+import type { Recipe, RecipeIngredient } from '../../domain/recipe/recipe.js'
 
 /** Instructions arrive as one string; the numbered prefixes are the author's, not ours. */
 function steps(instructions: string): string[] {
@@ -49,17 +52,89 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
   const palette = useSoftPalette()
   const queryClient = useQueryClient()
   const recipe = useRecipeQuery(recipeId)
-  const refresh = usePullToRefresh(() => recipe.refetch())
+  // Both queries, and both wired into the refresh: this screen's ingredient
+  // split is a join between them, so refreshing one half would let the two
+  // disagree — the same rule the list screen follows.
+  const productsQuery = useProductsQuery()
+  const refresh = usePullToRefresh(
+    () => recipe.refetch(),
+    () => productsQuery.refetch(),
+  )
   const createItem = useCreateShoppingItemMutation()
   const [hint, showHint] = useHint()
   const [adding, setAdding] = useState(false)
+  const [confirmingDeletion, setConfirmingDeletion] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const deleteRecipe = useDeleteRecipeMutation()
 
+  /**
+   * Deleting lives here too, not only on the list.
+   *
+   * "On en a fini avec celle-là" is a verdict you reach after reading the
+   * recipe, and this was the one screen where you could reach it and not act on
+   * it — the decision was on the previous screen, behind a control you had to
+   * scroll back to find. Same ActionSheet, same consequence named, so the two
+   * entrances confirm identically.
+   */
   const header = (
     <ScreenHeader
       palette={palette}
       icon={(color) => <ChefHatIcon size={19} color={color} />}
       title="Recette"
       onBack={() => goBack('/(tabs)/recipes')}
+      trailing={
+        recipe.data ? (
+          <Pressable
+            testID="recipe-detail-actions"
+            disabled={deleting}
+            onPress={() => setConfirmingDeletion(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Actions pour « ${recipe.data.title} »`}
+            style={[pointerCursor, { padding: 10 }]}
+          >
+            <YStack width={28} height={28} alignItems="center" justifyContent="center">
+              <EllipsisIcon size={16} color={palette.inkSecondary} />
+            </YStack>
+          </Pressable>
+        ) : undefined
+      }
+    />
+  )
+
+  async function confirmDeletion() {
+    const data = recipe.data
+    setConfirmingDeletion(false)
+    if (!data) return
+    setDeleting(true)
+    const result = await deleteRecipe.mutateAsync(data.id)
+    setDeleting(false)
+    if (!result.ok) {
+      showHint(`« ${data.title} » n’a pas pu être supprimée — elle est toujours là.`)
+      return
+    }
+    // The list is what the user lands back on, so it must not still show the row.
+    queryClient.setQueryData<Recipe[]>(['recipes'], (current) =>
+      (current ?? []).filter((item) => item.id !== data.id),
+    )
+    goBack('/(tabs)/recipes')
+  }
+
+  const deletionSheet = (
+    <ActionSheet
+      visible={confirmingDeletion}
+      title={recipe.data ? `Supprimer « ${recipe.data.title} » ?` : ''}
+      description="Elle disparaît aussi pour les autres membres du foyer, et c’est définitif."
+      options={[
+        {
+          testID: 'recipe-detail-delete-confirm',
+          label: 'Supprimer la recette',
+          icon: (color) => <BanIcon size={18} color={color} />,
+          tint: palette.expiredBg,
+          destructive: true,
+          onPress: confirmDeletion,
+        },
+      ]}
+      onClose={() => setConfirmingDeletion(false)}
     />
   )
 
@@ -119,8 +194,22 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
   }
 
   const data = recipe.data
-  const owned = data.ingredients.filter((ingredient) => ingredient.productId !== null)
-  const missing = data.ingredients.filter((ingredient) => ingredient.productId === null)
+  /**
+   * The same join the list card printed, not a second opinion.
+   *
+   * This screen used to split on `ingredient.productId !== null`, which
+   * `recipe-draft-parser.ts` sets to `null` on every AI-generated ingredient —
+   * i.e. all of them. So "Déjà dans ton garde-manger" never rendered, "À
+   * prévoir" always held everything, and the screen offered to buy back what
+   * the previous screen had just said the foyer owned. `null` while the
+   * garde-manger is unknown, never a zeroed match: an empty owned list because
+   * a query has not answered is a false statement about a shared fridge.
+   */
+  const pantryKnown = !productsQuery.isPending && !productsQuery.isError
+  const match = pantryKnown ? matchPantry(data, productsQuery.data ?? []) : null
+  const { owned, missing } = match
+    ? splitIngredients(data, match)
+    : { owned: [], missing: data.ingredients }
   const preparation = steps(data.instructions)
 
   async function handleAddMissing() {
@@ -196,12 +285,24 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
         <IngredientGroup
           testID="recipe-owned"
           title="Déjà dans ton garde-manger"
+          // The rapprochement is a name match made on this device and is
+          // allowed to be wrong — said here, once, where the claim is made.
+          note={match?.estimated ? 'Estimé d’après les noms de tes produits.' : undefined}
           items={owned}
           bg={palette.mintPale}
           labelColor={palette.mintPaleText}
           icon={<CircleCheckIcon size={16} color={palette.mintPaleText} />}
           palette={palette}
         />
+      ) : null}
+
+      {/* Not "tu as tout ce qu'il faut" and not an empty split: the fridge is
+          simply unknown, and saying either would be a claim about a shared
+          garde-manger this screen cannot currently read. */}
+      {!pantryKnown ? (
+        <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} marginTop="$4">
+          On n’a pas pu lire ton garde-manger — la liste ci-dessous est complète, sans distinguer ce que tu as déjà.
+        </Text>
       ) : null}
 
       {missing.length > 0 ? (
@@ -267,14 +368,19 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
           accessibilityLabel="Ouvrir la liste de courses"
           style={pointerCursor}
         >
+          {/* `ChevronRightIcon`, not "→": a unicode arrow carries the platform
+              font's weight and baseline instead of this system's 2px round
+              stroke, and DESIGN.md bans it by name. */}
           <XStack alignItems="center" minHeight={44} gap="$2">
             <ShoppingCartIcon size={16} color={palette.inkSecondary} />
             <Text fontSize={13} fontWeight="700" color={palette.inkSecondary}>
-              Voir la liste de courses →
+              Voir la liste de courses
             </Text>
+            <ChevronRightIcon size={15} color={palette.inkSecondary} />
           </XStack>
         </Pressable>
       </YStack>
+      {deletionSheet}
     </AppShell>
   )
 }
@@ -282,6 +388,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
 function IngredientGroup({
   testID,
   title,
+  note,
   items,
   bg,
   labelColor,
@@ -290,6 +397,8 @@ function IngredientGroup({
 }: {
   testID: string
   title: string
+  /** A qualifier on the claim the heading makes, when the claim is an estimate. */
+  note?: string
   items: RecipeIngredient[]
   bg: string
   labelColor: string
@@ -321,6 +430,11 @@ function IngredientGroup({
           {title}
         </Text>
       </XStack>
+      {note ? (
+        <Text fontSize={11} fontWeight="500" color={labelColor} marginTop={-4} marginBottom="$1">
+          {note}
+        </Text>
+      ) : null}
       {items.map((ingredient) => (
         <Text key={ingredient.id} fontSize={14} fontWeight="600" color={palette.ink}>
           {ingredientLine(ingredient)}
