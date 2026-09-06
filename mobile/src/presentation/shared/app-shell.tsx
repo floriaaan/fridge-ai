@@ -49,6 +49,7 @@ import {
   ShoppingCartIcon,
 } from '../dashboard/dashboard-icons.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
+import { TourAnchor } from '../onboarding/tour-anchors.js'
 
 export const TABLET_BREAKPOINT = 768
 
@@ -108,6 +109,18 @@ export interface AppShellProps {
    * a page with no title at all.
    */
   header?: React.ReactNode
+  /**
+   * A handle on the shell's own ScrollView, plus its live offset.
+   *
+   * Only the first-run tour uses these, and it needs both: it anchors its
+   * spotlight on real elements of the screen underneath, and two of those
+   * (the Recettes/Courses tiles) sit below the fold on a phone. Measuring
+   * gives it a window rectangle; turning that into a scroll target needs the
+   * offset the window rectangle was measured at. Both are optional and inert
+   * for every other screen.
+   */
+  scrollRef?: React.RefObject<ScrollView | null>
+  onScrollOffset?: (offset: number) => void
   children: React.ReactNode
 }
 
@@ -190,6 +203,10 @@ export function Fab({ onScan }: { onScan: () => void }) {
     Animated.spring(scale, { toValue, friction, tension, useNativeDriver: true }).start()
   }
   return (
+    // The first-run tour's fourth beat points here. `TourAnchor` is a plain
+    // passthrough outside the dashboard's provider, so every other screen's
+    // FAB is unchanged by it.
+    <TourAnchor id="fab">
     <Pressable
       onPress={onScan}
       onHoverIn={() => spring(1.06, 6, 200)}
@@ -222,6 +239,7 @@ export function Fab({ onScan }: { onScan: () => void }) {
         <ScanLineIcon size={24} color={palette.accentLimeText} />
       </Animated.View>
     </Pressable>
+    </TourAnchor>
   )
 }
 
@@ -357,7 +375,17 @@ function MobileTabNav({ tab, onScan }: { tab: SidebarSection; onScan: () => void
   )
 }
 
-export function AppShell({ nav, hint, contentMaxWidth = 640, scrollable = true, refresh, header, children }: AppShellProps) {
+export function AppShell({
+  nav,
+  hint,
+  contentMaxWidth = 640,
+  scrollable = true,
+  refresh,
+  header,
+  scrollRef,
+  onScrollOffset,
+  children,
+}: AppShellProps) {
   const palette = useSoftPalette()
   const { isWide, hasMobileNav, isNativeTabBar } = useAppShellLayout(nav)
   const contentStyle = shellContentStyle({ isWide, hasMobileNav, contentMaxWidth })
@@ -385,9 +413,12 @@ export function AppShell({ nav, hint, contentMaxWidth = 640, scrollable = true, 
         {header ? <PinnedHeader contentStyle={contentStyle}>{header}</PinnedHeader> : null}
         {scrollable ? (
           <ScrollView
+            ref={scrollRef}
             style={{ flex: 1, minHeight: 0 }}
             contentContainerStyle={{ ...contentStyle, paddingTop: header ? 4 : contentStyle.paddingTop }}
             refreshControl={refresh ? pullToRefreshControl(refresh, palette) : undefined}
+            onScroll={onScrollOffset ? (event) => onScrollOffset(event.nativeEvent.contentOffset.y) : undefined}
+            scrollEventThrottle={onScrollOffset ? 16 : undefined}
           >
             {children}
           </ScrollView>

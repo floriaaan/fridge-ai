@@ -27,10 +27,11 @@ import { goBack } from '../shared/navigation.js'
 import { PillButton } from '../shared/pill-button.js'
 import { pointerCursor } from '../shared/hover.js'
 import { AuthButton } from './auth-button.js'
+import { InviteShareCard } from './invite-share-card.js'
 import { ROLE_LABELS } from './role-labels.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { LogOutIcon, RefreshIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { LogOutIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useRegenerateInviteCodeMutation } from '../../application/identity/regenerate-invite-code.mutation.js'
@@ -82,8 +83,13 @@ export function HouseholdScreen() {
       showHint(result.error.message)
       return
     }
+    // Not sign-in. Leaving a foyer is not leaving the account — the session
+    // is untouched, and the account is now exactly what a brand-new one is:
+    // signed in, with no foyer. That is the onboarding's state, and the
+    // `(tabs)` gate would bounce us there anyway; going straight avoids a
+    // frame of dashboard belonging to a household that no longer exists.
     queryClient.clear()
-    router.replace('/(auth)/sign-in')
+    router.replace('/(onboarding)')
   }
 
   const refresh = usePullToRefresh(() => household.refetch())
@@ -163,39 +169,14 @@ export function HouseholdScreen() {
       </YStack>
 
       {data.inviteCode ? (
-        <YStack
-          marginTop="$4"
-          backgroundColor={palette.cream}
-          padding="$4"
-          gap="$2"
-          style={{
-            borderTopLeftRadius: 26,
-            borderTopRightRadius: 14,
-            borderBottomRightRadius: 26,
-            borderBottomLeftRadius: 14,
-          }}
-        >
-          <Text fontSize={12} fontWeight="700" color={palette.creamText}>
-            Code d’invitation
-          </Text>
-          <Text testID="household-invite-code" fontSize={26} fontWeight="800" color={palette.ink} letterSpacing={2}>
-            {data.inviteCode}
-          </Text>
-          <Text fontSize={12} fontWeight="500" color={palette.creamText}>
-            Donne ce code à quelqu’un du foyer : il le saisit à l’inscription et voit le même garde-manger.
-          </Text>
-          <YStack marginTop="$2">
-            <AuthButton
-              testID="household-regenerate"
-              label="Générer un nouveau code"
-              pendingLabel="Génération..."
-              pending={regenerate.isPending}
-              variant="secondary"
-              icon={<RefreshIcon size={16} color={palette.ink} />}
-              onPress={handleRegenerate}
-            />
-          </YStack>
-        </YStack>
+        <InviteShareCard
+          householdName={data.name}
+          inviteCode={data.inviteCode}
+          palette={palette}
+          regenerating={regenerate.isPending}
+          onRegenerate={handleRegenerate}
+          onFeedback={showHint}
+        />
       ) : null}
 
       <YStack marginTop="$6" gap="$2">

@@ -74,8 +74,8 @@
  *   commissioned set — swap for real product photography/illustration
  *   when that exists.
  */
-import { useEffect, useMemo, useState } from 'react'
-import { Animated, Image, type ImageSourcePropType, Pressable } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Animated, Image, type ImageSourcePropType, Pressable, type ScrollView } from 'react-native'
 import {
   ChefHatIcon,
   ChevronRightIcon,
@@ -110,6 +110,9 @@ import {
   type ProductStatus,
 } from './product-status.js'
 import { SkeletonList } from '../shared/skeleton.js'
+import { FirstRunTour } from '../onboarding/first-run-tour.js'
+import { TourAnchor, TourAnchorProvider } from '../onboarding/tour-anchors.js'
+import { useFirstRunTour } from '../onboarding/use-first-run-tour.js'
 import { useProductsQuery } from '../../application/fridge/products.query.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
@@ -234,6 +237,16 @@ export function HouseholdDashboard({
   // The FAB opens the same two-choice sheet on every tab — see scan-sheet.tsx.
   const { openScanSheet, scanSheet } = useScanSheet()
 
+  /**
+   * The first-run tour runs over this screen rather than in front of it, so it
+   * needs the shell's scroll handle to bring its later anchors into view. It
+   * waits for the household read: the tour explains a foyer's dashboard, and
+   * until we know there is one there is nothing to explain.
+   */
+  const scrollRef = useRef<ScrollView | null>(null)
+  const scrollOffset = useRef(0)
+  const tour = useFirstRunTour(Boolean(householdQuery.data))
+
   function statusBg(status: ProductStatus) {
     return status === 'expired' ? palette.expiredBg : status === 'soon' ? palette.soonBg : palette.freshBg
   }
@@ -266,10 +279,14 @@ export function HouseholdDashboard({
   }
 
   return (
-    <>
+    <TourAnchorProvider>
     <AppShell
       nav={{ kind: 'tab', tab: 'accueil', onScan: openScanSheet }}
       refresh={refresh}
+      scrollRef={scrollRef}
+      onScrollOffset={(offset) => {
+        scrollOffset.current = offset
+      }}
       // The greeting is this screen's header, so it is pinned like every other
       // screen's — the carrot is its glyph and Réglages its trailing action. It
       // used to scroll away, which meant the one surface that names the foyer
@@ -343,6 +360,7 @@ export function HouseholdDashboard({
             </XStack>
       }
     >
+          <TourAnchor id="hero">
           <Animated.View
             style={{
               opacity: entrance,
@@ -423,9 +441,11 @@ export function HouseholdDashboard({
               </YStack>
             </YStack>
           </Animated.View>
+          </TourAnchor>
 
           {/* `alignItems="stretch"` stated rather than relied on: the three
               cards must end at the same baseline even when one label wraps. */}
+          <TourAnchor id="stats">
           <XStack gap="$3" marginTop="$4" alignItems="stretch">
             <StatCard
               testID="dashboard-stat-week"
@@ -470,6 +490,7 @@ export function HouseholdDashboard({
               accessibilityLabel={metricLabel('À racheter', toBuyCount, 'article', shoppingQuery.isPending)}
             />
           </XStack>
+          </TourAnchor>
 
           <YStack marginTop="$6">
             <XStack justifyContent="space-between" alignItems="center">
@@ -552,6 +573,7 @@ export function HouseholdDashboard({
                 Accès rapide
               </Text>
             </XStack>
+            <TourAnchor id="navcards">
             <XStack gap="$3" marginTop="$3">
               <NavCard
                 bg={palette.navCardTeal}
@@ -579,6 +601,7 @@ export function HouseholdDashboard({
                 palette={palette}
               />
             </XStack>
+            </TourAnchor>
 
             <YStack marginTop="$3">
               <ReceiptsRow
@@ -595,7 +618,15 @@ export function HouseholdDashboard({
         duplicated per screen, is exactly what left the FAB and persistent
         nav working on this screen only. */}
     {scanSheet}
-    </>
+    {tour.show ? (
+      <FirstRunTour
+        scrollRef={scrollRef}
+        scrollOffset={scrollOffset}
+        onScanReceipt={goToReceiptScan}
+        onFinish={tour.dismiss}
+      />
+    ) : null}
+    </TourAnchorProvider>
   )
 }
 

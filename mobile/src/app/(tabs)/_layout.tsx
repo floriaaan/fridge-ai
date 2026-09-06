@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 import { Redirect, Tabs } from 'expo-router'
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
 import { useSessionQuery } from '../../application/identity/session.query.js'
+import { useHouseholdQuery } from '../../application/identity/household.query.js'
 
 /**
  * iOS: real `NativeTabs` — Liquid Glass on iOS 26+, standard native bar
@@ -48,11 +49,35 @@ function DefaultTabs() {
   )
 }
 
+/**
+ * Two gates, in order: a session, then a foyer.
+ *
+ * The second one is what lets every screen below assume `household` exists.
+ * Before it, an account created seconds ago landed on a dashboard whose
+ * household name fell back to "Ton foyer", whose Foyer screen said "Tu
+ * n'appartiens à aucun foyer", and which offered nowhere to fix that —
+ * the create and join endpoints have shipped since phase 1 and the app
+ * called neither.
+ *
+ * `household.isPending` returns null rather than redirecting: the query is
+ * cold on every launch, and a gate that treats "not answered yet" as "no
+ * foyer" throws a returning member into the onboarding for the length of one
+ * fetch.
+ */
 export default function TabsLayout() {
   const session = useSessionQuery()
+  const household = useHouseholdQuery()
 
   if (session.isPending) return null
   if (!session.data) return <Redirect href="/(auth)/sign-in" />
+  if (household.isPending) return null
+  // Success-and-empty, never merely "no data": a failed read is not a missing
+  // foyer, and redirecting on one would answer an unreachable server by
+  // telling a member their household does not exist. On an error the tabs
+  // render, and each screen's own `isError` branch says what actually
+  // happened — the rule DESIGN.md states for every screen that reads shared
+  // household state.
+  if (household.isSuccess && !household.data) return <Redirect href="/(onboarding)" />
 
   return Platform.OS === 'ios' ? <IosTabs /> : <DefaultTabs />
 }

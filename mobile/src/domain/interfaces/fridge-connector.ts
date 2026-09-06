@@ -25,6 +25,13 @@ export interface FridgeConnector {
   signInSocial(provider: 'pocketid'): Promise<Result<Session, ApiError>>
   signOut(): Promise<void>
   getHousehold(): Promise<Household | null>
+  /**
+   * The two ways an account acquires a foyer. Both return the household the
+   * caller now belongs to, so the screen that called them can seed the
+   * `['household']` query instead of racing the gate that is about to read it.
+   */
+  createHousehold(name: string): Promise<Result<Household, ApiError>>
+  joinHousehold(inviteCode: string): Promise<Result<Household, ApiError>>
   regenerateInviteCode(): Promise<Result<string, ApiError>>
   removeHouseholdMember(userId: string): Promise<Result<void, ApiError>>
   leaveHousehold(): Promise<Result<void, ApiError>>

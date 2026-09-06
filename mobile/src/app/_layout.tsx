@@ -26,6 +26,13 @@ export default function RootLayout() {
                 is a group, so `/settings` was already `/settings`. */}
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(auth)" />
+              {/* Between `(auth)` and `(tabs)`, and a sibling of both: an
+                  account with no foyer is signed in but has no screen inside
+                  the tabs that could honestly render, so it gets its own
+                  group with its own gate. `join` is the deep-link landing
+                  route for `fridgeai://join?code=…`. */}
+              <Stack.Screen name="(onboarding)" />
+              <Stack.Screen name="join" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="settings" />
               <Stack.Screen name="household" />

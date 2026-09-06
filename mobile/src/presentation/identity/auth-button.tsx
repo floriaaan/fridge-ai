@@ -20,6 +20,7 @@ export function AuthButton({
   label,
   pendingLabel,
   pending,
+  disabled,
   onPress,
   variant = 'primary',
   icon,
@@ -28,6 +29,12 @@ export function AuthButton({
   label: string
   pendingLabel?: string
   pending?: boolean
+  /**
+   * Inert because the form is not answerable yet — distinct from `pending`,
+   * which is inert because it is already running. Both dim to 0.6 and both
+   * refuse the press; only `pending` swaps in the spinner and the label.
+   */
+  disabled?: boolean
   onPress: () => void
   variant?: 'primary' | 'secondary'
   icon?: ReactNode
@@ -36,10 +43,11 @@ export function AuthButton({
   const palette = useSoftPalette()
   const hover = useHoverPress()
   const isPrimary = variant === 'primary'
+  const inert = Boolean(pending || disabled)
   return (
     <Pressable
       onPress={onPress}
-      disabled={pending}
+      disabled={inert}
       onHoverIn={hover.onHoverIn}
       onHoverOut={hover.onHoverOut}
       onPressIn={hover.onPressIn}
@@ -47,14 +55,14 @@ export function AuthButton({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: pending, busy: pending }}
+      accessibilityState={{ disabled: inert, busy: pending }}
       android_ripple={ripple(isPrimary ? palette.accentLimeText : palette.ink)}
       style={pointerCursor}
     >
       <Animated.View
         style={{
           transform: [{ scale: hover.scale }],
-          opacity: pending ? 0.6 : 1,
+          opacity: inert ? 0.6 : 1,
           // minHeight, not height — same Dynamic Type reasoning as
           // AuthField: a large system font size needs the pill to grow,
           // not clip the label.
