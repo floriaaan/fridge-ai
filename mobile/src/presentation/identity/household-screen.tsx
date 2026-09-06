@@ -19,23 +19,24 @@ import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
-import { BackButton } from '../shared/back-button.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { goBack } from '../shared/navigation.js'
+import { PillButton } from '../shared/pill-button.js'
 import { pointerCursor } from '../shared/hover.js'
 import { AuthButton } from './auth-button.js'
+import { ROLE_LABELS } from './role-labels.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { LogOutIcon, RefreshIcon, UserIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { LogOutIcon, RefreshIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useRegenerateInviteCodeMutation } from '../../application/identity/regenerate-invite-code.mutation.js'
 import { useRemoveHouseholdMemberMutation } from '../../application/identity/remove-household-member.mutation.js'
 import { useLeaveHouseholdMutation } from '../../application/identity/leave-household.mutation.js'
 import type { HouseholdMember } from '../../domain/identity/household.js'
-
-const ROLE_LABELS = { owner: 'Propriétaire', member: 'Membre' } as const
 
 export function HouseholdScreen() {
   const palette = useSoftPalette()
@@ -85,23 +86,45 @@ export function HouseholdScreen() {
     router.replace('/(auth)/sign-in')
   }
 
+  const refresh = usePullToRefresh(() => household.refetch())
+
   const header = (
-    <XStack alignItems="center" gap="$3">
-      <BackButton onPress={() => goBack('/(tabs)/settings')} ink={palette.ink} cream={palette.cream} />
-      <Text fontSize={20} fontWeight="800" color={palette.ink}>
-        Foyer
-      </Text>
-    </XStack>
+    <ScreenHeader
+      palette={palette}
+      icon={(color) => <UsersIcon size={19} color={color} />}
+      title="Foyer"
+      subtitle={data ? `${data.members.length} membre${data.members.length > 1 ? 's' : ''}` : undefined}
+      onBack={() => goBack('/settings')}
+    />
   )
 
   if (!data) {
     return (
-      <AppShell nav={{ kind: 'stack' }}>
-        {header}
-        <YStack marginTop="$5">
-          <Text fontSize={14} fontWeight="500" color={palette.inkSecondary}>
-            {household.isPending ? 'Chargement du foyer…' : 'Tu n’appartiens à aucun foyer.'}
+      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
+        <YStack marginTop="$5" gap="$3" alignItems="flex-start">
+          {/* Three states, not two. "Tu n'appartiens à aucun foyer" is a fact
+              about the account; printing it for a failed read tells someone
+              their foyer is gone, and offers nothing to do about it. */}
+          <Text
+            fontSize={14}
+            fontWeight="500"
+            color={household.isError ? palette.expiredText : palette.inkSecondary}
+          >
+            {household.isPending
+              ? 'Chargement du foyer…'
+              : household.isError
+                ? 'On n’a pas pu lire ton foyer. Vérifie ta connexion.'
+                : 'Tu n’appartiens à aucun foyer.'}
           </Text>
+          {household.isError ? (
+            <PillButton
+              testID="household-retry"
+              label="Réessayer"
+              accessibilityLabel="Réessayer de charger le foyer"
+              onPress={() => household.refetch()}
+              palette={palette}
+            />
+          ) : null}
         </YStack>
       </AppShell>
     )
@@ -109,8 +132,7 @@ export function HouseholdScreen() {
 
   return (
     <>
-    <AppShell nav={{ kind: 'stack' }} hint={hint}>
-      {header}
+    <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh} header={header}>
 
       <YStack
         marginTop="$5"
@@ -160,7 +182,7 @@ export function HouseholdScreen() {
             {data.inviteCode}
           </Text>
           <Text fontSize={12} fontWeight="500" color={palette.creamText}>
-            Donne ce code à quelqu’un du foyer : il le saisit à l’inscription et voit le même frigo.
+            Donne ce code à quelqu’un du foyer : il le saisit à l’inscription et voit le même garde-manger.
           </Text>
           <YStack marginTop="$2">
             <AuthButton
@@ -207,7 +229,7 @@ export function HouseholdScreen() {
       visible={memberToRemove !== null}
       onClose={() => setMemberToRemove(null)}
       title={memberToRemove ? `Retirer ${memberToRemove.name} ?` : undefined}
-      description="Cette personne perd l’accès au frigo, aux courses et aux recettes du foyer."
+      description="Cette personne perd l’accès au garde-manger, aux courses et aux recettes du foyer."
       options={
         memberToRemove
           ? [
@@ -231,7 +253,7 @@ export function HouseholdScreen() {
       description={
         isOwner
           ? 'Tu en es propriétaire : partir supprime le foyer et tout son contenu — produits, tickets, courses, recettes — pour tous les membres.'
-          : 'Tu perdras l’accès au frigo, aux courses et aux recettes du foyer.'
+          : 'Tu perdras l’accès au garde-manger, aux courses et aux recettes du foyer.'
       }
       options={[
         {

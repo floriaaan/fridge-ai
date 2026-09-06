@@ -18,7 +18,7 @@ export default function SignInScreen() {
   }
 
   return (
-    <AuthShell title="Content de te revoir" subtitle="Connecte-toi pour voir ce qu'il y a dans ton frigo.">
+    <AuthShell title="Content de te revoir" subtitle="Connecte-toi pour voir ce qu'il y a dans ton garde-manger.">
       <LoginForm onSuccess={handleSuccess} />
       <AuthMethodButtons onSuccess={handleSuccess} />
       <Link href="/(auth)/sign-up" asChild>

@@ -1,16 +1,20 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
-import { Animated, Pressable } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
-import { BackButton } from '../shared/back-button.js'
-import { pointerCursor, useHoverPress } from '../shared/hover.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { Chip } from '../shared/chip.js'
+import { ActionSheet } from '../shared/action-sheet.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ChevronRightIcon, HomeIcon, LogOutIcon, ReceiptIcon, UserIcon } from '../dashboard/dashboard-icons.js'
-import { StatCard } from '../dashboard/stat-card.js'
+import { HomeIcon, LogOutIcon, SettingsIcon, SparklesIcon, UserIcon } from '../dashboard/dashboard-icons.js'
+import { IdentityCard, RoleBadge } from './identity-card.js'
+import { MemberAvatars } from '../shared/member-avatars.js'
 import { AuthButton } from '../identity/auth-button.js'
+import { ROLE_LABELS } from '../identity/role-labels.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
 import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
@@ -19,62 +23,15 @@ import { useSetActiveAiProviderMutation } from '../../application/settings/set-a
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
-const SOURCE_LABELS: Record<'database' | 'environment', string> = {
-  environment: "Configuré par l'administrateur",
-  database: 'Choisi par le foyer',
-}
 
-function ProviderChip({
-  label,
-  active,
-  onPress,
-  palette,
-  testID,
-}: {
-  label: string
-  active: boolean
-  onPress: () => void
-  palette: SoftPalette
-  testID: string
-}) {
-  const hover = useHoverPress()
+function SectionLabel({ children, palette, icon }: { children: string; palette: SoftPalette; icon: ReactNode }) {
   return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      onHoverIn={hover.onHoverIn}
-      onHoverOut={hover.onHoverOut}
-      onPressIn={hover.onPressIn}
-      onPressOut={hover.onPressOut}
-      hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      style={pointerCursor}
-    >
-      <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
-        {/* minHeight 44: same touch-target floor as fridge's FilterChip. */}
-        <XStack
-          backgroundColor={active ? palette.accentLime : palette.mintPale}
-          borderRadius={999}
-          paddingVertical="$2.5"
-          paddingHorizontal="$4"
-          minHeight={44}
-          alignItems="center"
-        >
-          <Text fontSize={13} fontWeight="700" color={active ? palette.accentLimeText : palette.mintPaleText}>
-            {label}
-          </Text>
-        </XStack>
-      </Animated.View>
-    </Pressable>
-  )
-}
-
-function SectionLabel({ children, palette }: { children: string; palette: SoftPalette }) {
-  return (
-    <Text fontSize={15} fontWeight="800" color={palette.ink}>
-      {children}
-    </Text>
+    <XStack alignItems="center" gap="$2">
+      {icon}
+      <Text fontSize={15} fontWeight="800" color={palette.ink}>
+        {children}
+      </Text>
+    </XStack>
   )
 }
 
@@ -88,10 +45,23 @@ function SectionLabel({ children, palette }: { children: string; palette: SoftPa
 //
 // Redesigned (2026-08-30) to feel as crafted as the dashboard: the same
 // pastel StatCard language for account/household identity, the same chip
-// pattern as the fridge's location filters for the provider picker, a
-// tappable row instead of a bare text link for receipts history, and
+// pattern as the fridge's location filters for the provider picker, and
 // sign-out as a real secondary `AuthButton` — moved here from the
 // dashboard header's small text link, its one home now.
+//
+// Narrowed to configuration (2026-09-06): the receipt history left for the
+// dashboard (`ReceiptsRow`) — a list of what the foyer bought is content, and
+// filing it under a "Données" heading in the screen you open to change how the
+// app behaves is where it went to be forgotten. What is left here changes
+// behaviour: who you are, which foyer, which AI, and the way out.
+//
+// The identity pair was widened (2026-09-05): the two half-width StatCards
+// truncated the household name to "Le foyer de F…" on every phone, which is
+// the one string on this screen that has to be readable. They are now two
+// stacked full-width `IdentityCard`s, and the foyer's card stopped being a
+// name with the word "gérer" after it — it shows who is in the foyer
+// (member avatars) and what you are in it (role badge), so the tap has
+// something to promise.
 export function SettingsScreen() {
   const palette = useSoftPalette()
   const session = useSessionQuery()
@@ -101,7 +71,12 @@ export function SettingsScreen() {
   const setProvider = useSetActiveAiProviderMutation()
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
-  const receiptsHover = useHoverPress()
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false)
+  const refresh = usePullToRefresh(
+    () => session.refetch(),
+    () => household.refetch(),
+    () => settings.refetch(),
+  )
 
   async function handleSelectProvider(provider: AiProvider) {
     if (settings.data?.activeProvider === provider) {
@@ -117,6 +92,7 @@ export function SettingsScreen() {
   }
 
   async function handleSignOut() {
+    setConfirmingSignOut(false)
     try {
       await signOut.mutateAsync(undefined)
     } catch {
@@ -127,23 +103,42 @@ export function SettingsScreen() {
   }
 
   const signOutError = signOut.error ? 'Une erreur est survenue lors de la déconnexion.' : null
-  const memberCount = household.data?.members.length ?? 0
-  const memberSummary = memberCount > 0 ? `${memberCount} membre${memberCount > 1 ? 's' : ''}` : undefined
+  const members = household.data?.members ?? []
+  const memberSummary = members.length > 0 ? `${members.length} membre${members.length > 1 ? 's' : ''}` : undefined
+  const memberNames = members.map((member) => member.name)
+  const roleLabel = household.data ? ROLE_LABELS[household.data.role] : null
+  const householdSpokenLabel = [
+    'Foyer',
+    household.isPending ? 'chargement' : household.isError ? 'indisponible' : (household.data?.name ?? 'aucun foyer'),
+    memberSummary,
+    roleLabel ? `tu es ${roleLabel.toLowerCase()}` : null,
+    'gérer le foyer',
+  ]
+    .filter(Boolean)
+    .join('. ')
+  const availableProviders = settings.data?.availableProviders ?? []
+  // The gate is `availableProviders`, never `source`. `source` only records
+  // whether anyone has picked yet (`env-ai-settings-provider.ts`: a stored row
+  // wins, env is the first-boot fallback), so reading it as "the administrator
+  // configured this" described a lock that does not exist — the foyer can
+  // change the provider whenever more than one has credentials.
+  const canChooseProvider = availableProviders.length > 1
 
   return (
-    <AppShell nav={{ kind: 'stack' }}>
-      <XStack alignItems="center" gap="$3">
-        <BackButton onPress={() => router.back()} ink={palette.ink} cream={palette.cream} />
-        <Text fontSize={20} fontWeight="800" color={palette.ink}>
-          Réglages
-        </Text>
-      </XStack>
-
-      <XStack gap="$3" marginTop="$5">
-        <StatCard
+    <AppShell nav={{ kind: 'stack' }} refresh={refresh}
+      header={
+        <ScreenHeader
+          palette={palette}
+          icon={(color) => <SettingsIcon size={19} color={color} />}
+          title="Réglages"
+          onBack={() => router.back()}
+        />
+      }
+    >
+      <YStack gap="$3" marginTop="$5">
+        <IdentityCard
           bg={palette.cream}
           labelColor={palette.creamText}
-          valueColor={palette.ink}
           chipColor={palette.chipOrange}
           icon={<UserIcon size={18} color={palette.onDark} />}
           label="Compte"
@@ -152,45 +147,77 @@ export function SettingsScreen() {
           corner="a"
           palette={palette}
         />
-        <Pressable
+        <IdentityCard
           testID="settings-household"
-          onPress={() => router.push('/(tabs)/household')}
-          accessibilityRole="button"
-          accessibilityLabel="Gérer le foyer"
-          style={[pointerCursor, { flex: 1 }]}
-        >
-          <StatCard
-            bg={palette.mintPale}
-            labelColor={palette.mintPaleText}
-            valueColor={palette.ink}
-            chipColor={palette.chipTeal}
-            icon={<HomeIcon size={18} color={palette.onDark} />}
-            label="Foyer"
-            value={household.isPending ? '—' : (household.data?.name ?? 'Aucun foyer')}
-            secondary={memberSummary ? `${memberSummary} · gérer` : 'Gérer'}
-            corner="b"
-            palette={palette}
-          />
-        </Pressable>
-      </XStack>
+          bg={palette.mintPale}
+          labelColor={palette.mintPaleText}
+          chipColor={palette.chipTeal}
+          icon={<HomeIcon size={18} color={palette.onDark} />}
+          label="Foyer"
+          // Three distinct states, three distinct sentences. A failed read used
+          // to render "Aucun foyer" — a fact about the account, printed for a
+          // fact about the network, which invents a state the user does not
+          // have and cannot act on.
+          value={household.isPending ? '—' : household.isError ? 'Foyer indisponible' : (household.data?.name ?? 'Aucun foyer')}
+          secondary={
+            household.isError ? 'Tire pour réessayer.' : (memberSummary ?? 'Personne d’autre pour l’instant')
+          }
+          trailing={roleLabel ? <RoleBadge label={roleLabel} palette={palette} /> : null}
+          footer={memberNames.length > 0 ? <MemberAvatars names={memberNames} palette={palette} /> : null}
+          corner="b"
+          palette={palette}
+          onPress={() => router.push('/household')}
+          // The card is a Pressable, so RN collapses its children into this
+          // one label: "Gérer le foyer" alone swallowed the foyer's name, its
+          // member count, the role badge and the avatars — everything the card
+          // was redesigned to show.
+          accessibilityLabel={householdSpokenLabel}
+        />
+      </YStack>
 
       <YStack marginTop="$6" gap="$2">
-        <SectionLabel palette={palette}>Fournisseur IA</SectionLabel>
-        <XStack gap="$2" flexWrap="wrap">
-          {settings.data?.availableProviders.map((provider) => (
-            <ProviderChip
-              key={provider}
-              testID={`ai-provider-${provider}`}
-              label={PROVIDER_LABELS[provider]}
-              active={settings.data?.activeProvider === provider}
-              onPress={() => handleSelectProvider(provider)}
-              palette={palette}
-            />
-          ))}
-        </XStack>
-        {settings.data ? (
-          <Text fontSize={12} color={palette.inkSecondary}>
-            {SOURCE_LABELS[settings.data.source]}
+        <SectionLabel palette={palette} icon={<SparklesIcon size={15} color={palette.inkSecondary} />}>
+          Intelligence artificielle
+        </SectionLabel>
+        {/* What the section governs, before what it offers. Named "Fournisseur
+            IA", it asked the foyer to pick between three vendors without ever
+            saying what the pick changes. */}
+        <Text fontSize={13} color={palette.inkSecondary}>
+          Lit tes tickets de caisse et invente tes recettes.
+        </Text>
+        {canChooseProvider ? (
+          <XStack gap="$3" flexWrap="wrap" marginTop="$1">
+            {availableProviders.map((provider) => (
+              <Chip
+                key={provider}
+                testID={`ai-provider-${provider}`}
+                label={PROVIDER_LABELS[provider]}
+                selected={settings.data?.activeProvider === provider}
+                onPress={() => handleSelectProvider(provider)}
+                palette={palette}
+              />
+            ))}
+          </XStack>
+        ) : null}
+        {setProvider.isPending ? (
+          // The mutation had no visible state at all: on a slow connection a
+          // tap on "Ollama" produced nothing until the invalidation landed.
+          <Text fontSize={12} fontWeight="600" color={palette.inkSecondary} accessibilityLiveRegion="polite">
+            Changement en cours…
+          </Text>
+        ) : null}
+        {settings.data && !canChooseProvider && availableProviders.length === 1 ? (
+          // One provider with credentials is a fact, not a choice: a row of one
+          // chip is a control that cannot control anything.
+          <Text fontSize={14} fontWeight="700" color={palette.ink} marginTop="$1">
+            {PROVIDER_LABELS[availableProviders[0]]}
+          </Text>
+        ) : null}
+        {settings.data && availableProviders.length === 0 ? (
+          // `activeProvider` can name a provider whose key is gone — the picker
+          // then drew an empty row and no selection, explaining nothing.
+          <Text fontSize={13} color={palette.expiredText} marginTop="$1">
+            Aucun fournisseur n’est configuré sur ce serveur.
           </Text>
         ) : null}
         {!settings.isPending && !settings.data ? (
@@ -199,45 +226,10 @@ export function SettingsScreen() {
           </Text>
         ) : null}
         {providerError ? (
-          <Text fontSize={13} color={palette.expiredText}>
+          <Text fontSize={13} color={palette.expiredText} accessibilityLiveRegion="polite">
             {providerError}
           </Text>
         ) : null}
-      </YStack>
-
-      <YStack marginTop="$6" gap="$2">
-        <SectionLabel palette={palette}>Données</SectionLabel>
-        <Pressable
-          testID="settings-receipts-history"
-          onPress={() => router.push('/(tabs)/receipts')}
-          onHoverIn={receiptsHover.onHoverIn}
-          onHoverOut={receiptsHover.onHoverOut}
-          onPressIn={receiptsHover.onPressIn}
-          onPressOut={receiptsHover.onPressOut}
-          accessibilityRole="button"
-          accessibilityLabel="Historique des tickets"
-          style={pointerCursor}
-        >
-          <Animated.View style={{ transform: [{ scale: receiptsHover.scale }] }}>
-            <XStack
-              alignItems="center"
-              gap="$3"
-              backgroundColor={palette.gradientBottom}
-              borderRadius={16}
-              padding="$3"
-              minHeight={44}
-              style={{ shadowColor: palette.shadowCool, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 1 }}
-            >
-              <YStack width={36} height={36} borderRadius={12} backgroundColor={palette.chipViolet} alignItems="center" justifyContent="center">
-                <ReceiptIcon size={18} color={palette.onDark} />
-              </YStack>
-              <Text fontSize={14} fontWeight="700" color={palette.ink} flex={1}>
-                Historique des tickets
-              </Text>
-              <ChevronRightIcon size={18} color={palette.inkSecondary} />
-            </XStack>
-          </Animated.View>
-        </Pressable>
       </YStack>
 
       <YStack marginTop="$8" gap="$2">
@@ -248,14 +240,34 @@ export function SettingsScreen() {
           pending={signOut.isPending}
           variant="secondary"
           icon={<LogOutIcon size={16} color={palette.ink} />}
-          onPress={handleSignOut}
+          // Confirmed like every other consequential action in the app. It was
+          // the one exception, and the scene it fails in is a shared kitchen
+          // tablet: a mis-tap signs the whole foyer's device out.
+          onPress={() => setConfirmingSignOut(true)}
         />
         {signOutError ? (
-          <Text fontSize={13} color={palette.expiredText}>
+          <Text fontSize={13} color={palette.expiredText} accessibilityLiveRegion="polite">
             {signOutError}
           </Text>
         ) : null}
       </YStack>
+
+      <ActionSheet
+        visible={confirmingSignOut}
+        title="Se déconnecter ?"
+        description="Il faudra se reconnecter pour retrouver le garde-manger du foyer sur cet appareil."
+        options={[
+          {
+            testID: 'sign-out-confirm',
+            label: 'Se déconnecter',
+            icon: (color) => <LogOutIcon size={18} color={color} />,
+            tint: palette.expiredBg,
+            destructive: true,
+            onPress: handleSignOut,
+          },
+        ]}
+        onClose={() => setConfirmingSignOut(false)}
+      />
     </AppShell>
   )
 }
