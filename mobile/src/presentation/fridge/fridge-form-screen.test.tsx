@@ -15,9 +15,8 @@ jest.mock('expo-router', () => ({
   useFocusEffect: jest.fn(),
 }))
 
-function renderWithProviders(children: ReactNode) {
+function renderWithProviders(children: ReactNode, connector: FakeFridgeConnector = new FakeFridgeConnector()) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const connector = new FakeFridgeConnector()
   return render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
@@ -170,5 +169,22 @@ test('a prefillBarcode not in the lookup fixture shows an informational hint, le
   await renderWithProviders(<FridgeFormScreen mode="create" prefillBarcode="0000000000000" onSuccess={jest.fn()} />)
 
   await waitFor(() => expect(screen.getByText('Produit non trouvé, remplis les champs à la main.')).toBeTruthy())
+  expect(screen.getByTestId('fridge-form-name').props.value).toBe('')
+})
+
+test('a failed lookup shows an error, never the "not found" hint meant for a real empty result', async () => {
+  const connector = new FakeFridgeConnector()
+  connector.lookupProductByBarcode = jest.fn().mockRejectedValue(new Error('Impossible de contacter le serveur.'))
+  await renderWithProviders(
+    <FridgeFormScreen mode="create" prefillBarcode="3017620422003" onSuccess={jest.fn()} />,
+    connector,
+  )
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('La recherche du produit a échoué. Vérifie ta connexion, ou remplis les champs à la main.'),
+    ).toBeTruthy(),
+  )
+  expect(screen.queryByText('Produit non trouvé, remplis les champs à la main.')).toBeNull()
   expect(screen.getByTestId('fridge-form-name').props.value).toBe('')
 })

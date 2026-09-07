@@ -6,6 +6,10 @@ jest.mock('../auth/auth-client.js', () => ({
     signIn: {
       email: jest.fn(),
     },
+    // Read by every apiFetch call (http-client.ts) to attach the session
+    // cookie — unrelated to what most tests in this file exercise, but
+    // still awaited on every request, so it needs a resolved value here.
+    getCookie: jest.fn().mockResolvedValue(''),
   },
 }))
 
@@ -155,6 +159,19 @@ test('lookupProductByBarcode() returns null when the backend finds nothing', asy
 
   const connector = new HttpFridgeConnector()
   expect(await connector.lookupProductByBarcode('0000000000000')).toBeNull()
+
+  globalThis.fetch = originalFetch
+})
+
+test('lookupProductByBarcode() throws, rather than returning null, when the request fails', async () => {
+  // A failed request and a genuine "nothing at this barcode" must not look
+  // the same to the caller — the form shows a different message for each.
+  globalThis.fetch = jest.fn().mockRejectedValue(new Error('network down')) as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  await expect(connector.lookupProductByBarcode('0000000000000')).rejects.toThrow(
+    'Impossible de contacter le serveur.',
+  )
 
   globalThis.fetch = originalFetch
 })

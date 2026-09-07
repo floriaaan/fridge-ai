@@ -268,11 +268,19 @@ export class HttpFridgeConnector implements FridgeConnector {
     return result.ok ? result.value.products : []
   }
 
+  /**
+   * `null` means the barcode is real but OpenFoodFacts has nothing for it —
+   * a legitimate outcome the form turns into "remplis les champs à la main".
+   * A failed request **throws**, same convention as `getHousehold`: it must
+   * not collapse into that same `null`, or a dropped connection reads as
+   * "this product doesn't exist" instead of "we couldn't check".
+   */
   async lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null> {
     const result = await apiFetch<{ result: ProductLookupResult | null }>(
       `/api/products/lookup?barcode=${encodeURIComponent(barcode)}`,
     )
-    return result.ok ? result.value.result : null
+    if (!result.ok) throw new Error(result.error.message)
+    return result.value.result
   }
 
   async scanReceipt(imageUri: string): Promise<Result<ReceiptDraft, ApiError>> {
