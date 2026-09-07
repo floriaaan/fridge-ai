@@ -11,13 +11,21 @@ type RenderValidationErrorAsJSON = BaseExceptionHandler['renderValidationErrorAs
  * before returning. VineJS validation errors and AdonisJS's own
  * self-handling exceptions (route-not-found, etc.) are also handled by the
  * base class before this method runs.
+ *
+ * `requireAuthenticatedUser`'s 401 is the one exception to "expected errors
+ * never get here": it throws deliberately, with its own `status`/`code`,
+ * from every controller that guards a route. That shape must reach the
+ * client the same way in dev and in prod — Youch's debug JSON (no `.error`
+ * key) is only useful for a genuinely unexpected 500, and swallowing a
+ * routine 401 into it is what silently broke every mobile screen's error
+ * message in local dev, with no other symptom than "the button does
+ * nothing".
  */
 export class HttpExceptionHandler extends BaseExceptionHandler {
   protected debug = !app.inProduction
 
   async renderErrorAsJSON(...args: Parameters<RenderErrorAsJSON>): ReturnType<RenderErrorAsJSON> {
     const [error, ctx] = args
-    if (this.isDebuggingEnabled(ctx)) return super.renderErrorAsJSON(error, ctx)
 
     // Most escaped exceptions carry a numeric `status` (Adonis convention).
     // better-auth's `APIError` (thrown by `auth.api.*` calls made directly
@@ -25,12 +33,15 @@ export class HttpExceptionHandler extends BaseExceptionHandler {
     // is the exception: its `status` is a string status-code key (e.g.
     // "UNPROCESSABLE_ENTITY") and the numeric code lives in `statusCode`.
     const statusCode = (error as unknown as { statusCode?: unknown }).statusCode
+    const isShapedError = typeof error.status === 'number' || typeof statusCode === 'number'
+
+    // A truly unexpected exception (no known status/code) still gets Youch's
+    // rich debug page in dev — that one really is "unexpected", and the
+    // stack trace is worth more there than a bare `internal_error`.
+    if (!isShapedError && this.isDebuggingEnabled(ctx)) return super.renderErrorAsJSON(error, ctx)
+
     const status =
-      typeof error.status === 'number'
-        ? error.status
-        : typeof statusCode === 'number'
-          ? statusCode
-          : 500
+      typeof error.status === 'number' ? error.status : typeof statusCode === 'number' ? statusCode : 500
 
     ctx.response.status(status).send({
       error: { type: error.code ?? 'internal_error', message: error.message },
