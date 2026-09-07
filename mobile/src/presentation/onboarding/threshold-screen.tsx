@@ -115,6 +115,7 @@ export function ThresholdScreen({
    * gate takes it from there.
    */
   function isRaceNotFailure(error: ApiError) {
+    if (!error) return false
     return error.type === 'already_in_household'
   }
 
@@ -359,6 +360,6 @@ function errorMessage(
   fallback: string,
 ): string | null {
   if (thrown) return `${fallback} Vérifie ta connexion.`
-  if (data && !data.ok && data.error.type !== 'already_in_household') return data.error.message
+  if (data && !data.ok && data.error && data.error.type !== 'already_in_household') return data.error.message
   return null
 }

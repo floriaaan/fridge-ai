@@ -1,0 +1,117 @@
+# OpenTelemetry Collector — the single ingestion point for every signal
+# (backend spans/metrics/logs, and mobile telemetry relayed by the backend).
+# Mounted by the `otel-collector` service in compose.yml.
+#
+# This file is the vendor seam: swapping the storage backend (OpenObserve,
+# SigNoz, Grafana Tempo/Loki/Mimir, ...) is a change to `exporters` +
+# `service.pipelines`, and nothing else in the repository moves.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 8
+      http:
+        endpoint: 0.0.0.0:4318
+        # The backend relay (/api/telemetry) is the only mobile-facing path;
+        # CORS here is deliberately absent so a browser cannot post directly.
+
+processors:
+  # Hard ceiling before the collector can OOM the host. Must be first in
+  # every pipeline.
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 384
+    spike_limit_mib: 96
+
+  # Belt-and-braces redaction. The SDKs are already configured not to capture
+  # headers or SQL parameters; this catches anything a future instrumentation
+  # or a hand-written span adds by accident.
+  attributes/redact:
+    actions:
+      - action: delete
+        pattern: (?i).*(authorization|cookie|set-cookie|password|passwd|token|secret|api[-_]?key|credential|session[-_]?id|x-api-key).*
+      - action: delete
+        key: db.statement.parameters
+      - action: delete
+        key: url.query
+
+  # /health is polled by Docker every 30s per container. Keeping it would be
+  # most of the trace volume and none of the value.
+  filter/noise:
+    error_mode: ignore
+    traces:
+      span:
+        - attributes["url.path"] == "/health"
+        - attributes["http.route"] == "/health"
+
+  resource/env:
+    attributes:
+      - key: deployment.environment.name
+        value: ${env:DEPLOY_ENV}
+        action: upsert
+
+  batch:
+    send_batch_size: 512
+    send_batch_max_size: 1024
+    timeout: 5s
+
+connectors:
+  # RED metrics (rate, errors, duration) derived from spans — both services
+  # get latency/error dashboards without any metric code in the application
+  # or, more importantly, on the phone.
+  spanmetrics:
+    histogram:
+      explicit:
+        buckets: [10ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s, 5s, 10s]
+    dimensions:
+      - name: http.route
+      - name: http.response.status_code
+      - name: service.version
+    metrics_flush_interval: 30s
+
+exporters:
+  otlphttp/store:
+    # No trailing slash: the exporter appends /v1/traces, /v1/logs, /v1/metrics.
+    endpoint: ${env:OTLP_STORE_ENDPOINT}
+    headers:
+      Authorization: Basic ${env:OTLP_STORE_AUTH}
+    # In memory, not on disk. A file-backed queue would survive a collector
+    # restart, but the contrib image runs unprivileged and a named Docker
+    # volume mounts root-owned, so persistence would cost either a root
+    # container or a host-side chown step — too much for the failure it
+    # covers. A *store* restart is already handled: the queue holds while the
+    # retry backs off, and only a collector restart drops what is in flight.
+    sending_queue:
+      enabled: true
+      num_consumers: 4
+      queue_size: 2000
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 60s
+      max_elapsed_time: 10m
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/noise, attributes/redact, resource/env, batch]
+      exporters: [otlphttp/store, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [memory_limiter, attributes/redact, resource/env, batch]
+      exporters: [otlphttp/store]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/redact, resource/env, batch]
+      exporters: [otlphttp/store]

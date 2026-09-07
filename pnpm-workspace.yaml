@@ -4,6 +4,10 @@ packages:
 allowBuilds:
   '@embedded-postgres/darwin-arm64': true
   '@embedded-postgres/linux-x64': false
+  # Same as linux-x64, for the arm64 variant pnpm resolves when the backend
+  # image is built on Apple Silicon — without an entry, `pnpm install
+  # --frozen-lockfile` fails the Docker build outright.
+  '@embedded-postgres/linux-arm64': false
   '@google/genai': false
   '@swc/core': true
   esbuild: true

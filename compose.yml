@@ -3,6 +3,7 @@ networks:
 
 volumes:
   pgdata:
+  openobserve-data:
 
 services:
   db:
@@ -36,6 +37,9 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       APP_KEY: ${APP_KEY}
       APP_URL: ${APP_URL:-http://localhost:3333}
+      # Required by start/env.ts since the LAN-URL change; it was missing here,
+      # so the container failed env validation before it could serve anything.
+      NETWORK_URL: ${NETWORK_URL:-http://localhost:3333}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       DB_HOST: db
       DB_PORT: 5432
@@ -47,6 +51,20 @@ services:
       POCKETID_CLIENT_ID: ${POCKETID_CLIENT_ID:-}
       POCKETID_CLIENT_SECRET: ${POCKETID_CLIENT_SECRET:-}
       DISABLE_PASSWORD_LOGIN: ${DISABLE_PASSWORD_LOGIN:-false}
+      # Observability (cf. docs/adr/0011). On by default, and deliberately
+      # *not* a `depends_on`: the API must start and serve with the collector
+      # and the store absent, stopped or broken.
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+      OTEL_SERVICE_NAME: fridge-ai-backend
+      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-1.0}
+      APP_VERSION: ${APP_VERSION:-0.0.0}
+      DEPLOY_ENV: ${DEPLOY_ENV:-homelab}
+      TELEMETRY_INGEST_ENABLED: ${TELEMETRY_INGEST_ENABLED:-true}
+      TELEMETRY_OTLP_ENDPOINT: ${TELEMETRY_OTLP_ENDPOINT:-http://otel-collector:4318}
+      TELEMETRY_MAX_BODY_BYTES: ${TELEMETRY_MAX_BODY_BYTES:-262144}
+      TELEMETRY_RATE_LIMIT_PER_MINUTE: ${TELEMETRY_RATE_LIMIT_PER_MINUTE:-60}
     depends_on:
       db:
         condition: service_healthy
@@ -54,3 +72,65 @@ services:
       - '${BACKEND_PORT:-3333}:3333'
     networks:
       - internal
+
+  #--------------------------------------------------------------------
+  # Observability — part of the default stack (cf. docs/adr/0011).
+  #
+  # Two containers, ~1.5 GB of RAM ceiling between them. Nothing above
+  # depends on them: stop both and the app keeps serving, having lost only
+  # its telemetry. To run without them:
+  #   docker compose up -d db backend
+  #--------------------------------------------------------------------
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.160.0
+    restart: unless-stopped
+    command: ['--config=/etc/otelcol/config.yaml']
+    environment:
+      DEPLOY_ENV: ${DEPLOY_ENV:-homelab}
+      OTLP_STORE_ENDPOINT: ${OTLP_STORE_ENDPOINT:-http://openobserve:5080/api/default}
+      # base64("<email>:<password>") of the OpenObserve root user. The default
+      # matches the default credentials below — change both together.
+      OTLP_STORE_AUTH: ${OTLP_STORE_AUTH:-YWRtaW5AZnJpZGdlLmxvY2FsOkNvbXBsZXhwYXNzIzEyMw==}
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      # Loopback only. The collector has no authentication of its own, so it
+      # is never published on a routable interface — mobile clients reach it
+      # through the backend relay (POST /api/telemetry/v1/*), never directly.
+      - '${OBSERVABILITY_BIND:-127.0.0.1}:4317:4317'
+      - '${OBSERVABILITY_BIND:-127.0.0.1}:4318:4318'
+    depends_on:
+      - openobserve
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  openobserve:
+    image: openobserve/openobserve:v0.92.2
+    restart: unless-stopped
+    environment:
+      # Change these. They are defaulted so `task up` works out of the box on
+      # a loopback-bound port, not because they are safe on a routable one.
+      ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_ROOT_EMAIL:-admin@fridge.local}
+      ZO_ROOT_USER_PASSWORD: ${OPENOBSERVE_ROOT_PASSWORD:-Complexpass#123}
+      ZO_DATA_DIR: /data
+      # Retention. Disk is the scarce resource in a homelab, not CPU.
+      ZO_COMPACT_DATA_RETENTION_DAYS: ${OBSERVABILITY_RETENTION_DAYS:-30}
+      ZO_TELEMETRY: 'false'
+      ZO_MEMORY_CACHE_MAX_SIZE: ${OPENOBSERVE_CACHE_MB:-256}
+    volumes:
+      - openobserve-data:/data
+    ports:
+      # UI + ingestion API, loopback by default: put it behind the homelab's
+      # own reverse proxy (with TLS) rather than exposing 5080 to the LAN.
+      - '${OBSERVABILITY_BIND:-127.0.0.1}:5080:5080'
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G

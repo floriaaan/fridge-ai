@@ -47,4 +47,20 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   // Root directory for locally-stored images (receipts, products) — cf. ADR-0009.
   STORAGE_ROOT: Env.schema.string.optional(),
+
+  // Observability — cf. docs/adr/0011. `OTEL_ENABLED` and the OTEL_* exporter
+  // variables are read straight from `process.env` by `instrumentation.ts`,
+  // which runs before this file exists; they are declared here only so that
+  // a typo surfaces at boot instead of as silent missing telemetry.
+  OTEL_ENABLED: Env.schema.boolean.optional(),
+  OTEL_EXPORTER_OTLP_ENDPOINT: Env.schema.string.optional({ format: 'url', tld: false }),
+  APP_VERSION: Env.schema.string.optional(),
+  DEPLOY_ENV: Env.schema.string.optional(),
+
+  // Mobile telemetry relay (POST /api/telemetry/v1/*) — the app never talks
+  // to the collector directly, cf. docs/adr/0011.
+  TELEMETRY_INGEST_ENABLED: Env.schema.boolean.optional(),
+  TELEMETRY_OTLP_ENDPOINT: Env.schema.string.optional({ format: 'url', tld: false }),
+  TELEMETRY_MAX_BODY_BYTES: Env.schema.number.optional(),
+  TELEMETRY_RATE_LIMIT_PER_MINUTE: Env.schema.number.optional(),
 })
