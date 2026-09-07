@@ -2,6 +2,7 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import type { Clock } from '#domain/shared/clock.interface'
 import type { IdGenerator } from '#domain/shared/id-generator.interface'
 import type { StorageService } from '#domain/shared/interfaces/storage.interface'
+import type { Encryption } from '#domain/shared/encryption.interface'
 
 /**
  * `Clock`/`IdGenerator` are stateless, dependency-free — this binding exists
@@ -31,6 +32,13 @@ export default class SharedProvider {
       const env = envModule.default
       return new LocalFilesystemStorage(env.get('STORAGE_ROOT', './data/storage'))
     })
+
+    this.app.container.singleton('shared.encryption', async () => {
+      const { AesGcmEncryption } = await import('#infrastructure/shared/aes-gcm-encryption')
+      const envModule = await import('#start/env')
+      const key = Buffer.from(envModule.default.get('ENCRYPTION_KEY').release(), 'base64')
+      return new AesGcmEncryption(key)
+    })
   }
 }
 
@@ -39,5 +47,6 @@ declare module '@adonisjs/core/types' {
     'shared.clock': Clock
     'shared.idGenerator': IdGenerator
     'shared.storage': StorageService
+    'shared.encryption': Encryption
   }
 }

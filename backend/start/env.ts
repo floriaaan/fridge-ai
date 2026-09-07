@@ -9,6 +9,10 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   // App
   APP_KEY: Env.schema.secret(),
+  // Secrets-at-rest encryption key (Home Assistant token, cf. docs/adr/0012)
+  // — deliberately not APP_KEY, which also signs sessions/cookies. 32 bytes,
+  // base64-encoded (`openssl rand -base64 32`).
+  ENCRYPTION_KEY: Env.schema.secret(),
   APP_URL: Env.schema.string({ format: 'url', tld: false }),
   // HOST is 0.0.0.0 so the server answers on the LAN, which makes APP_URL
   // unusable as an outward-facing address: better-auth hands its baseURL to
