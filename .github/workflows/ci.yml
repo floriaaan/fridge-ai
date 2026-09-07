@@ -39,6 +39,7 @@ jobs:
       HOST: localhost
       LOG_LEVEL: info
       APP_KEY: ci-test-app-key-not-for-production-use
+      ENCRYPTION_KEY: Y2ktdGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcyE=
       BETTER_AUTH_SECRET: ci-test-better-auth-secret-not-for-production-use
       APP_URL: http://localhost:3333
       # No LAN to be reachable from on a runner, so the loopback address stands
