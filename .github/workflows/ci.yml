@@ -41,6 +41,9 @@ jobs:
       APP_KEY: ci-test-app-key-not-for-production-use
       BETTER_AUTH_SECRET: ci-test-better-auth-secret-not-for-production-use
       APP_URL: http://localhost:3333
+      # No LAN to be reachable from on a runner, so the loopback address stands
+      # in for the machine's IP — nothing in CI dials it.
+      NETWORK_URL: http://localhost:3333
       DB_HOST: localhost
       DB_PORT: 5432
       DB_USER: fridge_ai
