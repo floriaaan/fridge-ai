@@ -1,14 +1,21 @@
 import { Stack } from 'expo-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { ThemeProvider } from '../presentation/shared/theme-provider.js'
 import { ConnectorProvider } from '../application/shared/connector-context.js'
 import { createConnector } from '../../providers/create-connector.js'
+import { startTelemetry } from '../../providers/start-telemetry.js'
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient())
   const [connector] = useState(() => createConnector())
+
+  // In an effect, not at module load: telemetry must never sit on the path
+  // to the first frame. `start()` is a no-op unless
+  // EXPO_PUBLIC_TELEMETRY_ENABLED is "true", and it opens no connection —
+  // the first export happens 15s later, batched.
+  useEffect(() => startTelemetry(), [])
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

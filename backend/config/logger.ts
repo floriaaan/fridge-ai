@@ -14,6 +14,40 @@ const loggerConfig = defineConfig({
       transport: {
         targets: [targets.file({ destination: 1 })],
       },
+      /**
+       * Nothing in this list is ever useful in a log line, and every entry
+       * is a credential or a token. `remove: true` deletes the key outright
+       * rather than replacing it with "[Redacted]" — the shape of a secret
+       * is itself information. These paths also cover the OTLP log records
+       * mirrored by `instrumentation-pino`, since redaction happens inside
+       * pino, upstream of the bridge.
+       */
+      redact: {
+        remove: true,
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'res.headers["set-cookie"]',
+          'headers.authorization',
+          'headers.cookie',
+          'password',
+          '*.password',
+          'token',
+          '*.token',
+          'accessToken',
+          '*.accessToken',
+          'refreshToken',
+          '*.refreshToken',
+          'idToken',
+          '*.idToken',
+          'apiKey',
+          '*.apiKey',
+          'secret',
+          '*.secret',
+          'inviteCode',
+          '*.inviteCode',
+        ],
+      },
     },
   },
 })

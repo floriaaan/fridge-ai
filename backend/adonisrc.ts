@@ -24,6 +24,7 @@ export default defineConfig({
     () => import('#providers/receipt_provider'),
     () => import('#providers/shopping_list_provider'),
     () => import('#providers/recipe_provider'),
+    () => import('#providers/telemetry_provider'),
   ],
 
   preloads: [
@@ -53,7 +54,12 @@ export default defineConfig({
     forceExit: false,
   },
 
-  metaFiles: [],
+  /**
+   * `instrumentation.ts` runs via Node's native type-stripping (cf. its
+   * header), not the assembler's build pipeline — it only needs to be copied
+   * next to `bin/server.js`, where `--import ./instrumentation.ts` expects it.
+   */
+  metaFiles: [{ pattern: 'instrumentation.ts', reloadServer: false }],
 
   hooks: {
     init: [

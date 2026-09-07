@@ -135,3 +135,18 @@ tasks:
     desc: Tail logs for the whole stack.
     cmds:
       - docker compose -f compose.yml logs -f
+
+  up:app-only:
+    desc: Start the app without the observability stack (db + backend only).
+    cmds:
+      - docker compose -f compose.yml up -d --build db backend
+
+  obs:down:
+    desc: Stop the observability stack, leaving the app running.
+    cmds:
+      - docker compose -f compose.yml stop otel-collector openobserve
+
+  obs:logs:
+    desc: Tail the collector's logs — where a rejected or misrouted export shows up.
+    cmds:
+      - docker compose -f compose.yml logs -f otel-collector
