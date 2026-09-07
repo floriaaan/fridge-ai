@@ -74,6 +74,23 @@ export function ThresholdScreen({
   const signOut = useSignOutMutation()
 
   /**
+   * A code can also arrive *after* this screen already mounted: the scanner
+   * dismisses back onto it with `router.setParams`, which updates `prefillCode`
+   * on an instance that is still alive rather than remounting it. The
+   * `useState` initializer above only ever reads the prop's value at mount, so
+   * without this the scan succeeds and the field stays exactly as empty as it
+   * was — the one shape of "the QR join doesn't work" a fresh mount never
+   * shows. Adjusted during render rather than in an effect (React's "reset
+   * state when a prop changes" pattern) — an effect's `setCode` here would
+   * commit the stale render first and then force a second one.
+   */
+  const [seenPrefillCode, setSeenPrefillCode] = useState(prefillCode)
+  if (prefillCode !== seenPrefillCode) {
+    setSeenPrefillCode(prefillCode)
+    if (prefillCode) setCode(normalizeInviteCode(prefillCode))
+  }
+
+  /**
    * A code can also arrive *before* the account did: someone taps an invite
    * link on a phone with nobody signed in, gets sent through sign-up, and the
    * code waits in storage across that whole detour. Picked up once, on mount,
