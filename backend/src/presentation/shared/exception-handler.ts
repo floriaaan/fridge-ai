@@ -41,7 +41,11 @@ export class HttpExceptionHandler extends BaseExceptionHandler {
     if (!isShapedError && this.isDebuggingEnabled(ctx)) return super.renderErrorAsJSON(error, ctx)
 
     const status =
-      typeof error.status === 'number' ? error.status : typeof statusCode === 'number' ? statusCode : 500
+      typeof error.status === 'number'
+        ? error.status
+        : typeof statusCode === 'number'
+          ? statusCode
+          : 500
 
     ctx.response.status(status).send({
       error: { type: error.code ?? 'internal_error', message: error.message },
