@@ -1,5 +1,6 @@
 import { authClient } from '../auth/auth-client.js'
 import { apiFetch, apiFetchMultipart } from './http-client.js'
+import { telemetry } from '../telemetry/telemetry.js'
 import { Result } from '../../domain/shared/result.js'
 import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.js'
 import type { Session } from '../../domain/identity/session.js'
@@ -29,6 +30,23 @@ function toSession(
   }
 }
 
+/**
+ * The auth calls below swallow their errors on purpose — a failed session
+ * read must not block startup, and a failed sign-in has its own user-facing
+ * message. Swallowed used to mean invisible: the errors went to
+ * `console.warn`, i.e. to a device log nobody reads, carrying whatever the
+ * auth client happened to put in the object.
+ *
+ * They now go to telemetry as an operation name plus an error *type* — never
+ * the error's own message or payload, which for these particular calls can
+ * contain the credentials that were being verified. The raw object is still
+ * printed in development, where it is a local console and not a data store.
+ */
+function reportFailure(operation: string, error: unknown): void {
+  if (__DEV__) console.warn(`[${operation}]`, error)
+  telemetry.recordError(`${operation} failed`, { error, attributes: { 'app.operation': operation } })
+}
+
 export class HttpFridgeConnector implements FridgeConnector {
   async getSession(): Promise<Session | null> {
     try {
@@ -36,7 +54,7 @@ export class HttpFridgeConnector implements FridgeConnector {
       return toSession(data)
     } catch (error) {
       // Return null if session check fails, this prevents blocking app startup
-      console.warn('Failed to get session:', error)
+      reportFailure('identity.get_session', error)
       return null
     }
   }
@@ -46,7 +64,7 @@ export class HttpFridgeConnector implements FridgeConnector {
       const result = await apiFetch<{ methods: AuthMethod[] }>('/api/auth/methods')
       return result.ok ? result.value.methods : []
     } catch (error) {
-      console.warn('Failed to get auth methods:', error)
+      reportFailure('identity.get_auth_methods', error)
       return []
     }
   }
@@ -61,7 +79,7 @@ export class HttpFridgeConnector implements FridgeConnector {
       if (!session) return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
       return Result.ok(session)
     } catch (error) {
-      console.warn('Failed to sign in email:', error)
+      reportFailure('identity.sign_in_email', error)
       return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
     }
   }
@@ -76,7 +94,7 @@ export class HttpFridgeConnector implements FridgeConnector {
       if (!session) return Result.err({ type: 'sign_up_failed', message: 'Inscription impossible.' })
       return Result.ok(session)
     } catch (error) {
-      console.warn('Failed to sign up email:', error)
+      reportFailure('identity.sign_up_email', error)
       return Result.err({ type: 'sign_up_failed', message: 'Inscription impossible.' })
     }
   }
@@ -91,7 +109,7 @@ export class HttpFridgeConnector implements FridgeConnector {
       if (!session) return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
       return Result.ok(session)
     } catch (error) {
-      console.warn('Failed to sign in social:', error)
+      reportFailure('identity.sign_in_social', error)
       return Result.err({ type: 'sign_in_failed', message: 'Connexion impossible.' })
     }
   }
@@ -114,7 +132,7 @@ export class HttpFridgeConnector implements FridgeConnector {
    * never fire either, for the same reason.
    */
   async getHousehold(): Promise<Household | null> {
-    const result = await apiFetch<{ household: Household | null }>('/api/households/mine')
+    const result = await apiFetch<{ household: Household | null }>('/api/households/mine');
     if (!result.ok) throw new Error(result.error.message)
     return result.value.household
   }
