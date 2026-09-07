@@ -150,7 +150,10 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
   }, [lookup.isFetched, lookup.data, props.prefillBarcode])
 
   useEffect(() => {
-    if (!lookup.isFetched || lookup.data) return
+    // `isError` is excluded here on purpose: a failed request also leaves
+    // `data` empty, but it isn't the same outcome as a barcode OpenFoodFacts
+    // has genuinely never heard of, and the two need different wording below.
+    if (!lookup.isFetched || lookup.data || lookup.isError) return
     const key = props.prefillBarcode ?? ''
     if (appliedLookupKeyRef.current === key) return
     appliedLookupKeyRef.current = key
@@ -158,7 +161,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
     // A real, expected outcome (barcode not in OpenFoodFacts) — not an ApiError, so it
     // gets an informational hint rather than the `error` state used for form validation.
     setLookupHint('Produit non trouvé, remplis les champs à la main.')
-  }, [lookup.isFetched, lookup.data, props.prefillBarcode])
+  }, [lookup.isFetched, lookup.data, lookup.isError, props.prefillBarcode])
 
   const createProduct = useCreateProductMutation()
   const updateProduct = useUpdateProductMutation()
@@ -276,7 +279,11 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
             }
           />
 
-          {lookupHint ? (
+          {lookup.isError ? (
+            <Text fontSize={12} fontWeight="600" color={palette.expiredText} marginTop="$2">
+              La recherche du produit a échoué. Vérifie ta connexion, ou remplis les champs à la main.
+            </Text>
+          ) : lookupHint ? (
             <Text fontSize={12} fontWeight="500" color={palette.inkSecondary} marginTop="$2">
               {lookupHint}
             </Text>

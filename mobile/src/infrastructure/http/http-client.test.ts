@@ -1,5 +1,13 @@
 import { apiFetch, apiFetchMultipart } from './http-client.js'
 
+// `http-client.ts` reads the session cookie via `authClient.getCookie()` on
+// every request. The real client pulls in `better-auth/react`, an ESM-only
+// package Jest can't parse without this module being replaced first — same
+// convention as `http-fridge-connector.test.ts`.
+jest.mock('../auth/auth-client.js', () => ({
+  authClient: { getCookie: jest.fn().mockResolvedValue('') },
+}))
+
 const originalFetch = globalThis.fetch
 
 afterEach(() => {
@@ -45,7 +53,11 @@ test('apiFetchMultipart() POSTs the given FormData without a JSON Content-Type h
   const [, init] = fetchMock.mock.calls[0]
   expect(init.method).toBe('POST')
   expect(init.body).toBe(formData)
-  expect(init.headers).toBeUndefined()
+  // Not literally `undefined` any more — the cookie/traceparent injection
+  // always produces a headers object now — but the point of this test is
+  // still true: no Content-Type, so `fetch` derives the multipart boundary
+  // from the FormData itself instead of it being overwritten.
+  expect(init.headers).not.toHaveProperty('Content-Type')
 })
 
 test('apiFetchMultipart() maps a non-ok response to Result.err', async () => {
