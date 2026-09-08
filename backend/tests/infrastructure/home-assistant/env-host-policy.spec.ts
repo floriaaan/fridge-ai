@@ -31,6 +31,12 @@ test.group('EnvHostPolicy', (group) => {
     assert.isTrue(policy.isAllowed(url('http://homeassistant.local:8123')))
   })
 
+  test('allows case-insensitive hostname match', ({ assert }) => {
+    process.env.HOME_ASSISTANT_ALLOWED_HOSTS = 'HOMEASSISTANT.LOCAL'
+    const policy = new EnvHostPolicy()
+    assert.isTrue(policy.isAllowed(url('http://homeassistant.local:8123')))
+  })
+
   test('rejects a host not on the list', ({ assert }) => {
     process.env.HOME_ASSISTANT_ALLOWED_HOSTS = 'homeassistant.local'
     const policy = new EnvHostPolicy()

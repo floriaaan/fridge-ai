@@ -11,7 +11,7 @@ export class EnvHostPolicy implements HostPolicy {
 
     const allowed = raw
       .split(',')
-      .map((entry) => entry.trim())
+      .map((entry) => entry.trim().toLowerCase())
       .filter(Boolean)
 
     const parsed = new URL(url.value)
