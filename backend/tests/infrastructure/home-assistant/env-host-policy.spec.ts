@@ -11,7 +11,9 @@ function url(raw: string): InstanceUrl {
 
 test.group('EnvHostPolicy', (group) => {
   const original = env.get('HOME_ASSISTANT_ALLOWED_HOSTS', '')
-  group.each.teardown(() => process.env.HOME_ASSISTANT_ALLOWED_HOSTS = original)
+  group.each.teardown(() => {
+    process.env.HOME_ASSISTANT_ALLOWED_HOSTS = original
+  })
 
   test('allows everything when the env var is unset', ({ assert }) => {
     delete process.env.HOME_ASSISTANT_ALLOWED_HOSTS
