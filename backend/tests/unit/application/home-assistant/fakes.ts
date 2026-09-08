@@ -101,3 +101,52 @@ export const SEQUENTIAL_IDS = (prefix: string) => {
   let n = 0
   return { next: () => `${prefix}-${++n}` }
 }
+
+export class RecordingHomeAssistantClient implements HomeAssistantClient {
+  calls: Array<{ method: string; args: unknown[] }> = []
+  constructor(private readonly items: TodoItem[] = []) {}
+
+  async ping() {
+    return Result.ok(undefined)
+  }
+  async listTodoEntities() {
+    return Result.ok([])
+  }
+  async listItems() {
+    this.calls.push({ method: 'listItems', args: [] })
+    return Result.ok(this.items)
+  }
+  async addItem(...args: unknown[]) {
+    this.calls.push({ method: 'addItem', args })
+    return Result.ok(undefined)
+  }
+  async updateItem(...args: unknown[]) {
+    this.calls.push({ method: 'updateItem', args })
+    return Result.ok(undefined)
+  }
+  async removeItem(...args: unknown[]) {
+    this.calls.push({ method: 'removeItem', args })
+    return Result.ok(undefined)
+  }
+}
+
+export class FailingListItemsClient implements HomeAssistantClient {
+  async ping() {
+    return Result.ok(undefined)
+  }
+  async listTodoEntities() {
+    return Result.ok([])
+  }
+  async listItems() {
+    return Result.err('unreachable' as const)
+  }
+  async addItem() {
+    return Result.ok(undefined)
+  }
+  async updateItem() {
+    return Result.ok(undefined)
+  }
+  async removeItem() {
+    return Result.ok(undefined)
+  }
+}
