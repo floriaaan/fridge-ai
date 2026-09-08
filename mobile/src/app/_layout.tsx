@@ -44,6 +44,7 @@ export default function RootLayout() {
               <Stack.Screen name="settings" />
               <Stack.Screen name="household" />
               <Stack.Screen name="receipts" />
+              <Stack.Screen name="home-assistant" options={{ presentation: 'modal' }} />
             </Stack>
           </ConnectorProvider>
         </QueryClientProvider>
