@@ -26,6 +26,12 @@ export default class ShoppingItemModel extends BaseModel {
   @column()
   declare source: ShoppingItemSourceValue
 
+  @column({ columnName: 'ha_uid' })
+  declare haUid: string | null
+
+  @column.dateTime({ columnName: 'ha_synced_at' })
+  declare haSyncedAt: DateTime | null
+
   @column.dateTime({ columnName: 'created_at', autoCreate: true })
   declare createdAt: DateTime
 
