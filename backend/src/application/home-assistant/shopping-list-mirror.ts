@@ -1,5 +1,8 @@
 import type { HomeAssistantLinkRepository } from '#domain/home-assistant/interfaces/home-assistant-link-repository.interface'
-import type { HomeAssistantClient, HomeAssistantConnection } from '#domain/home-assistant/interfaces/home-assistant-client.interface'
+import type {
+  HomeAssistantClient,
+  HomeAssistantConnection,
+} from '#domain/home-assistant/interfaces/home-assistant-client.interface'
 import type { HostPolicy } from '#domain/home-assistant/interfaces/host-policy.interface'
 import type { ShoppingItem } from '#domain/shopping-list/shopping-item.entity'
 import type { Clock } from '#domain/shared/clock.interface'
@@ -59,7 +62,10 @@ export class ShoppingListMirror {
   async itemDeleted(householdId: string, haUid: string | null): Promise<void> {
     if (!haUid) return
     await this.run(householdId, async (connection, entityId) => {
-      const result = await withTimeout(this.client.removeItem(connection, entityId, haUid), MIRROR_TIMEOUT_MS)
+      const result = await withTimeout(
+        this.client.removeItem(connection, entityId, haUid),
+        MIRROR_TIMEOUT_MS,
+      )
       if (!result.ok) throw new Error(result.error)
     })
   }

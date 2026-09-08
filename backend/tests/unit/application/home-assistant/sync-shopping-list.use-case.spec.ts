@@ -40,7 +40,9 @@ async function linkedRepo(direction: 'push' | 'pull' | 'two_way', entityId = 'to
   return links
 }
 
-function localItem(overrides: { id?: string; name?: string; haUid?: string | null; dirty?: boolean } = {}) {
+function localItem(
+  overrides: { id?: string; name?: string; haUid?: string | null; dirty?: boolean } = {},
+) {
   const quantity = Quantity.create(1, 'pièce')
   const source = ShoppingItemSource.create('manual')
   if (!quantity.ok || !source.ok) throw new Error('bad fixture')
@@ -104,9 +106,13 @@ test.group('SyncShoppingList', () => {
     const items = new FakeShoppingItemRepository()
     const item = localItem({ haUid: 'ha-1', dirty: true })
     await items.save(item)
-    const client = new RecordingHomeAssistantClient([{ uid: 'ha-1', summary: 'Lait', description: null, status: 'needs_action' }])
+    const client = new RecordingHomeAssistantClient([
+      { uid: 'ha-1', summary: 'Lait', description: null, status: 'needs_action' },
+    ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     const call = client.calls.find((c) => c.method === 'updateItem')
     assert.isDefined(call)
@@ -116,27 +122,41 @@ test.group('SyncShoppingList', () => {
     // as "some call is updateItem".
     assert.equal(call?.args[1], 'todo.courses')
     assert.equal(call?.args[2], 'ha-1')
-    assert.deepEqual(call?.args[3], { summary: 'Lait', description: '1 pièce', status: 'needs_action' })
+    assert.deepEqual(call?.args[3], {
+      summary: 'Lait',
+      description: '1 pièce',
+      status: 'needs_action',
+    })
   })
 
-  test('push: a clean item with a known uid still gets update_item (push always overwrites HA)', async ({ assert }) => {
+  test('push: a clean item with a known uid still gets update_item (push always overwrites HA)', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('push')
     const items = new FakeShoppingItemRepository()
     await items.save(localItem({ haUid: 'ha-1', dirty: false }))
-    const client = new RecordingHomeAssistantClient([{ uid: 'ha-1', summary: 'Lait', description: null, status: 'needs_action' }])
+    const client = new RecordingHomeAssistantClient([
+      { uid: 'ha-1', summary: 'Lait', description: null, status: 'needs_action' },
+    ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isTrue(client.calls.some((c) => c.method === 'updateItem'))
   })
 
-  test('push: an item whose uid vanished from HA is re-added, not left gone', async ({ assert }) => {
+  test('push: an item whose uid vanished from HA is re-added, not left gone', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('push')
     const items = new FakeShoppingItemRepository()
     await items.save(localItem({ haUid: 'ha-gone', dirty: false }))
     const client = new RecordingHomeAssistantClient([]) // HA has nothing
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isTrue(client.calls.some((c) => c.method === 'addItem'))
     const reread = await items.findById('item-1')
@@ -147,10 +167,17 @@ test.group('SyncShoppingList', () => {
     const links = await linkedRepo('push')
     const items = new FakeShoppingItemRepository()
     const client = new RecordingHomeAssistantClient([
-      { uid: 'foreign-1', summary: 'Something from a voice assistant', description: null, status: 'needs_action' },
+      {
+        uid: 'foreign-1',
+        summary: 'Something from a voice assistant',
+        description: null,
+        status: 'needs_action',
+      },
     ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isFalse(client.calls.some((c) => c.method === 'removeItem'))
   })
@@ -163,7 +190,9 @@ test.group('SyncShoppingList', () => {
       { uid: 'ha-1', summary: 'Lait entier', description: '2 L', status: 'completed' },
     ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isFalse(client.calls.some((c) => c.method === 'updateItem'))
     const reread = await items.findById('item-1')
@@ -177,7 +206,9 @@ test.group('SyncShoppingList', () => {
     await items.save(localItem({ haUid: 'ha-gone', dirty: false }))
     const client = new RecordingHomeAssistantClient([])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isNull(await items.findById('item-1'))
   })
@@ -189,7 +220,9 @@ test.group('SyncShoppingList', () => {
       { uid: 'ha-new', summary: 'Pain', description: '1 pièce', status: 'needs_action' },
     ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     const imported = await items.findByHousehold('household-1')
     assert.lengthOf(imported, 1)
@@ -197,25 +230,33 @@ test.group('SyncShoppingList', () => {
     assert.equal(imported[0]?.haUid, 'ha-new')
   })
 
-  test('pull: a local-only item with no HA match is left alone, never pushed', async ({ assert }) => {
+  test('pull: a local-only item with no HA match is left alone, never pushed', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('pull')
     const items = new FakeShoppingItemRepository()
     await items.save(localItem({ name: 'Only here' }))
     const client = new RecordingHomeAssistantClient([])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isFalse(client.calls.some((c) => c.method === 'addItem'))
     assert.isNotNull(await items.findById('item-1'))
   })
 
-  test('two_way: a brand-new local item with no uid and no HA match is added to HA', async ({ assert }) => {
+  test('two_way: a brand-new local item with no uid and no HA match is added to HA', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('two_way')
     const items = new FakeShoppingItemRepository()
     await items.save(localItem({ name: 'Nouveau' }))
     const client = new RecordingHomeAssistantClient([])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isTrue(client.calls.some((c) => c.method === 'addItem'))
   })
@@ -230,7 +271,9 @@ test.group('SyncShoppingList', () => {
       { uid: 'ha-existing', summary: 'lait', description: null, status: 'needs_action' }, // case-insensitive match
     ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     const reread = await items.findById('item-1')
     assert.equal(reread?.haUid, 'ha-existing')
@@ -245,7 +288,9 @@ test.group('SyncShoppingList', () => {
   // known, and the defining behavior of two-way mode. Added per the
   // self-review mandate to exercise every matrix cell, not just hit 15
   // tests.
-  test('two_way: a dirty item with a known uid is pushed to HA, local content wins', async ({ assert }) => {
+  test('two_way: a dirty item with a known uid is pushed to HA, local content wins', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('two_way')
     const items = new FakeShoppingItemRepository()
     await items.save(localItem({ haUid: 'ha-1', dirty: true, name: 'Lait (local edit)' }))
@@ -253,18 +298,26 @@ test.group('SyncShoppingList', () => {
       { uid: 'ha-1', summary: 'Lait', description: null, status: 'needs_action' },
     ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     const call = client.calls.find((c) => c.method === 'updateItem')
     assert.isDefined(call)
     assert.equal(call?.args[1], 'todo.courses')
     assert.equal(call?.args[2], 'ha-1')
-    assert.deepEqual(call?.args[3], { summary: 'Lait (local edit)', description: '1 pièce', status: 'needs_action' })
+    assert.deepEqual(call?.args[3], {
+      summary: 'Lait (local edit)',
+      description: '1 pièce',
+      status: 'needs_action',
+    })
     const reread = await items.findById('item-1')
     assert.equal(reread?.name, 'Lait (local edit)')
   })
 
-  test('two_way: a clean item with a known uid is pulled from HA, not pushed', async ({ assert }) => {
+  test('two_way: a clean item with a known uid is pulled from HA, not pushed', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('two_way')
     const items = new FakeShoppingItemRepository()
     await items.save(localItem({ haUid: 'ha-1', dirty: false }))
@@ -272,7 +325,9 @@ test.group('SyncShoppingList', () => {
       { uid: 'ha-1', summary: 'Lait entier', description: '2 L', status: 'completed' },
     ])
 
-    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
+    await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
 
     assert.isFalse(client.calls.some((c) => c.method === 'updateItem'))
     const reread = await items.findById('item-1')
@@ -280,7 +335,9 @@ test.group('SyncShoppingList', () => {
     assert.isTrue(reread?.checked)
   })
 
-  test('a client failure aborts the reconcile and records the failure on the link', async ({ assert }) => {
+  test('a client failure aborts the reconcile and records the failure on the link', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('two_way')
     const items = new FakeShoppingItemRepository()
     const result = await new SyncShoppingList(
@@ -302,7 +359,9 @@ test.group('SyncShoppingList', () => {
   // mid-pass (a two-way, dirty, known-uid item — the case that pushes) is
   // the scenario that would also have caught the vanished-uid bug, where
   // push() was called with a dead uid before the code path was fixed.
-  test('a failing update_item call aborts the reconcile mid-pass and records the failure', async ({ assert }) => {
+  test('a failing update_item call aborts the reconcile mid-pass and records the failure', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('two_way')
     const items = new FakeShoppingItemRepository()
     await items.save(localItem({ haUid: 'ha-1', dirty: true }))
@@ -310,7 +369,13 @@ test.group('SyncShoppingList', () => {
       { uid: 'ha-1', summary: 'Lait', description: null, status: 'needs_action' },
     ])
 
-    const result = await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+    const result = await new SyncShoppingList(
+      links,
+      items,
+      client,
+      SEQUENTIAL_IDS('item'),
+      FIXED_CLOCK,
+    ).execute({
       householdId: 'household-1',
     })
 

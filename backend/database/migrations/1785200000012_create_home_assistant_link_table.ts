@@ -18,7 +18,11 @@ export default class extends BaseSchema {
       table.text('encrypted_token').notNullable()
       table.text('todo_entity_id').nullable()
       table.text('todo_entity_name').nullable()
-      table.text('direction').notNullable().defaultTo('two_way').checkIn(['push', 'pull', 'two_way'])
+      table
+        .text('direction')
+        .notNullable()
+        .defaultTo('two_way')
+        .checkIn(['push', 'pull', 'two_way'])
       table.boolean('enabled').notNullable().defaultTo(true)
       table.timestamp('last_sync_at', { useTz: true }).nullable()
       table.string('last_error', 500).nullable()

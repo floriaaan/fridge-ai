@@ -16,7 +16,8 @@ export default class HomeAssistantProvider {
     })
 
     this.app.container.singleton('homeAssistant.client', async () => {
-      const { HttpHomeAssistantClient } = await import('#infrastructure/home-assistant/http-home-assistant.client')
+      const { HttpHomeAssistantClient } =
+        await import('#infrastructure/home-assistant/http-home-assistant.client')
       return new HttpHomeAssistantClient()
     })
 
@@ -26,7 +27,8 @@ export default class HomeAssistantProvider {
     })
 
     this.app.container.singleton('homeAssistant.shoppingListMirror', async () => {
-      const { ShoppingListMirror } = await import('#application/home-assistant/shopping-list-mirror')
+      const { ShoppingListMirror } =
+        await import('#application/home-assistant/shopping-list-mirror')
       const links = await this.app.container.make('homeAssistant.links')
       const client = await this.app.container.make('homeAssistant.client')
       const hostPolicy = await this.app.container.make('homeAssistant.hostPolicy')

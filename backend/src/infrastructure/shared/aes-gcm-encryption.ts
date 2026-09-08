@@ -21,7 +21,12 @@ export class AesGcmEncryption implements Encryption {
     const cipher = createCipheriv(ALGORITHM, this.key, iv)
     const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()])
     const tag = cipher.getAuthTag()
-    return [VERSION, iv.toString('base64'), tag.toString('base64'), encrypted.toString('base64')].join('.')
+    return [
+      VERSION,
+      iv.toString('base64'),
+      tag.toString('base64'),
+      encrypted.toString('base64'),
+    ].join('.')
   }
 
   decrypt(ciphertext: string): string {
@@ -31,7 +36,10 @@ export class AesGcmEncryption implements Encryption {
     }
     const decipher = createDecipheriv(ALGORITHM, this.key, Buffer.from(ivB64, 'base64'))
     decipher.setAuthTag(Buffer.from(tagB64, 'base64'))
-    const decrypted = Buffer.concat([decipher.update(Buffer.from(dataB64, 'base64')), decipher.final()])
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataB64, 'base64')),
+      decipher.final(),
+    ])
     return decrypted.toString('utf8')
   }
 }

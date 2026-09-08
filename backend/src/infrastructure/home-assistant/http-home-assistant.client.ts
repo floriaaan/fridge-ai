@@ -37,7 +37,8 @@ async function haFetch(
     if (!response.ok) return Result.err('unexpected_response')
 
     const contentLength = response.headers.get('content-length')
-    if (contentLength && Number(contentLength) > MAX_RESPONSE_BYTES) return Result.err('unexpected_response')
+    if (contentLength && Number(contentLength) > MAX_RESPONSE_BYTES)
+      return Result.err('unexpected_response')
 
     const text = await response.text()
     if (text.length > MAX_RESPONSE_BYTES) return Result.err('unexpected_response')
@@ -68,7 +69,10 @@ export class HttpHomeAssistantClient implements HomeAssistantClient {
     const result = await haFetch(connection, '/api/states')
     if (!result.ok) return result
     try {
-      const states = result.value as Array<{ entity_id: string; attributes?: { friendly_name?: string } }>
+      const states = result.value as Array<{
+        entity_id: string
+        attributes?: { friendly_name?: string }
+      }>
       const entities = states
         .filter((state) => state.entity_id.startsWith('todo.'))
         .map((state) => ({
@@ -94,7 +98,14 @@ export class HttpHomeAssistantClient implements HomeAssistantClient {
       const body = result.value as {
         service_response?: Record<
           string,
-          { items?: Array<{ uid: string; summary: string; description?: string | null; status: string }> }
+          {
+            items?: Array<{
+              uid: string
+              summary: string
+              description?: string | null
+              status: string
+            }>
+          }
         >
       }
       const raw = body.service_response?.[entityId]?.items ?? []
@@ -117,7 +128,11 @@ export class HttpHomeAssistantClient implements HomeAssistantClient {
   ): Promise<ResultType<void, HomeAssistantError>> {
     const result = await haFetch(connection, '/api/services/todo/add_item', {
       method: 'POST',
-      body: JSON.stringify({ entity_id: entityId, item: item.summary, description: item.description }),
+      body: JSON.stringify({
+        entity_id: entityId,
+        item: item.summary,
+        description: item.description,
+      }),
     })
     return result.ok ? Result.ok(undefined) : result
   }

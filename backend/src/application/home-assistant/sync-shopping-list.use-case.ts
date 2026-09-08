@@ -1,7 +1,10 @@
 import type { UseCase } from '#application/shared/use-case'
 import type { HomeAssistantLinkRepository } from '#domain/home-assistant/interfaces/home-assistant-link-repository.interface'
 import type { ShoppingItemRepository } from '#domain/shopping-list/interfaces/shopping-item-repository.interface'
-import type { HomeAssistantClient, HomeAssistantConnection } from '#domain/home-assistant/interfaces/home-assistant-client.interface'
+import type {
+  HomeAssistantClient,
+  HomeAssistantConnection,
+} from '#domain/home-assistant/interfaces/home-assistant-client.interface'
 import type { IdGenerator } from '#domain/shared/id-generator.interface'
 import type { Clock } from '#domain/shared/clock.interface'
 import type { TodoItem } from '#domain/home-assistant/todo-item'
@@ -30,9 +33,10 @@ export interface SyncShoppingListSummary {
  * 3. local items still without a uid after (2): push a brand-new HA item
  * 4. HA items nobody local claimed: import, unless direction is `push`
  */
-export class SyncShoppingList
-  implements UseCase<SyncShoppingListInput, ResultType<SyncShoppingListSummary, string>>
-{
+export class SyncShoppingList implements UseCase<
+  SyncShoppingListInput,
+  ResultType<SyncShoppingListSummary, string>
+> {
   constructor(
     private readonly links: HomeAssistantLinkRepository,
     private readonly items: ShoppingItemRepository,
@@ -41,14 +45,19 @@ export class SyncShoppingList
     private readonly clock: Clock,
   ) {}
 
-  async execute(input: SyncShoppingListInput): Promise<ResultType<SyncShoppingListSummary, string>> {
+  async execute(
+    input: SyncShoppingListInput,
+  ): Promise<ResultType<SyncShoppingListSummary, string>> {
     const link = await this.links.find(input.householdId)
     if (!link || !link.enabled || !link.todoEntityId) {
       return Result.ok({ synced: false })
     }
 
     const entityId = link.todoEntityId
-    const connection: HomeAssistantConnection = { instanceUrl: link.instanceUrl.value, token: link.token }
+    const connection: HomeAssistantConnection = {
+      instanceUrl: link.instanceUrl.value,
+      token: link.token,
+    }
     const now = this.clock.now()
 
     const haItemsResult = await this.client.listItems(connection, entityId)
@@ -63,7 +72,15 @@ export class SyncShoppingList
     const localItems = await this.items.findByHousehold(input.householdId)
 
     try {
-      await this.reconcileKnownUids(connection, entityId, link.direction.value, localItems, haById, claimed, now)
+      await this.reconcileKnownUids(
+        connection,
+        entityId,
+        link.direction.value,
+        localItems,
+        haById,
+        claimed,
+        now,
+      )
       await this.adoptUidsByName(haItemsResult.value, localItems, claimed, now)
 
       if (link.direction.value !== 'pull') {
@@ -151,9 +168,14 @@ export class SyncShoppingList
     }
   }
 
-  private async importFromHomeAssistant(householdId: string, haItem: TodoItem, now: Date): Promise<void> {
+  private async importFromHomeAssistant(
+    householdId: string,
+    haItem: TodoItem,
+    now: Date,
+  ): Promise<void> {
     const sourceResult = ShoppingItemSource.create('manual')
-    if (!sourceResult.ok) throw new Error('unreachable: "manual" is always a valid shopping item source')
+    if (!sourceResult.ok)
+      throw new Error('unreachable: "manual" is always a valid shopping item source')
 
     const created = ShoppingItem.create({
       id: this.idGenerator.next(),
@@ -168,7 +190,11 @@ export class SyncShoppingList
     await this.items.save(created)
   }
 
-  private async push(connection: HomeAssistantConnection, entityId: string, item: ShoppingItem): Promise<void> {
+  private async push(
+    connection: HomeAssistantConnection,
+    entityId: string,
+    item: ShoppingItem,
+  ): Promise<void> {
     const patch = {
       summary: item.name,
       description: formatQuantity(item.quantity),
@@ -188,7 +214,11 @@ export class SyncShoppingList
 
   private adopt(item: ShoppingItem, haItem: TodoItem, now: Date): void {
     item.adoptFromHomeAssistant(
-      { name: haItem.summary, checked: haItem.status === 'completed', quantity: parseQuantity(haItem.description) },
+      {
+        name: haItem.summary,
+        checked: haItem.status === 'completed',
+        quantity: parseQuantity(haItem.description),
+      },
       haItem.uid,
       now,
     )
