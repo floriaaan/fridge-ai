@@ -60,7 +60,15 @@ export class FakeFridgeConnector implements FridgeConnector {
    * default of null would have made every one of them render its "no
    * household" branch instead of the thing under test.
    */
-  private household: Household | null = { ...fakeHousehold, members: fakeHousehold.members.map((m) => ({ ...m })) }
+  private household: Household | null
+  /**
+   * Which household `restoreFixtureHousehold()` restores to — `fakeHousehold`
+   * (owner) unless the constructor is told otherwise. Exists so a test can
+   * render an owner-gated screen as a member (`fakeHouseholdAsMember`)
+   * without inventing a second, differently-named household via a `getHousehold`
+   * mock, which is what every other fixture-backed screen already renders.
+   */
+  private readonly fixtureHousehold: Household
   private nextInviteCode = 1
   private nextHouseholdId = 2
   private shoppingItems: ShoppingItem[] = fakeShoppingItems.map((item) => ({ ...item }))
@@ -81,9 +89,19 @@ export class FakeFridgeConnector implements FridgeConnector {
   private haLink: HaLink = { ...fakeUnconfiguredHaLink }
   private readonly aiLatencyMs: number
 
-  /** `aiLatencyMs: 0` for tests that want the generated data and not the wait. */
-  constructor({ aiLatencyMs = DEFAULT_AI_LATENCY_MS }: { aiLatencyMs?: number } = {}) {
+  /**
+   * `aiLatencyMs: 0` for tests that want the generated data and not the wait.
+   * `fixtureHousehold` for a test that needs the connector to start signed
+   * into (and sign back into) the foyer as a member rather than the owner —
+   * pass `fakeHouseholdAsMember`.
+   */
+  constructor({
+    aiLatencyMs = DEFAULT_AI_LATENCY_MS,
+    fixtureHousehold = fakeHousehold,
+  }: { aiLatencyMs?: number; fixtureHousehold?: Household } = {}) {
     this.aiLatencyMs = aiLatencyMs
+    this.fixtureHousehold = fixtureHousehold
+    this.household = { ...fixtureHousehold, members: fixtureHousehold.members.map((m) => ({ ...m })) }
   }
 
   private pretendToThink(): Promise<void> {
@@ -103,7 +121,7 @@ export class FakeFridgeConnector implements FridgeConnector {
   }
 
   private restoreFixtureHousehold(): Household {
-    this.household = { ...fakeHousehold, members: fakeHousehold.members.map((m) => ({ ...m })) }
+    this.household = { ...this.fixtureHousehold, members: this.fixtureHousehold.members.map((m) => ({ ...m })) }
     return this.household
   }
 
