@@ -20,6 +20,7 @@ import { useHouseholdQuery } from '../../application/identity/household.query.js
 import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
 import { useSetActiveAiProviderMutation } from '../../application/settings/set-active-ai-provider.mutation.js'
+import { useHaLinkQuery } from '../../application/home-assistant/ha-link.query.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
@@ -69,6 +70,7 @@ export function SettingsScreen() {
   const signOut = useSignOutMutation()
   const settings = useAiSettingsQuery()
   const setProvider = useSetActiveAiProviderMutation()
+  const haLink = useHaLinkQuery()
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
   const [confirmingSignOut, setConfirmingSignOut] = useState(false)
@@ -231,6 +233,27 @@ export function SettingsScreen() {
           </Text>
         ) : null}
       </YStack>
+
+      {household.data?.role === 'owner' ? (
+        <YStack marginTop="$6" gap="$2">
+          <SectionLabel palette={palette} icon={<HomeIcon size={15} color={palette.inkSecondary} />}>
+            Maison connectée
+          </SectionLabel>
+          <Text fontSize={13} color={palette.inkSecondary}>
+            Garde ta liste de courses en phase avec Home Assistant.
+          </Text>
+          <Text
+            testID="ha-settings-row"
+            fontSize={14}
+            fontWeight="700"
+            color={palette.ink}
+            marginTop="$1"
+            onPress={() => router.push('/home-assistant')}
+          >
+            {haLink.data?.configured && haLink.data.todoEntityName ? haLink.data.todoEntityName : 'Non configuré'}
+          </Text>
+        </YStack>
+      ) : null}
 
       <YStack marginTop="$8" gap="$2">
         <AuthButton

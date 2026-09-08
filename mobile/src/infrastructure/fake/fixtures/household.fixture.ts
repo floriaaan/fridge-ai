@@ -17,3 +17,20 @@ export const fakeHousehold: Household = {
     { userId: 'fake-user-2', name: 'Camille', role: 'member', joinedAt: '2026-08-04T18:30:00.000Z' },
   ],
 }
+
+/**
+ * The same foyer, from a member's side of the wire rather than the owner's:
+ * `role: 'member'`, and no `inviteCode` — the backend omits that field for
+ * anyone but the owner (`toHouseholdDto`), which is what `HouseholdScreen`'s
+ * invite section gates on. Exists because `FakeFridgeConnector` otherwise had
+ * no way at all to hand a test a member session: `signInSocial`/`signInEmail`
+ * always restore `fakeHousehold`, whose `role` is hardcoded to `'owner'`.
+ * Pass this to the connector's `fixtureHousehold` constructor option to
+ * render any owner-gated screen as a member instead.
+ */
+export const fakeHouseholdAsMember: Household = {
+  id: fakeHousehold.id,
+  name: fakeHousehold.name,
+  role: 'member',
+  members: fakeHousehold.members.map((member) => ({ ...member })),
+}
