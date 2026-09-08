@@ -12,6 +12,7 @@ import {
   FakeShoppingItemRepository,
   RecordingHomeAssistantClient,
   FailingListItemsClient,
+  FailingUpdateItemClient,
   FIXED_CLOCK,
   SEQUENTIAL_IDS,
 } from './fakes.js'
@@ -107,7 +108,15 @@ test.group('SyncShoppingList', () => {
 
     await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
 
-    assert.isTrue(client.calls.some((c) => c.method === 'updateItem'))
+    const call = client.calls.find((c) => c.method === 'updateItem')
+    assert.isDefined(call)
+    // args: [connection, entityId, uid, patch] — the exact target of the
+    // call matters, not just that some updateItem call happened, since a
+    // wrong/dead uid here (as in the vanished-uid bug) would still show up
+    // as "some call is updateItem".
+    assert.equal(call?.args[1], 'todo.courses')
+    assert.equal(call?.args[2], 'ha-1')
+    assert.deepEqual(call?.args[3], { summary: 'Lait', description: '1 pièce', status: 'needs_action' })
   })
 
   test('push: a clean item with a known uid still gets update_item (push always overwrites HA)', async ({ assert }) => {
@@ -246,7 +255,11 @@ test.group('SyncShoppingList', () => {
 
     await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({ householdId: 'household-1' })
 
-    assert.isTrue(client.calls.some((c) => c.method === 'updateItem'))
+    const call = client.calls.find((c) => c.method === 'updateItem')
+    assert.isDefined(call)
+    assert.equal(call?.args[1], 'todo.courses')
+    assert.equal(call?.args[2], 'ha-1')
+    assert.deepEqual(call?.args[3], { summary: 'Lait (local edit)', description: '1 pièce', status: 'needs_action' })
     const reread = await items.findById('item-1')
     assert.equal(reread?.name, 'Lait (local edit)')
   })
@@ -281,6 +294,31 @@ test.group('SyncShoppingList', () => {
     assert.isFalse(result.ok)
     const link = await links.find('household-1')
     assert.equal(link?.lastError, 'unreachable')
+  })
+
+  // The "client failure" test above only fails `listItems`, before the `try`
+  // block that runs the four passes even starts — it never exercises the
+  // `push() → throw → catch → recordFailure` path. A failing `update_item`
+  // mid-pass (a two-way, dirty, known-uid item — the case that pushes) is
+  // the scenario that would also have caught the vanished-uid bug, where
+  // push() was called with a dead uid before the code path was fixed.
+  test('a failing update_item call aborts the reconcile mid-pass and records the failure', async ({ assert }) => {
+    const links = await linkedRepo('two_way')
+    const items = new FakeShoppingItemRepository()
+    await items.save(localItem({ haUid: 'ha-1', dirty: true }))
+    const client = new FailingUpdateItemClient([
+      { uid: 'ha-1', summary: 'Lait', description: null, status: 'needs_action' },
+    ])
+
+    const result = await new SyncShoppingList(links, items, client, SEQUENTIAL_IDS('item'), FIXED_CLOCK).execute({
+      householdId: 'household-1',
+    })
+
+    assert.isFalse(result.ok)
+    if (!result.ok) assert.equal(result.error, 'unreachable')
+    const link = await links.find('household-1')
+    assert.equal(link?.lastError, 'unreachable')
+    assert.isNull(link?.lastSyncAt) // never reached recordSync
   })
 
   test('a successful sync clears any previous error and stamps lastSyncAt', async ({ assert }) => {
