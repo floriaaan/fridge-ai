@@ -67,4 +67,10 @@ export default await Env.create(new URL('../', import.meta.url), {
   TELEMETRY_OTLP_ENDPOINT: Env.schema.string.optional({ format: 'url', tld: false }),
   TELEMETRY_MAX_BODY_BYTES: Env.schema.number.optional(),
   TELEMETRY_RATE_LIMIT_PER_MINUTE: Env.schema.number.optional(),
+
+  // Home Assistant SSRF allowlist (cf. docs/adr/0013) — comma-separated
+  // `host` or `host:port`. Empty/unset = allow all (the default: HA is
+  // almost always on a private LAN address, which the usual "block private
+  // ranges" SSRF mitigation would itself block).
+  HOME_ASSISTANT_ALLOWED_HOSTS: Env.schema.string.optional(),
 })
