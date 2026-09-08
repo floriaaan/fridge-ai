@@ -10,7 +10,8 @@ test.group('HttpHomeAssistantClient', (group) => {
   })
 
   test('ping() succeeds on a 200', async ({ assert }) => {
-    globalThis.fetch = (async () => new Response(JSON.stringify({ message: 'API running.' }))) as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ message: 'API running.' }))) as typeof fetch
     const result = await new HttpHomeAssistantClient().ping(connection)
     assert.isTrue(result.ok)
   })
@@ -50,7 +51,9 @@ test.group('HttpHomeAssistantClient', (group) => {
     }
   })
 
-  test('listItems() reads the service_response envelope for the given entity', async ({ assert }) => {
+  test('listItems() reads the service_response envelope for the given entity', async ({
+    assert,
+  }) => {
     globalThis.fetch = (async () =>
       new Response(
         JSON.stringify({
@@ -75,9 +78,17 @@ test.group('HttpHomeAssistantClient', (group) => {
   test('addItem()/updateItem()/removeItem() succeed on a 200', async ({ assert }) => {
     globalThis.fetch = (async () => new Response('[]')) as typeof fetch
     const client = new HttpHomeAssistantClient()
-    assert.isTrue((await client.addItem(connection, 'todo.courses', { summary: 'Pain', description: '1 pièce' })).ok)
-    assert.isTrue((await client.updateItem(connection, 'todo.courses', 'u1', { status: 'completed' })).ok)
-    assert.isTrue((await client.removeItem(connection, 'todo.courses', 'u1')).ok)
+    const addResult = await client.addItem(connection, 'todo.courses', {
+      summary: 'Pain',
+      description: '1 pièce',
+    })
+    assert.isTrue(addResult.ok)
+    const updateResult = await client.updateItem(connection, 'todo.courses', 'u1', {
+      status: 'completed',
+    })
+    assert.isTrue(updateResult.ok)
+    const removeResult = await client.removeItem(connection, 'todo.courses', 'u1')
+    assert.isTrue(removeResult.ok)
   })
 
   test('a non-2xx, non-401/403 status maps to "unexpected_response"', async ({ assert }) => {
@@ -88,14 +99,18 @@ test.group('HttpHomeAssistantClient', (group) => {
   })
 
   test('a 2xx response with malformed JSON maps to "unexpected_response"', async ({ assert }) => {
-    globalThis.fetch = (async () => new Response('<html>Internal Server Error</html>')) as typeof fetch
+    globalThis.fetch = (async () =>
+      new Response('<html>Internal Server Error</html>')) as typeof fetch
     const result = await new HttpHomeAssistantClient().ping(connection)
     assert.isFalse(result.ok)
     if (!result.ok) assert.equal(result.error, 'unexpected_response')
   })
 
-  test('listTodoEntities() maps unexpected body shape to "unexpected_response"', async ({ assert }) => {
-    globalThis.fetch = (async () => new Response(JSON.stringify({ not_an_array: true }))) as typeof fetch
+  test('listTodoEntities() maps unexpected body shape to "unexpected_response"', async ({
+    assert,
+  }) => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ not_an_array: true }))) as typeof fetch
     const result = await new HttpHomeAssistantClient().listTodoEntities(connection)
     assert.isFalse(result.ok)
     if (!result.ok) assert.equal(result.error, 'unexpected_response')

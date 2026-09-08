@@ -12,16 +12,19 @@ export interface UnlinkHomeAssistantInput {
 
 export type UnlinkHomeAssistantError = 'not_owner' | 'link_not_found'
 
-export class UnlinkHomeAssistant
-  implements UseCase<UnlinkHomeAssistantInput, ResultType<void, UnlinkHomeAssistantError>>
-{
+export class UnlinkHomeAssistant implements UseCase<
+  UnlinkHomeAssistantInput,
+  ResultType<void, UnlinkHomeAssistantError>
+> {
   constructor(
     private readonly links: HomeAssistantLinkRepository,
     private readonly items: ShoppingItemRepository,
     private readonly households: HouseholdRepository,
   ) {}
 
-  async execute(input: UnlinkHomeAssistantInput): Promise<ResultType<void, UnlinkHomeAssistantError>> {
+  async execute(
+    input: UnlinkHomeAssistantInput,
+  ): Promise<ResultType<void, UnlinkHomeAssistantError>> {
     const household = await this.households.findByUserId(input.userId)
     if (!household || household.ownerId !== input.userId) return Result.err('not_owner')
 

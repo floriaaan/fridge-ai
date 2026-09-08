@@ -7,7 +7,11 @@ import { InstanceUrl } from '#domain/home-assistant/instance-url.vo'
 import { Quantity } from '#domain/fridge/quantity.vo'
 import { ShoppingItem } from '#domain/shopping-list/shopping-item.entity'
 import { ShoppingItemSource } from '#domain/shopping-list/shopping-item-source.vo'
-import { FakeHomeAssistantLinkRepository, FakeHouseholdRepository, FakeShoppingItemRepository } from './fakes.js'
+import {
+  FakeHomeAssistantLinkRepository,
+  FakeHouseholdRepository,
+  FakeShoppingItemRepository,
+} from './fakes.js'
 
 function ownerHousehold(): Household {
   const invite = InviteCode.create('ZZ999999')
@@ -72,10 +76,15 @@ test.group('UnlinkHomeAssistant', () => {
     item.markSynced('ha-uid-1', new Date())
     await items.save(item)
 
-    const useCase = new UnlinkHomeAssistant(links, items, new FakeHouseholdRepository([ownerHousehold()]))
+    const useCase = new UnlinkHomeAssistant(
+      links,
+      items,
+      new FakeHouseholdRepository([ownerHousehold()]),
+    )
     const result = await useCase.execute({ userId: 'owner-1', householdId: 'household-1' })
     assert.isTrue(result.ok)
     assert.isNull(await links.find('household-1'))
-    assert.isNull((await items.findById('item-1'))?.haUid)
+    const foundItem = await items.findById('item-1')
+    assert.isNull(foundItem?.haUid)
   })
 })

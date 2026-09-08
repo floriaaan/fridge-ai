@@ -29,7 +29,10 @@ export class InstanceUrl extends ValueObject<InstanceUrlProps> {
       })
     }
     if (parsed.hash) {
-      return Result.err({ field: 'instanceUrl', message: "L'adresse ne doit pas contenir de fragment." })
+      return Result.err({
+        field: 'instanceUrl',
+        message: "L'adresse ne doit pas contenir de fragment.",
+      })
     }
 
     const normalized = parsed.origin + parsed.pathname.replace(/\/+$/, '') + parsed.search

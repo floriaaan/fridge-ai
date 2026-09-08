@@ -18,9 +18,10 @@ export interface BindHomeAssistantListInput {
 
 export type BindHomeAssistantListError = 'not_owner' | 'link_not_found' | 'invalid_direction'
 
-export class BindHomeAssistantList
-  implements UseCase<BindHomeAssistantListInput, ResultType<HomeAssistantLink, BindHomeAssistantListError>>
-{
+export class BindHomeAssistantList implements UseCase<
+  BindHomeAssistantListInput,
+  ResultType<HomeAssistantLink, BindHomeAssistantListError>
+> {
   constructor(
     private readonly links: HomeAssistantLinkRepository,
     private readonly households: HouseholdRepository,

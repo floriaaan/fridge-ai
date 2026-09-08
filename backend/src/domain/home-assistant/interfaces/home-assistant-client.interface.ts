@@ -10,8 +10,13 @@ export interface HomeAssistantConnection {
 
 export interface HomeAssistantClient {
   ping(connection: HomeAssistantConnection): Promise<Result<void, HomeAssistantError>>
-  listTodoEntities(connection: HomeAssistantConnection): Promise<Result<TodoEntity[], HomeAssistantError>>
-  listItems(connection: HomeAssistantConnection, entityId: string): Promise<Result<TodoItem[], HomeAssistantError>>
+  listTodoEntities(
+    connection: HomeAssistantConnection,
+  ): Promise<Result<TodoEntity[], HomeAssistantError>>
+  listItems(
+    connection: HomeAssistantConnection,
+    entityId: string,
+  ): Promise<Result<TodoItem[], HomeAssistantError>>
   addItem(
     connection: HomeAssistantConnection,
     entityId: string,

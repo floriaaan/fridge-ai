@@ -7,7 +7,12 @@ import { Quantity } from '#domain/fridge/quantity.vo'
 import { ShoppingItem } from '#domain/shopping-list/shopping-item.entity'
 import { ShoppingItemSource } from '#domain/shopping-list/shopping-item-source.vo'
 import type { HomeAssistantLinkRepository } from '#domain/home-assistant/interfaces/home-assistant-link-repository.interface'
-import { FakeHomeAssistantLinkRepository, RecordingHomeAssistantClient, FakeHostPolicy, FIXED_CLOCK } from './fakes.js'
+import {
+  FakeHomeAssistantLinkRepository,
+  RecordingHomeAssistantClient,
+  FakeHostPolicy,
+  FIXED_CLOCK,
+} from './fakes.js'
 
 /** Delegates `find`/`delete` to a real fake repository but always rejects on
  * `save()` — regression coverage for a DB write failing (dropped connection,
@@ -65,7 +70,12 @@ function item() {
 test.group('ShoppingListMirror', () => {
   test('itemCreated() is a no-op with no link configured', async ({ assert }) => {
     const client = new RecordingHomeAssistantClient()
-    const mirror = new ShoppingListMirror(new FakeHomeAssistantLinkRepository(), client, new FakeHostPolicy(), FIXED_CLOCK)
+    const mirror = new ShoppingListMirror(
+      new FakeHomeAssistantLinkRepository(),
+      client,
+      new FakeHostPolicy(),
+      FIXED_CLOCK,
+    )
     await mirror.itemCreated(item())
     assert.lengthOf(client.calls, 0)
   })
@@ -78,7 +88,9 @@ test.group('ShoppingListMirror', () => {
     assert.isTrue(client.calls.some((c) => c.method === 'addItem'))
   })
 
-  test('itemCreated() is a no-op in pull mode — a local write must never reach HA', async ({ assert }) => {
+  test('itemCreated() is a no-op in pull mode — a local write must never reach HA', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('pull')
     const client = new RecordingHomeAssistantClient()
     const mirror = new ShoppingListMirror(links, client, new FakeHostPolicy(), FIXED_CLOCK)
@@ -120,7 +132,9 @@ test.group('ShoppingListMirror', () => {
     assert.isTrue(client.calls.some((c) => c.method === 'removeItem'))
   })
 
-  test('a client failure is swallowed and recorded on the link, never thrown', async ({ assert }) => {
+  test('a client failure is swallowed and recorded on the link, never thrown', async ({
+    assert,
+  }) => {
     const links = await linkedRepo('two_way')
     const failing = Object.assign(new RecordingHomeAssistantClient(), {
       addItem: async () => ({ ok: false as const, error: 'unreachable' as const }),
@@ -139,7 +153,9 @@ test.group('ShoppingListMirror', () => {
     assert.lengthOf(client.calls, 0)
   })
 
-  test('a link-save failure after a successful call is swallowed, never thrown', async ({ assert }) => {
+  test('a link-save failure after a successful call is swallowed, never thrown', async ({
+    assert,
+  }) => {
     const links = new SaveFailsRepository(await linkedRepo('two_way'))
     const client = new RecordingHomeAssistantClient()
     const mirror = new ShoppingListMirror(links, client, new FakeHostPolicy(), FIXED_CLOCK)

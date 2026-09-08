@@ -37,8 +37,16 @@ async function seededLinks(): Promise<FakeHomeAssistantLinkRepository> {
 
 test.group('BindHomeAssistantList', () => {
   test('rejects a non-owner', async ({ assert }) => {
-    const useCase = new BindHomeAssistantList(await seededLinks(), new FakeHouseholdRepository([ownerHousehold()]), FIXED_CLOCK)
-    const result = await useCase.execute({ userId: 'not-owner', householdId: 'household-1', todoEntityId: 'todo.courses' })
+    const useCase = new BindHomeAssistantList(
+      await seededLinks(),
+      new FakeHouseholdRepository([ownerHousehold()]),
+      FIXED_CLOCK,
+    )
+    const result = await useCase.execute({
+      userId: 'not-owner',
+      householdId: 'household-1',
+      todoEntityId: 'todo.courses',
+    })
     assert.isFalse(result.ok)
     if (!result.ok) assert.equal(result.error, 'not_owner')
   })
@@ -49,13 +57,21 @@ test.group('BindHomeAssistantList', () => {
       new FakeHouseholdRepository([ownerHousehold()]),
       FIXED_CLOCK,
     )
-    const result = await useCase.execute({ userId: 'owner-1', householdId: 'household-1', todoEntityId: 'todo.courses' })
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      householdId: 'household-1',
+      todoEntityId: 'todo.courses',
+    })
     assert.isFalse(result.ok)
     if (!result.ok) assert.equal(result.error, 'link_not_found')
   })
 
   test('binds the entity id and name together', async ({ assert }) => {
-    const useCase = new BindHomeAssistantList(await seededLinks(), new FakeHouseholdRepository([ownerHousehold()]), FIXED_CLOCK)
+    const useCase = new BindHomeAssistantList(
+      await seededLinks(),
+      new FakeHouseholdRepository([ownerHousehold()]),
+      FIXED_CLOCK,
+    )
     const result = await useCase.execute({
       userId: 'owner-1',
       householdId: 'household-1',
@@ -70,8 +86,17 @@ test.group('BindHomeAssistantList', () => {
   })
 
   test('changes direction and enabled independently', async ({ assert }) => {
-    const useCase = new BindHomeAssistantList(await seededLinks(), new FakeHouseholdRepository([ownerHousehold()]), FIXED_CLOCK)
-    const result = await useCase.execute({ userId: 'owner-1', householdId: 'household-1', direction: 'push', enabled: false })
+    const useCase = new BindHomeAssistantList(
+      await seededLinks(),
+      new FakeHouseholdRepository([ownerHousehold()]),
+      FIXED_CLOCK,
+    )
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      householdId: 'household-1',
+      direction: 'push',
+      enabled: false,
+    })
     assert.isTrue(result.ok)
     if (result.ok) {
       assert.equal(result.value.direction.value, 'push')
@@ -80,8 +105,16 @@ test.group('BindHomeAssistantList', () => {
   })
 
   test('rejects an invalid direction', async ({ assert }) => {
-    const useCase = new BindHomeAssistantList(await seededLinks(), new FakeHouseholdRepository([ownerHousehold()]), FIXED_CLOCK)
-    const result = await useCase.execute({ userId: 'owner-1', householdId: 'household-1', direction: 'sideways' })
+    const useCase = new BindHomeAssistantList(
+      await seededLinks(),
+      new FakeHouseholdRepository([ownerHousehold()]),
+      FIXED_CLOCK,
+    )
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      householdId: 'household-1',
+      direction: 'sideways',
+    })
     assert.isFalse(result.ok)
     if (!result.ok) assert.equal(result.error, 'invalid_direction')
   })
