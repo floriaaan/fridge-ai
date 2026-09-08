@@ -86,4 +86,25 @@ test.group('LucidShoppingItemRepository', (group) => {
 
     assert.isNull(await repository.findById('s_4'))
   })
+
+  test('save() persists haUid/haSyncedAt, and clearHomeAssistantSync() wipes them', async ({
+    assert,
+  }) => {
+    await createUser('u_5', 'owner5@example.com')
+    await createHousehold('h_5', 'u_5')
+
+    const repository = new LucidShoppingItemRepository()
+    const item = buildItem('s_5', 'h_5')
+    item.markSynced('ha-uid-1', new Date())
+    await repository.save(item)
+
+    const reread = await repository.findById(item.id)
+    assert.equal(reread?.haUid, 'ha-uid-1')
+    assert.isNotNull(reread?.haSyncedAt)
+
+    await repository.clearHomeAssistantSync(item.householdId)
+    const cleared = await repository.findById(item.id)
+    assert.isNull(cleared?.haUid)
+    assert.isNull(cleared?.haSyncedAt)
+  })
 })

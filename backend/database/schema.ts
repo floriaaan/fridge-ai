@@ -53,6 +53,35 @@ export class AiProviderSettingSchema extends BaseModel {
   declare updatedBy: string | null
 }
 
+export class HomeAssistantLinkSchema extends BaseModel {
+  static $columns = ['createdAt', 'direction', 'enabled', 'encryptedToken', 'householdId', 'id', 'instanceUrl', 'lastError', 'lastSyncAt', 'todoEntityId', 'todoEntityName', 'updatedAt'] as const
+  $columns = HomeAssistantLinkSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare direction: string
+  @column()
+  declare enabled: boolean
+  @column()
+  declare encryptedToken: string
+  @column()
+  declare householdId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare instanceUrl: string
+  @column()
+  declare lastError: string | null
+  @column.dateTime()
+  declare lastSyncAt: DateTime | null
+  @column()
+  declare todoEntityId: string | null
+  @column()
+  declare todoEntityName: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class HouseholdSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'inviteCode', 'name', 'ownerId', 'updatedAt'] as const
   $columns = HouseholdSchema.$columns
@@ -230,12 +259,16 @@ export class SessionSchema extends BaseModel {
 }
 
 export class ShoppingItemSchema extends BaseModel {
-  static $columns = ['checked', 'createdAt', 'householdId', 'id', 'name', 'quantity', 'source', 'unit', 'updatedAt'] as const
+  static $columns = ['checked', 'createdAt', 'haSyncedAt', 'haUid', 'householdId', 'id', 'name', 'quantity', 'source', 'unit', 'updatedAt'] as const
   $columns = ShoppingItemSchema.$columns
   @column()
   declare checked: boolean
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column.dateTime()
+  declare haSyncedAt: DateTime | null
+  @column()
+  declare haUid: string | null
   @column()
   declare householdId: string
   @column({ isPrimary: true })

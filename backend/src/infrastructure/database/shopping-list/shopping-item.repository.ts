@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import ShoppingItemModel from './shopping-item.lucid.js'
 import { toDomain } from './shopping-item.mapper.js'
 import type { ShoppingItemRepository } from '#domain/shopping-list/interfaces/shopping-item-repository.interface'
@@ -26,11 +27,19 @@ export class LucidShoppingItemRepository implements ShoppingItemRepository {
         unit: item.quantity.unit,
         checked: item.checked,
         source: item.source.value,
+        haUid: item.haUid,
+        haSyncedAt: item.haSyncedAt ? DateTime.fromJSDate(item.haSyncedAt) : null,
       },
     )
   }
 
   async delete(id: string): Promise<void> {
     await ShoppingItemModel.query().where('id', id).delete()
+  }
+
+  async clearHomeAssistantSync(householdId: string): Promise<void> {
+    await ShoppingItemModel.query()
+      .where('household_id', householdId)
+      .update({ ha_uid: null, ha_synced_at: null })
   }
 }

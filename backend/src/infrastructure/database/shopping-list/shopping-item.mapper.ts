@@ -19,5 +19,7 @@ export function toDomain(row: ShoppingItemModel): ShoppingItem {
     source: source.value,
     createdAt: row.createdAt.toJSDate(),
     updatedAt: row.updatedAt.toJSDate(),
+    haUid: row.haUid,
+    haSyncedAt: row.haSyncedAt ? row.haSyncedAt.toJSDate() : null,
   })
 }
