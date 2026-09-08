@@ -82,4 +82,18 @@ test.group('HttpHomeAssistantClient', (group) => {
     assert.isFalse(result.ok)
     if (!result.ok) assert.equal(result.error, 'unexpected_response')
   })
+
+  test('a 2xx response with malformed JSON maps to "unexpected_response"', async ({ assert }) => {
+    globalThis.fetch = (async () => new Response('<html>Internal Server Error</html>')) as typeof fetch
+    const result = await new HttpHomeAssistantClient().ping(connection)
+    assert.isFalse(result.ok)
+    if (!result.ok) assert.equal(result.error, 'unexpected_response')
+  })
+
+  test('listTodoEntities() maps unexpected body shape to "unexpected_response"', async ({ assert }) => {
+    globalThis.fetch = (async () => new Response(JSON.stringify({ not_an_array: true }))) as typeof fetch
+    const result = await new HttpHomeAssistantClient().listTodoEntities(connection)
+    assert.isFalse(result.ok)
+    if (!result.ok) assert.equal(result.error, 'unexpected_response')
+  })
 })

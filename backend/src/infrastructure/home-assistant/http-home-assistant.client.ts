@@ -41,7 +41,14 @@ async function haFetch(
 
     const text = await response.text()
     if (text.length > MAX_RESPONSE_BYTES) return Result.err('unexpected_response')
-    return Result.ok(text.length > 0 ? JSON.parse(text) : null)
+
+    // Parse JSON separately to distinguish malformed-JSON errors (unexpected_response)
+    // from network errors (unreachable)
+    try {
+      return Result.ok(text.length > 0 ? JSON.parse(text) : null)
+    } catch {
+      return Result.err('unexpected_response')
+    }
   } catch {
     return Result.err('unreachable')
   } finally {
@@ -60,14 +67,18 @@ export class HttpHomeAssistantClient implements HomeAssistantClient {
   ): Promise<ResultType<TodoEntity[], HomeAssistantError>> {
     const result = await haFetch(connection, '/api/states')
     if (!result.ok) return result
-    const states = result.value as Array<{ entity_id: string; attributes?: { friendly_name?: string } }>
-    const entities = states
-      .filter((state) => state.entity_id.startsWith('todo.'))
-      .map((state) => ({
-        entityId: state.entity_id,
-        friendlyName: state.attributes?.friendly_name ?? state.entity_id,
-      }))
-    return Result.ok(entities)
+    try {
+      const states = result.value as Array<{ entity_id: string; attributes?: { friendly_name?: string } }>
+      const entities = states
+        .filter((state) => state.entity_id.startsWith('todo.'))
+        .map((state) => ({
+          entityId: state.entity_id,
+          friendlyName: state.attributes?.friendly_name ?? state.entity_id,
+        }))
+      return Result.ok(entities)
+    } catch {
+      return Result.err('unexpected_response')
+    }
   }
 
   async listItems(
@@ -79,20 +90,24 @@ export class HttpHomeAssistantClient implements HomeAssistantClient {
       body: JSON.stringify({ entity_id: entityId }),
     })
     if (!result.ok) return result
-    const body = result.value as {
-      service_response?: Record<
-        string,
-        { items?: Array<{ uid: string; summary: string; description?: string | null; status: string }> }
-      >
+    try {
+      const body = result.value as {
+        service_response?: Record<
+          string,
+          { items?: Array<{ uid: string; summary: string; description?: string | null; status: string }> }
+        >
+      }
+      const raw = body.service_response?.[entityId]?.items ?? []
+      const items: TodoItem[] = raw.map((item) => ({
+        uid: item.uid,
+        summary: item.summary,
+        description: item.description ?? null,
+        status: item.status === 'completed' ? 'completed' : 'needs_action',
+      }))
+      return Result.ok(items)
+    } catch {
+      return Result.err('unexpected_response')
     }
-    const raw = body.service_response?.[entityId]?.items ?? []
-    const items: TodoItem[] = raw.map((item) => ({
-      uid: item.uid,
-      summary: item.summary,
-      description: item.description ?? null,
-      status: item.status === 'completed' ? 'completed' : 'needs_action',
-    }))
-    return Result.ok(items)
   }
 
   async addItem(
