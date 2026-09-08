@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
@@ -70,9 +70,17 @@ export function HomeAssistantScreen() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [confirmingUnlink, setConfirmingUnlink] = useState(false)
 
-  // A foyer that's already configured lands straight on the list step.
+  // A foyer that's already configured lands straight on the list step. This
+  // must hydrate at most once per mount: `link.data` can change again later
+  // from a background refetch (refocus/remount, per this app's default query
+  // options), and re-running here would clobber an in-progress edit made
+  // after "Modifier la connexion" — snapping `step` back to 'list' and
+  // `instanceUrl` back to the stored value mid-keystroke.
+  const hasHydratedRef = useRef(false)
   useEffect(() => {
+    if (hasHydratedRef.current) return
     if (link.data?.configured) {
+      hasHydratedRef.current = true
       setStep('list')
       setInstanceUrl(link.data.instanceUrl ?? '')
       setSelectedEntityId(link.data.todoEntityId)
@@ -216,6 +224,21 @@ export function HomeAssistantScreen() {
             <Text fontSize={12} color={palette.inkSecondary}>
               {DIRECTION_HINTS[direction]}
             </Text>
+          </YStack>
+
+          <YStack gap="$2">
+            <Text fontSize={13} color={palette.inkSecondary}>
+              Synchronisation
+            </Text>
+            <XStack gap="$3" flexWrap="wrap">
+              <Chip
+                testID="ha-enabled-toggle"
+                label="Synchronisation active"
+                selected={enabled}
+                onPress={() => setEnabled(!enabled)}
+                palette={palette}
+              />
+            </XStack>
           </YStack>
 
           <Text fontSize={12} color={palette.inkSecondary}>
