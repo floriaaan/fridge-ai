@@ -43,8 +43,10 @@ test.group('HttpHomeAssistantClient', (group) => {
     assert.isTrue(result.ok)
     if (result.ok) {
       assert.lengthOf(result.value, 1)
-      assert.equal(result.value[0].entityId, 'todo.courses')
-      assert.equal(result.value[0].friendlyName, 'Courses')
+      const [first] = result.value
+      assert.isDefined(first)
+      assert.equal(first?.entityId, 'todo.courses')
+      assert.equal(first?.friendlyName, 'Courses')
     }
   })
 
@@ -63,8 +65,10 @@ test.group('HttpHomeAssistantClient', (group) => {
     assert.isTrue(result.ok)
     if (result.ok) {
       assert.lengthOf(result.value, 1)
-      assert.equal(result.value[0].uid, 'u1')
-      assert.equal(result.value[0].description, '2 L')
+      const [first] = result.value
+      assert.isDefined(first)
+      assert.equal(first?.uid, 'u1')
+      assert.equal(first?.description, '2 L')
     }
   })
 
