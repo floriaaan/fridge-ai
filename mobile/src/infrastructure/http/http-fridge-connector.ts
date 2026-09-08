@@ -15,6 +15,13 @@ import type { ProductLookupResult } from '../../domain/fridge/product-lookup-res
 import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
 import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.js'
 import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
+import type {
+  HaLink,
+  HaTodoEntity,
+  SaveHaConnectionInput,
+  DiscoverHaEntitiesInput,
+  BindHaListInput,
+} from '../../domain/home-assistant/ha-link.js'
 
 function toSession(
   data: { user: { id: string; email: string; name: string; image?: string | null } } | null | undefined,
@@ -321,6 +328,45 @@ export class HttpFridgeConnector implements FridgeConnector {
       method: 'PATCH',
       body: JSON.stringify({ provider }),
     })
+    return result.ok ? Result.ok(result.value) : Result.err(result.error)
+  }
+
+  async getHaLink(): Promise<HaLink | null> {
+    const result = await apiFetch<HaLink>('/api/settings/home-assistant')
+    return result.ok ? result.value : null
+  }
+
+  async saveHaConnection(input: SaveHaConnectionInput): Promise<Result<HaLink, ApiError>> {
+    const result = await apiFetch<HaLink>('/api/settings/home-assistant', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    })
+    return result.ok ? Result.ok(result.value) : Result.err(result.error)
+  }
+
+  async discoverHaTodoEntities(input: DiscoverHaEntitiesInput): Promise<Result<HaTodoEntity[], ApiError>> {
+    const result = await apiFetch<{ entities: HaTodoEntity[] }>('/api/settings/home-assistant/discover', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+    return result.ok ? Result.ok(result.value.entities) : Result.err(result.error)
+  }
+
+  async bindHaList(input: BindHaListInput): Promise<Result<HaLink, ApiError>> {
+    const result = await apiFetch<HaLink>('/api/settings/home-assistant', {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    })
+    return result.ok ? Result.ok(result.value) : Result.err(result.error)
+  }
+
+  async unlinkHa(): Promise<Result<void, ApiError>> {
+    const result = await apiFetch<void>('/api/settings/home-assistant', { method: 'DELETE' })
+    return result.ok ? Result.ok(undefined) : Result.err(result.error)
+  }
+
+  async syncShoppingListWithHa(): Promise<Result<{ synced: boolean }, ApiError>> {
+    const result = await apiFetch<{ synced: boolean }>('/api/shopping-items/sync', { method: 'POST' })
     return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 }

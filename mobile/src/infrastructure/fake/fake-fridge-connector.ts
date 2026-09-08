@@ -9,6 +9,7 @@ import { fakeProductLookup } from './fixtures/product-lookup.fixture.js'
 import { fakeReceiptDraft } from './fixtures/receipt-draft.fixture.js'
 import { fakeReceipts } from './fixtures/receipt.fixture.js'
 import { fakeAiSettings } from './fixtures/ai-settings.fixture.js'
+import { fakeUnconfiguredHaLink } from './fixtures/ha-link.fixture.js'
 import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.js'
 import type { Session } from '../../domain/identity/session.js'
 import type { Household } from '../../domain/identity/household.js'
@@ -22,6 +23,7 @@ import type { ProductLookupResult } from '../../domain/fridge/product-lookup-res
 import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
 import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.js'
 import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
+import type { HaLink, HaTodoEntity, SaveHaConnectionInput, BindHaListInput } from '../../domain/home-assistant/ha-link.js'
 
 /**
  * How long the fake pretends the AI is thinking, in milliseconds.
@@ -76,6 +78,7 @@ export class FakeFridgeConnector implements FridgeConnector {
   private generatedRecipes: Recipe[] = []
   private nextRecipeId = 1
   private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
+  private haLink: HaLink = { ...fakeUnconfiguredHaLink }
   private readonly aiLatencyMs: number
 
   /** `aiLatencyMs: 0` for tests that want the generated data and not the wait. */
@@ -457,5 +460,44 @@ export class FakeFridgeConnector implements FridgeConnector {
     }
     this.aiSettings = { ...this.aiSettings, activeProvider: provider }
     return Result.ok(this.aiSettings)
+  }
+
+  async getHaLink(): Promise<HaLink | null> {
+    return this.haLink
+  }
+
+  async saveHaConnection(input: SaveHaConnectionInput): Promise<Result<HaLink, ApiError>> {
+    if (!input.token && !this.haLink.tokenSet) {
+      return Result.err({ type: 'token_required', message: 'Un jeton est requis pour la première connexion.' })
+    }
+    this.haLink = { ...this.haLink, configured: true, instanceUrl: input.instanceUrl, tokenSet: true }
+    return Result.ok(this.haLink)
+  }
+
+  async discoverHaTodoEntities(): Promise<Result<HaTodoEntity[], ApiError>> {
+    return Result.ok([
+      { entityId: 'todo.courses', friendlyName: 'Courses' },
+      { entityId: 'todo.taches', friendlyName: 'Tâches' },
+    ])
+  }
+
+  async bindHaList(input: BindHaListInput): Promise<Result<HaLink, ApiError>> {
+    this.haLink = {
+      ...this.haLink,
+      todoEntityId: input.todoEntityId ?? this.haLink.todoEntityId,
+      todoEntityName: input.todoEntityName ?? this.haLink.todoEntityName,
+      direction: input.direction ?? this.haLink.direction,
+      enabled: input.enabled ?? this.haLink.enabled,
+    }
+    return Result.ok(this.haLink)
+  }
+
+  async unlinkHa(): Promise<Result<void, ApiError>> {
+    this.haLink = { ...fakeUnconfiguredHaLink }
+    return Result.ok(undefined)
+  }
+
+  async syncShoppingListWithHa(): Promise<Result<{ synced: boolean }, ApiError>> {
+    return Result.ok({ synced: this.haLink.configured && Boolean(this.haLink.todoEntityId) })
   }
 }
