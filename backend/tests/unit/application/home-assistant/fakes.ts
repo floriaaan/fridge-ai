@@ -150,3 +150,29 @@ export class FailingListItemsClient implements HomeAssistantClient {
     return Result.ok(undefined)
   }
 }
+
+/** Same shape as `FailingListItemsClient`, but `listItems` succeeds (seeded
+ * with `items`) and only `updateItem` fails — exercises the mid-pass abort
+ * (`push()` throws inside the `try` block, not the pre-pass `listItems`
+ * guard). */
+export class FailingUpdateItemClient implements HomeAssistantClient {
+  constructor(private readonly items: TodoItem[] = []) {}
+  async ping() {
+    return Result.ok(undefined)
+  }
+  async listTodoEntities() {
+    return Result.ok([])
+  }
+  async listItems() {
+    return Result.ok(this.items)
+  }
+  async addItem() {
+    return Result.ok(undefined)
+  }
+  async updateItem() {
+    return Result.err('unreachable' as const)
+  }
+  async removeItem() {
+    return Result.ok(undefined)
+  }
+}

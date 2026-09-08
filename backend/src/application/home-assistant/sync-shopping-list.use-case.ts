@@ -107,8 +107,10 @@ export class SyncShoppingList
 
       if (!haItem) {
         if (direction === 'push') {
-          await this.push(connection, entityId, item)
-          item.markSynced(null, now) // add_item returns no uid — re-adopted by name next pass
+          // uid is dead — calling push() here would call update_item against
+          // it and fail. Just clear it; pass 2 may re-adopt it by name, and
+          // pass 3 re-adds it to HA if not.
+          item.markSynced(null, now)
           await this.items.save(item)
         } else {
           await this.items.delete(item.id)
