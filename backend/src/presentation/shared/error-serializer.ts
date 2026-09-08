@@ -22,6 +22,16 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   shopping_item_not_found: 404,
   recipe_not_found: 404,
   generation_failed: 422,
+  invalid_url: 422,
+  host_not_allowed: 422,
+  unreachable: 422,
+  unauthorized: 422,
+  entity_not_found: 422,
+  unexpected_response: 422,
+  link_not_found: 404,
+  link_unreadable: 409,
+  token_required: 422,
+  invalid_direction: 422,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -41,6 +51,16 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   shopping_item_not_found: 'Article introuvable.',
   recipe_not_found: 'Recette introuvable.',
   generation_failed: 'La génération de recette a échoué — réessayez, ou reformulez votre demande.',
+  invalid_url: "Cette adresse n'est pas valide.",
+  host_not_allowed: "Cet hôte n'est pas autorisé sur ce serveur.",
+  unreachable: 'Impossible de joindre cette adresse depuis le serveur.',
+  unauthorized: 'Home Assistant a refusé ce jeton.',
+  entity_not_found: 'Entité introuvable sur cette instance.',
+  unexpected_response: 'Home Assistant a répondu de façon inattendue.',
+  link_not_found: 'Aucune connexion Home Assistant configurée.',
+  link_unreadable: 'La connexion enregistrée est illisible — reconfigurez-la.',
+  token_required: 'Un jeton est requis pour la première connexion.',
+  invalid_direction: 'Sens de synchronisation invalide.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {
