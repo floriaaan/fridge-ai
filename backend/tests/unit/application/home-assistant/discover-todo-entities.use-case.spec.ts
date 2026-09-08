@@ -56,6 +56,42 @@ test.group('DiscoverTodoEntities', () => {
     if (result.ok) assert.equal(result.value[0]!.entityId, 'todo.courses')
   })
 
+  test('with inline credentials, an invalid URL fails with invalid_url', async ({ assert }) => {
+    const useCase = new DiscoverTodoEntities(
+      new FakeHomeAssistantLinkRepository(),
+      new FakeHomeAssistantClient(),
+      new FakeHostPolicy(),
+      new FakeHouseholdRepository([ownerHousehold()]),
+    )
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      householdId: 'household-1',
+      instanceUrl: 'not a url',
+      token: 'tok',
+    })
+    assert.isFalse(result.ok)
+    if (!result.ok) assert.equal(result.error, 'invalid_url')
+  })
+
+  test('with inline credentials, a disallowed host fails with host_not_allowed', async ({
+    assert,
+  }) => {
+    const useCase = new DiscoverTodoEntities(
+      new FakeHomeAssistantLinkRepository(),
+      new FakeHomeAssistantClient(),
+      new FakeHostPolicy(false),
+      new FakeHouseholdRepository([ownerHousehold()]),
+    )
+    const result = await useCase.execute({
+      userId: 'owner-1',
+      householdId: 'household-1',
+      instanceUrl: 'http://evil.example.com',
+      token: 'tok',
+    })
+    assert.isFalse(result.ok)
+    if (!result.ok) assert.equal(result.error, 'host_not_allowed')
+  })
+
   test('with no inline credentials and no stored link, fails with link_not_found', async ({
     assert,
   }) => {
