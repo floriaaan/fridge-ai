@@ -11,6 +11,13 @@ import type { ProductLookupResult } from '../fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../receipt/receipt-draft.js'
 import type { Receipt, ImportReceiptInput } from '../receipt/receipt.js'
 import type { AiSettings, AiProvider } from '../settings/ai-settings.js'
+import type {
+  HaLink,
+  HaTodoEntity,
+  SaveHaConnectionInput,
+  DiscoverHaEntitiesInput,
+  BindHaListInput,
+} from '../home-assistant/ha-link.js'
 
 /**
  * The app's one abstraction boundary over the backend. Extended by one
@@ -63,4 +70,10 @@ export interface FridgeConnector {
   getReceipt(receiptId: string): Promise<{ receipt: Receipt; products: Product[] } | null>
   getAiSettings(): Promise<AiSettings | null>
   setActiveAiProvider(provider: AiProvider): Promise<Result<AiSettings, ApiError>>
+  getHaLink(): Promise<HaLink | null>
+  saveHaConnection(input: SaveHaConnectionInput): Promise<Result<HaLink, ApiError>>
+  discoverHaTodoEntities(input: DiscoverHaEntitiesInput): Promise<Result<HaTodoEntity[], ApiError>>
+  bindHaList(input: BindHaListInput): Promise<Result<HaLink, ApiError>>
+  unlinkHa(): Promise<Result<void, ApiError>>
+  syncShoppingListWithHa(): Promise<Result<{ synced: boolean }, ApiError>>
 }
