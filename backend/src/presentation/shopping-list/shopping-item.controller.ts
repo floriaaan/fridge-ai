@@ -34,6 +34,8 @@ export default class ShoppingItemController {
       const { status, body } = serializeError(result.error)
       return ctx.response.status(status).json(body)
     }
+    const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
+    await mirror.itemCreated(result.value)
     return ctx.response.status(201).json({ item: toShoppingItemDto(result.value) })
   }
 
@@ -52,12 +54,17 @@ export default class ShoppingItemController {
       const { status, body } = serializeError(result.error)
       return ctx.response.status(status).json(body)
     }
+    const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
+    await mirror.itemUpdated(result.value)
     return ctx.response.json({ item: toShoppingItemDto(result.value) })
   }
 
   async destroy(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
     const items = await ctx.containerResolver.make('shoppingList.items')
+    // Fetched before the delete so its haUid is still known — DeleteShoppingItem
+    // does its own lookup internally and returns void, not the deleted item.
+    const existing = await items.findById(ctx.params.id)
     const result = await new DeleteShoppingItem(items).execute({
       householdId: ctx.household.id,
       itemId: ctx.params.id,
@@ -66,6 +73,8 @@ export default class ShoppingItemController {
       const { status, body } = serializeError(result.error)
       return ctx.response.status(status).json(body)
     }
+    const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
+    await mirror.itemDeleted(ctx.household.id, existing?.haUid ?? null)
     return ctx.response.status(204).send('')
   }
 }
