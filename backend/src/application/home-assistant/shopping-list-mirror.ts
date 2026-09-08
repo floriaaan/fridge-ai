@@ -85,6 +85,12 @@ export class ShoppingListMirror {
       const message = error instanceof Error ? error.message : String(error)
       link.recordFailure(message, now)
     }
-    await this.links.save(link)
+    try {
+      await this.links.save(link)
+    } catch {
+      // Persisting the sync bookmark/error failed (e.g. a dropped DB
+      // connection) — there is nothing more to do: the write this mirror
+      // rides on has already succeeded, and this method must never throw.
+    }
   }
 }

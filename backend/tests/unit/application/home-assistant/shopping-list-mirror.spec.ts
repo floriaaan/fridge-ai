@@ -6,7 +6,24 @@ import { SyncDirection } from '#domain/home-assistant/sync-direction.vo'
 import { Quantity } from '#domain/fridge/quantity.vo'
 import { ShoppingItem } from '#domain/shopping-list/shopping-item.entity'
 import { ShoppingItemSource } from '#domain/shopping-list/shopping-item-source.vo'
+import type { HomeAssistantLinkRepository } from '#domain/home-assistant/interfaces/home-assistant-link-repository.interface'
 import { FakeHomeAssistantLinkRepository, RecordingHomeAssistantClient, FakeHostPolicy, FIXED_CLOCK } from './fakes.js'
+
+/** Delegates `find`/`delete` to a real fake repository but always rejects on
+ * `save()` — regression coverage for a DB write failing (dropped connection,
+ * pool exhaustion) after the Home Assistant call itself already succeeded. */
+class SaveFailsRepository implements HomeAssistantLinkRepository {
+  constructor(private readonly inner: FakeHomeAssistantLinkRepository) {}
+  find(householdId: string) {
+    return this.inner.find(householdId)
+  }
+  async save(): Promise<void> {
+    throw new Error('connection dropped')
+  }
+  delete(householdId: string) {
+    return this.inner.delete(householdId)
+  }
+}
 
 function url() {
   const result = InstanceUrl.create('http://homeassistant.local:8123')
@@ -120,5 +137,13 @@ test.group('ShoppingListMirror', () => {
     const mirror = new ShoppingListMirror(links, client, new FakeHostPolicy(false), FIXED_CLOCK)
     await mirror.itemCreated(item())
     assert.lengthOf(client.calls, 0)
+  })
+
+  test('a link-save failure after a successful call is swallowed, never thrown', async ({ assert }) => {
+    const links = new SaveFailsRepository(await linkedRepo('two_way'))
+    const client = new RecordingHomeAssistantClient()
+    const mirror = new ShoppingListMirror(links, client, new FakeHostPolicy(), FIXED_CLOCK)
+    await mirror.itemCreated(item()) // must resolve even though links.save() rejects
+    assert.isTrue(client.calls.some((c) => c.method === 'addItem'))
   })
 })
