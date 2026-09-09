@@ -26,14 +26,30 @@ jest.mock('expo-router', () => ({
 // ran.
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native')
-  return Object.setPrototypeOf(
-    {
-      ...actual,
-      RefreshControl: (props: Record<string, unknown>) =>
-        actual.createElement('RefreshControl', { testID: 'shopping-list-refresh-control', ...props }),
+  // `jest.mock()` factories may not reference any out-of-scope variable, so
+  // `React.createElement` is required here rather than imported at the top
+  // of the file — a module-level `import` would be exactly such a reference.
+  const { createElement } = require('react')
+  // A `Proxy`, not a `{...actual}` spread: spreading forces every one of RN's
+  // exports to be read eagerly at mock-factory time (most are enumerable
+  // getters for interop), and one of those getters reaches for a native
+  // module (`DevMenu`, via `virtualized-lists` → `expo-modules-core`) that
+  // doesn't exist in this test environment — `TurboModuleRegistry.getEnforcing`
+  // throws before a single test runs. A `Proxy` only touches the one property
+  // this mock actually overrides; everything else stays lazily forwarded to
+  // the real module exactly as an unmocked `require('react-native')` would.
+  // `createElement` is React's, not react-native's — `actual` (the real
+  // `react-native` module) has no such export. Named, not inline: an
+  // anonymous component here trips `react/display-name`.
+  function MockRefreshControl(props: Record<string, unknown>) {
+    return createElement('RefreshControl', { testID: 'shopping-list-refresh-control', ...props })
+  }
+  return new Proxy(actual, {
+    get(target, prop, receiver) {
+      if (prop === 'RefreshControl') return MockRefreshControl
+      return Reflect.get(target, prop, receiver)
     },
-    actual,
-  )
+  })
 })
 
 function renderScreen(connector = new FakeFridgeConnector()) {

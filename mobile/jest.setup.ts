@@ -12,4 +12,20 @@
 // — so the config must be registered globally here instead.
 import './tamagui.config'
 
+// React Query's `notifyManager` batches subscriber notifications through a
+// real `setTimeout(fn, 0)` by default — a macrotask nothing in RNTL's
+// `waitFor`/`act` machinery waits on. A screen with more than one
+// query/mutation (settings, home-assistant) can leave one of these timers
+// still pending when a test ends; it then fires mid-setup of the *next*
+// test in the same file, landing a state update outside any `act()` scope
+// ("An update to X was not wrapped in act(...)", "overlapping act() calls")
+// and intermittently making that next test's very first render query find
+// nothing, even though the component it's querying was never broken.
+// Notifying synchronously — React Query's own documented fix for test
+// environments — removes the leftover timer entirely, so there is nothing
+// left to bleed into the following test.
+import { notifyManager } from '@tanstack/react-query'
+notifyManager.setNotifyFunction((fn) => fn())
+notifyManager.setBatchNotifyFunction((fn) => fn())
+
 export {}
