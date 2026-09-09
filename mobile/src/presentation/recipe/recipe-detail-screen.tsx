@@ -85,6 +85,14 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
    * scroll back to find. Same ActionSheet, same consequence named, so the two
    * entrances confirm identically.
    */
+  // This screen is `(tabs)/recipes/[id]`, pushed onto the Recettes tab's own
+  // nested stack — not a top-level route. On iOS that means the real
+  // `NativeTabs` bar (owned by `(tabs)/_layout.tsx`, entirely outside this
+  // component) stays on screen through the push; `kind: 'stack'` alone told
+  // `AppShell` no bottom chrome existed here, so it gave the toast a bottom
+  // offset tuned for "nothing there" and the pill rendered under the bar.
+  const nav = { kind: 'stack' as const, insideTabs: true }
+
   const header = (
     <ScreenHeader
       palette={palette}
@@ -118,7 +126,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
     const result = await deleteRecipe.mutateAsync(data.id)
     setDeleting(false)
     if (!result.ok) {
-      showHint(`« ${data.title} » n’a pas pu être supprimée — elle est toujours là.`)
+      showHint(`« ${data.title} » n’a pas pu être supprimée — elle est toujours là.`, 'error')
       return
     }
     // The list is what the user lands back on, so it must not still show the row.
@@ -149,7 +157,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
 
   if (recipe.isPending) {
     return (
-      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
+      <AppShell nav={nav} refresh={refresh} header={header}>
         <SkeletonGroup label="Chargement de la recette">
           <Skeleton width="70%" height={22} />
           <Skeleton width="40%" height={13} />
@@ -170,7 +178,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
 
   if (!recipe.data) {
     return (
-      <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
+      <AppShell nav={nav} refresh={refresh} header={header}>
         <YStack marginTop="$5" gap="$3">
           <Text fontSize={14} color={palette.inkSecondary}>
             Recette introuvable.
@@ -237,7 +245,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
     const result = await cookRecipe.mutateAsync({ recipeId: data.id, productIds })
     setCooking(false)
     if (!result.ok) {
-      showHint('On n’a pas pu enregistrer — rien n’a bougé dans le garde-manger.')
+      showHint('On n’a pas pu enregistrer — rien n’a bougé dans le garde-manger.', 'error')
       return
     }
     // The garde-manger changed, so every screen that reads it is now stale:
@@ -251,6 +259,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
       productIds.length > 0
         ? `C’est noté — ${productIds.length} produit${productIds.length > 1 ? 's sortis' : ' sorti'} du garde-manger`
         : 'C’est noté',
+      'success',
     )
   }
 
@@ -282,12 +291,17 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
     setAdding(true)
     const failures: string[] = []
     for (const ingredient of missing) {
+      // `source` is required by `createShoppingItemValidator` on the backend
+      // (no default there — see the domain type's own note) and every
+      // request was failing validation without it: this button added
+      // nothing and every ingredient landed in `failures`, silently.
       const result = await createItem.mutateAsync({
         name: ingredient.label,
         quantity:
           ingredient.quantity !== null
             ? { amount: ingredient.quantity, unit: ingredient.unit ?? 'unité' }
             : { amount: 1, unit: 'unité' },
+        source: 'recipe',
       })
       if (!result.ok) failures.push(ingredient.label)
     }
@@ -295,13 +309,14 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
     setAdding(false)
     showHint(
       failures.length === 0
-        ? `${missing.length} ingrédient${missing.length > 1 ? 's ajoutés' : ' ajouté'} à la liste`
+        ? `${missing.length} ingrédient${missing.length > 1 ? 's ajoutés' : ' ajouté'} à la liste de courses`
         : `${failures.length} ingrédient${failures.length > 1 ? 's n’ont' : ' n’a'} pas pu être ajouté`,
+      failures.length === 0 ? 'success' : 'error',
     )
   }
 
   return (
-    <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh} header={header}>
+    <AppShell nav={nav} hint={hint} refresh={refresh} header={header}>
 
       <YStack
         marginTop="$5"
@@ -395,7 +410,7 @@ export function RecipeDetailScreen({ recipeId }: { recipeId: string }) {
           label={
             adding
               ? 'Ajout en cours…'
-              : `Ajouter ${missing.length} ingrédient${missing.length > 1 ? 's' : ''} à la liste`
+              : `Ajouter ${missing.length} ingrédient${missing.length > 1 ? 's' : ''} à la liste de courses`
           }
           disabled={adding}
           onPress={handleAddMissing}
