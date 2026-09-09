@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { ConnectorProvider } from '../../application/shared/connector-context.js'
 import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-connector.js'
-import { fakeHouseholdAsMember } from '../../infrastructure/fake/fixtures/household.fixture.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { SettingsScreen } from './settings-screen.js'
 
@@ -138,21 +137,7 @@ test('a foyer that could not be read is unavailable, not absent', async () => {
   expect(screen.queryByText('Aucun foyer')).toBeNull()
 })
 
-test('shows the Home Assistant section for a foyer owner', async () => {
-  await renderAuthenticated()
-  await waitFor(() => expect(screen.getByText('Maison connectée')).toBeTruthy())
-})
-
-test('hides the Home Assistant section for a foyer member', async () => {
-  // `fakeHousehold` defaults to role 'owner' and the fake connector always
-  // restores it on sign-in, so a member session needs the connector told to
-  // start from the member-side fixture instead — see
-  // fixtures/household.fixture.ts and fake-fridge-connector.ts's
-  // `fixtureHousehold` constructor option.
-  const connector = new FakeFridgeConnector({ fixtureHousehold: fakeHouseholdAsMember })
-
-  await renderAuthenticated(connector)
-
-  await waitFor(() => expect(screen.getByText('Maison Bellevue')).toBeTruthy())
-  expect(screen.queryByText('Maison connectée')).toBeNull()
-})
+// The Home Assistant entry point moved to /household (see
+// household-screen.test.tsx) — it's a foyer-scoped setting, not an
+// account-scoped one, so it lives on the Foyer page next to invite/members
+// rather than on Réglages.

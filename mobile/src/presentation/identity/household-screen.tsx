@@ -14,7 +14,7 @@
  * gates on — never on the role string alone).
  */
 import { useState } from 'react'
-import { Pressable } from 'react-native'
+import { Animated, Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
@@ -25,18 +25,19 @@ import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { goBack } from '../shared/navigation.js'
 import { PillButton } from '../shared/pill-button.js'
-import { pointerCursor } from '../shared/hover.js'
+import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { AuthButton } from './auth-button.js'
 import { InviteShareCard } from './invite-share-card.js'
 import { ROLE_LABELS } from './role-labels.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { LogOutIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { ChevronRightIcon, HomeIcon, LogOutIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useRegenerateInviteCodeMutation } from '../../application/identity/regenerate-invite-code.mutation.js'
 import { useRemoveHouseholdMemberMutation } from '../../application/identity/remove-household-member.mutation.js'
 import { useLeaveHouseholdMutation } from '../../application/identity/leave-household.mutation.js'
+import { useHaLinkQuery } from '../../application/home-assistant/ha-link.query.js'
 import type { HouseholdMember } from '../../domain/identity/household.js'
 
 export function HouseholdScreen() {
@@ -47,9 +48,11 @@ export function HouseholdScreen() {
   const regenerate = useRegenerateInviteCodeMutation()
   const removeMember = useRemoveHouseholdMemberMutation()
   const leave = useLeaveHouseholdMutation()
+  const haLink = useHaLinkQuery()
   const [hint, showHint] = useHint()
   const [memberToRemove, setMemberToRemove] = useState<HouseholdMember | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const haRowHover = useHoverPress()
 
   const data = household.data
   const isOwner = data?.role === 'owner'
@@ -194,6 +197,47 @@ export function HouseholdScreen() {
           />
         ))}
       </YStack>
+
+      {isOwner ? (
+        <YStack marginTop="$8" gap="$2">
+          <Text fontSize={15} fontWeight="800" color={palette.ink}>
+            Maison connectée
+          </Text>
+          <Text fontSize={13} color={palette.inkSecondary}>
+            Garde ta liste de courses en phase avec Home Assistant.
+          </Text>
+          <Pressable
+            testID="ha-settings-row"
+            onPress={() => router.push('/home-assistant')}
+            onHoverIn={haRowHover.onHoverIn}
+            onHoverOut={haRowHover.onHoverOut}
+            onPressIn={haRowHover.onPressIn}
+            onPressOut={haRowHover.onPressOut}
+            accessibilityRole="button"
+            accessibilityLabel={`Home Assistant. ${
+              haLink.data?.configured && haLink.data.todoEntityName ? haLink.data.todoEntityName : 'Non configuré'
+            }`}
+            style={pointerCursor}
+          >
+            <Animated.View style={{ transform: [{ scale: haRowHover.scale }] }}>
+              <XStack
+                alignItems="center"
+                gap="$3"
+                padding="$3"
+                minHeight={44}
+                backgroundColor={palette.mintPale}
+                borderRadius={14}
+              >
+                <HomeIcon size={18} color={palette.mintPaleText} />
+                <Text flex={1} fontSize={14} fontWeight="700" color={palette.ink} numberOfLines={1}>
+                  {haLink.data?.configured && haLink.data.todoEntityName ? haLink.data.todoEntityName : 'Non configuré'}
+                </Text>
+                <ChevronRightIcon size={18} color={palette.mintPaleText} />
+              </XStack>
+            </Animated.View>
+          </Pressable>
+        </YStack>
+      ) : null}
 
       <YStack marginTop="$8">
         <AuthButton
