@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
@@ -76,19 +76,22 @@ export function HomeAssistantScreen() {
   // options), and re-running here would clobber an in-progress edit made
   // after "Modifier la connexion" — snapping `step` back to 'list' and
   // `instanceUrl` back to the stored value mid-keystroke.
-  const hasHydratedRef = useRef(false)
-  useEffect(() => {
-    if (hasHydratedRef.current) return
-    if (link.data?.configured) {
-      hasHydratedRef.current = true
-      setStep('list')
-      setInstanceUrl(link.data.instanceUrl ?? '')
-      setSelectedEntityId(link.data.todoEntityId)
-      setSelectedEntityName(link.data.todoEntityName)
-      setDirection(link.data.direction)
-      setEnabled(link.data.enabled)
-    }
-  }, [link.data])
+  //
+  // Adjusted during render, not in an effect (react-hooks/set-state-in-effect):
+  // this is React's own documented shape for "sync local state from a query
+  // result, once" — calling setState mid-render re-renders immediately
+  // without committing or painting the stale pass, so there's no flicker,
+  // and it sidesteps the extra effect-then-re-render round trip entirely.
+  const [hasHydrated, setHasHydrated] = useState(false)
+  if (!hasHydrated && link.data?.configured) {
+    setHasHydrated(true)
+    setStep('list')
+    setInstanceUrl(link.data.instanceUrl ?? '')
+    setSelectedEntityId(link.data.todoEntityId)
+    setSelectedEntityName(link.data.todoEntityName)
+    setDirection(link.data.direction)
+    setEnabled(link.data.enabled)
+  }
 
   // A single call proves the token *and* returns the list (design §8) — no
   // separate ping that succeeds followed by a discovery that fails. Nothing
