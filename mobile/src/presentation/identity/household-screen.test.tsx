@@ -81,3 +81,23 @@ test('an owner is told that leaving deletes the whole household', async () => {
   expect(screen.getByText(/supprime le foyer et tout son contenu/)).toBeTruthy()
   expect(screen.getByTestId('household-leave-confirm')).toBeTruthy()
 })
+
+test('shows the Home Assistant row for a foyer owner', async () => {
+  await renderHousehold()
+  await waitFor(() => expect(screen.getByText('Maison connectée')).toBeTruthy())
+  expect(screen.getByTestId('ha-settings-row')).toBeTruthy()
+})
+
+test('hides the Home Assistant row for a foyer member', async () => {
+  const connector = new FakeFridgeConnector()
+  jest.spyOn(connector, 'getHousehold').mockResolvedValue({
+    id: 'h1',
+    name: 'Coloc du 3e',
+    role: 'member',
+    members: [{ userId: 'fake-user-1', name: 'Demo User', role: 'member', joinedAt: '2026-08-01T09:00:00.000Z' }],
+  })
+  await renderHousehold(connector)
+
+  await waitFor(() => expect(screen.getByTestId('household-name')).toHaveTextContent('Coloc du 3e'))
+  expect(screen.queryByText('Maison connectée')).toBeNull()
+})
