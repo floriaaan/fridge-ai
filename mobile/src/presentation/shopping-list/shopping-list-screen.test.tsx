@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { ConnectorProvider } from '../../application/shared/connector-context.js'
@@ -10,6 +10,28 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn() },
  useFocusEffect: jest.fn(),
 }))
+
+// AppShell always wires this screen's `refresh` binding into a real
+// react-native `RefreshControl` on its ScrollView (see app-shell.tsx +
+// pull-to-refresh.tsx) — every test in this file already renders one, just
+// with nothing to grab it by. @testing-library/react-native v14 dropped
+// UNSAFE_getByType/UNSAFE_getByProps (see barcode-scanner-screen.test.tsx's
+// note on the same gap), so there is no type- or prop-based query left to
+// reach it. Stamping a fixed testID on it here — the same "reach into a
+// mocked host element's props" technique that file uses for the camera —
+// is how the pull-to-refresh tests below fire the gesture and read back
+// what ran.
+jest.mock('react-native', () => {
+  const actual = jest.requireActual('react-native')
+  return Object.setPrototypeOf(
+    {
+      ...actual,
+      RefreshControl: (props: Record<string, unknown>) =>
+        actual.createElement('RefreshControl', { testID: 'shopping-list-refresh-control', ...props }),
+    },
+    actual,
+  )
+})
 
 function renderScreen(connector = new FakeFridgeConnector()) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -97,4 +119,33 @@ test('an empty list hands over the next action', async () => {
   await fireEvent.press(screen.getByTestId('shopping-list-empty-add'))
 
   expect(router.push).toHaveBeenCalledWith('/(tabs)/shopping-list/new')
+})
+
+test('pull-to-refresh syncs with Home Assistant before reloading the list', async () => {
+  const connector = new FakeFridgeConnector()
+  const syncSpy = jest.spyOn(connector, 'syncShoppingListWithHa')
+  await renderScreen(connector)
+
+  const refreshControl = await screen.findByTestId('shopping-list-refresh-control')
+  await act(async () => {
+    refreshControl.props.onRefresh()
+  })
+
+  await waitFor(() => expect(syncSpy).toHaveBeenCalled())
+})
+
+test('a sync failure does not block the list from reloading', async () => {
+  const connector = new FakeFridgeConnector()
+  jest.spyOn(connector, 'syncShoppingListWithHa').mockResolvedValue({
+    ok: false,
+    error: { type: 'unreachable', message: 'Impossible de joindre cette adresse depuis le serveur.' },
+  })
+  await renderScreen(connector)
+
+  const refreshControl = await screen.findByTestId('shopping-list-refresh-control')
+  await act(async () => {
+    refreshControl.props.onRefresh()
+  })
+
+  await waitFor(() => expect(screen.getAllByTestId(/^shopping-row-fake-item-/).length).toBeGreaterThan(0))
 })
