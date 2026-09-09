@@ -75,6 +75,7 @@ import { ShoppingRow } from './shopping-row.js'
 import { useShoppingItemsQuery } from '../../application/shopping-list/shopping-items.query.js'
 import { useUpdateShoppingItemMutation } from '../../application/shopping-list/update-shopping-item.mutation.js'
 import { useDeleteShoppingItemMutation } from '../../application/shopping-list/delete-shopping-item.mutation.js'
+import { useSyncShoppingListWithHaMutation } from '../../application/home-assistant/sync-shopping-list-with-ha.mutation.js'
 import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
 
 export function ShoppingListScreen() {
@@ -114,7 +115,18 @@ export function ShoppingListScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-items'] }),
   })
 
-  const refresh = usePullToRefresh(() => itemsQuery.refetch())
+  const syncWithHa = useSyncShoppingListWithHaMutation()
+  // Reconcile with Home Assistant first, best-effort: a shared list going
+  // stale is what pull-to-refresh exists to fix, and the HA link is one more
+  // possibly-unreachable network hop on top of that — its failure must never
+  // stop the local reload below from running (design §8: a quiet failure,
+  // never a blocking one).
+  const refresh = usePullToRefresh(
+    async () => {
+      await syncWithHa.mutateAsync(undefined).catch(() => undefined)
+    },
+    () => itemsQuery.refetch(),
+  )
   const items = itemsQuery.data ?? []
   const unchecked = items.filter((i) => !i.checked)
   const checked = items.filter((i) => i.checked)
