@@ -35,8 +35,14 @@ export default class ShoppingItemController {
       return ctx.response.status(status).json(body)
     }
     const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
-    await mirror.itemCreated(result.value)
-    return ctx.response.status(201).json({ item: toShoppingItemDto(result.value) })
+    // A merge (`created: false`) touched an existing line — HA already has
+    // it, so this must update that entry, not add a second one.
+    if (result.value.created) {
+      await mirror.itemCreated(result.value.item)
+    } else {
+      await mirror.itemUpdated(result.value.item)
+    }
+    return ctx.response.status(201).json({ item: toShoppingItemDto(result.value.item) })
   }
 
   async update(ctx: HttpContext) {
