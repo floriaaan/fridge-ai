@@ -35,7 +35,7 @@ test('createShoppingItem() adds a new item to the list', async () => {
   const connector = new FakeFridgeConnector()
   const before = await connector.getShoppingItems()
 
-  const result = await connector.createShoppingItem({ name: 'Farine', quantity: { amount: 1, unit: 'kg' } })
+  const result = await connector.createShoppingItem({ name: 'Farine', quantity: { amount: 1, unit: 'kg' }, source: 'manual' })
   expect(result.ok).toBe(true)
   if (result.ok) {
     expect(result.value.name).toBe('Farine')

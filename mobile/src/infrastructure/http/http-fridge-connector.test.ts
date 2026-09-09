@@ -101,14 +101,14 @@ test('createShoppingItem() posts the JSON payload and unwraps the created item',
   globalThis.fetch = fetchMock as unknown as typeof fetch
 
   const connector = new HttpFridgeConnector()
-  const result = await connector.createShoppingItem({ name: 'Farine', quantity: { amount: 1, unit: 'kg' } })
+  const result = await connector.createShoppingItem({ name: 'Farine', quantity: { amount: 1, unit: 'kg' }, source: 'manual' })
 
   expect(result.ok).toBe(true)
   if (result.ok) expect(result.value.id).toBe('new-1')
   const [url, init] = fetchMock.mock.calls[0]
   expect(url).toContain('/api/shopping-items')
   expect(init.method).toBe('POST')
-  expect(JSON.parse(init.body)).toEqual({ name: 'Farine', quantity: { amount: 1, unit: 'kg' } })
+  expect(JSON.parse(init.body)).toEqual({ name: 'Farine', quantity: { amount: 1, unit: 'kg' }, source: 'manual' })
 
   globalThis.fetch = originalFetch
 })

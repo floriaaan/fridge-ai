@@ -71,7 +71,10 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
 
     const result =
       props.mode === 'create'
-        ? await createItem.mutateAsync(payload)
+        ? // `source: 'manual'` — this form is the hand-typed entry point;
+          // `CreateShoppingItemInput` requires it (backend validator has no
+          // default), `UpdateShoppingItemInput` has no such field at all.
+          await createItem.mutateAsync({ ...payload, source: 'manual' })
         : await updateItem.mutateAsync({ itemId: props.itemId, patch: payload })
 
     if (!result.ok) {
