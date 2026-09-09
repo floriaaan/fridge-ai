@@ -17,10 +17,13 @@ jest.mock('expo-router', () => ({
 // with nothing to grab it by. @testing-library/react-native v14 dropped
 // UNSAFE_getByType/UNSAFE_getByProps (see barcode-scanner-screen.test.tsx's
 // note on the same gap), so there is no type- or prop-based query left to
-// reach it. Stamping a fixed testID on it here — the same "reach into a
-// mocked host element's props" technique that file uses for the camera —
-// is how the pull-to-refresh tests below fire the gesture and read back
-// what ran.
+// reach it. Unlike that file — whose `testID` is already on the real
+// component in production and its mock only avoids rendering the native
+// camera module — `RefreshControl` carries no testID in source, so this
+// mock stamps one onto a wrapper that forwards every other prop straight
+// through. Scoped to this file only (Jest mocks don't leak across files):
+// how the pull-to-refresh tests below fire the gesture and read back what
+// ran.
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native')
   return Object.setPrototypeOf(
