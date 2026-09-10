@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { AccessibilityInfo, Animated, Platform } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native'
 import { IS_ANDROID } from './material.js'
 
 /**
@@ -77,6 +77,53 @@ export function useReduceMotion(): boolean {
     }
   }, [])
   return reduced
+}
+
+/**
+ * Default drift range for `useBlobDrift`, exported so a caller sizing the
+ * oversized layer that motion happens inside (see `BlobBackground`'s
+ * comment on why that layer must overhang its own box by exactly this much)
+ * uses the same numbers instead of a second, driftable copy of them.
+ *
+ * `X` is asymmetric — much more travel right (60) than left (10) — two
+ * follow-ups from the first pass, which was a plain ±10 either side and
+ * read as barely moving toward the leading (right) edge.
+ */
+export const BLOB_DRIFT_X_RANGE: [number, number] = [-10, 60]
+export const BLOB_DRIFT_Y = 6
+
+/**
+ * A slow, gentle back-and-forth drift — for `BlobBackground`/`AuthBlobBackground`,
+ * which otherwise sit dead-still behind every screen. Sine easing both ways
+ * (`inOut`) so it never has a sharp turnaround, and the whole cycle is slow
+ * enough (default 8s each leg) to read as "the ground is breathing," not as
+ * a decoration competing with the content in front of it.
+ *
+ * Respects Reduce Motion the same way `useHoverPress` does: frozen at rest
+ * (`transform: []`) rather than an instant jump to some mid-cycle position.
+ */
+export function useBlobDrift({ rangeX = BLOB_DRIFT_X_RANGE, amplitudeY = BLOB_DRIFT_Y, duration = 8000 } = {}) {
+  const reduceMotion = useReduceMotion()
+  const progress = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    if (reduceMotion) return
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(progress, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(progress, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [reduceMotion, duration, progress])
+
+  if (reduceMotion) return { transform: [] }
+  return {
+    transform: [
+      { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: rangeX }) },
+      { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [-amplitudeY, amplitudeY] }) },
+    ],
+  }
 }
 
 /**
