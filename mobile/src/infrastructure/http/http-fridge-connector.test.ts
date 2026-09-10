@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import { authClient } from '../auth/auth-client.js'
 import { HttpFridgeConnector } from './http-fridge-connector.js'
 
@@ -11,6 +12,16 @@ jest.mock('../auth/auth-client.js', () => ({
     // still awaited on every request, so it needs a resolved value here.
     getCookie: jest.fn().mockResolvedValue(''),
   },
+}))
+
+// `expo-file-system`'s real `File` implements `Blob` via a native binding
+// that jest can't reproduce — its jest-environment stand-in isn't a real
+// `Blob` instance, and Node's own `FormData.append(name, value, filename)`
+// (the 3-arg form `scanReceipt` uses) strictly rejects anything that isn't
+// one. Swapped for an actual `Blob` here so the test exercises
+// `HttpFridgeConnector`'s own wiring rather than expo-file-system's.
+jest.mock('expo-file-system', () => ({
+  File: jest.fn().mockImplementation(() => new Blob(['fake-image-bytes'], { type: 'image/jpeg' })),
 }))
 
 const signInEmailMock = authClient.signIn.email as jest.Mock
@@ -197,6 +208,45 @@ test('scanReceipt() posts a multipart image and unwraps the draft', async () => 
   expect(init.body).toBeInstanceOf(FormData)
 
   globalThis.fetch = originalFetch
+})
+
+test('scanReceipt() on web fetches the blob: URI and posts a real Blob part', async () => {
+  // Regression test: web's real FormData/fetch don't understand RN's
+  // native `{ uri, name, type }` shim at all — appending it threw
+  // "Unsupported FormDataPart implementation" the moment the request body
+  // was serialized, with `scanReceipt` never reaching the network.
+  const originalOS = Platform.OS
+  Platform.OS = 'web'
+  try {
+    const blob = new Blob(['fake-image-bytes'], { type: 'image/jpeg' })
+    const fetchMock = jest
+      .fn()
+      // First call: scanReceipt's own `fetch(imageUri)` to read the blob: URI back out.
+      .mockResolvedValueOnce({ blob: () => Promise.resolve(blob) })
+      // Second call: apiFetchMultipart's request to the backend.
+      .mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            draft: { storeName: 'Carrefour', scannedAt: '2026-08-28T10:00:00.000Z', totalAmount: 24.5, items: [] },
+          }),
+      })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const connector = new HttpFridgeConnector()
+    const result = await connector.scanReceipt('blob:http://localhost/fake-uri')
+
+    expect(result.ok).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('blob:http://localhost/fake-uri')
+    const [url, init] = fetchMock.mock.calls[1] ?? []
+    expect(url).toContain('/api/receipts/scan')
+    expect(init.body).toBeInstanceOf(FormData)
+  } finally {
+    Platform.OS = originalOS
+    globalThis.fetch = originalFetch
+  }
 })
 
 test('scanReceipt() returns Result.err on an extraction failure', async () => {

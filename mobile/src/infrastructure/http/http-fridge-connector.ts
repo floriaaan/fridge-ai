@@ -1,3 +1,5 @@
+import { Platform } from 'react-native'
+import { File } from 'expo-file-system'
 import { authClient } from '../auth/auth-client.js'
 import { apiFetch, apiFetchMultipart } from './http-client.js'
 import { telemetry } from '../telemetry/telemetry.js'
@@ -292,10 +294,28 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async scanReceipt(imageUri: string): Promise<Result<ReceiptDraft, ApiError>> {
     const formData = new FormData()
-    // React Native's FormData accepts this { uri, name, type } shape for a file
-    // part — it isn't a real Blob/File, but that's the platform's documented
-    // multipart-upload convention, not a real DOM Blob.
-    formData.append('image', { uri: imageUri, name: 'receipt.jpg', type: 'image/jpeg' } as unknown as Blob)
+    // The old RN `{ uri, name, type }` shim is dead: since Expo SDK 53,
+    // `expo/fetch` replaces both `fetch` and `FormData.prototype.append`
+    // globally (native included, not just web — see
+    // `expo/src/winter/runtime.native.ts` and `FormData.ts`), and its
+    // WinterCG-style `FormData` only accepts a string or a real
+    // Blob/File-like part with a `.bytes()`/Blob interface. Appending the
+    // shim object now throws "Unsupported FormDataPart implementation" —
+    // silently, with the request never leaving the device, no matter the
+    // platform.
+    if (Platform.OS === 'web') {
+      // `imageUri` here is a `blob:`/`data:` URL the picker/camera already
+      // produced in-memory — re-fetching it just hands back the same bytes
+      // as a real Blob. `expo-file-system`'s `File` (below) is native-only.
+      const blob = await (await fetch(imageUri)).blob()
+      formData.append('image', blob, 'receipt.jpg')
+    } else {
+      // `File` implements the `Blob` interface, so it's exactly the kind of
+      // part `expo/fetch`'s `FormData` expects — reading a local `file://`
+      // URI into a real Blob without a manual `fetch`+`.blob()` round-trip,
+      // which isn't guaranteed to work against `file://` on the new fetch.
+      formData.append('image', new File(imageUri), 'receipt.jpg')
+    }
     const result = await apiFetchMultipart<{ draft: ReceiptDraft }>('/api/receipts/scan', formData)
     return result.ok ? Result.ok(result.value.draft) : Result.err(result.error)
   }

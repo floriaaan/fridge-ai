@@ -51,9 +51,15 @@ async function tracedFetch(path: string, method: string, init: RequestInit): Pro
     return response
   } catch (error) {
     span?.end({ error })
-    // A transport failure never reaches the backend, so this log record is the
-    // only trace of it anywhere. It carries the span ids, so it lands next to
-    // the (empty) trace in the same view.
+    // A transport failure never reaches the backend, so this is the only
+    // trace of it anywhere — and it must not depend on telemetry being
+    // configured. `recordError` below only fires when `span` is non-null
+    // (telemetry off/unconfigured, the common case in local dev, returns
+    // `null` from `startClientSpan`), which used to mean a dev running
+    // without a telemetry relay saw absolutely nothing for a request that
+    // never left the device — not even in the Metro console. This one
+    // always prints, telemetry or not.
+    console.error(`[api] ${method} ${path} failed before reaching the server`, error)
     if (span) {
       telemetry.recordError(`${method} ${path} failed before reaching the server`, {
         error,
@@ -77,7 +83,12 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Res
     const body = await response.json()
     if (!response.ok) return Result.err(body.error as ApiError)
     return Result.ok(body as T)
-  } catch {
+  } catch (error) {
+    // Covers two cases: `tracedFetch` already logged a pure transport
+    // failure (this just adds the "here's the generic error the caller
+    // sees" breadcrumb next to it); a *successful* response whose body
+    // wasn't valid JSON never gets logged anywhere else at all.
+    console.error(`[api] ${init?.method ?? 'GET'} ${path} could not be completed`, error)
     return Result.err({ type: 'network_error', message: 'Impossible de contacter le serveur.' })
   }
 }
@@ -100,7 +111,8 @@ export async function apiFetchMultipart<T>(path: string, formData: FormData): Pr
     const body = await response.json()
     if (!response.ok) return Result.err(body.error as ApiError)
     return Result.ok(body as T)
-  } catch {
+  } catch (error) {
+    console.error(`[api] POST ${path} could not be completed`, error)
     return Result.err({ type: 'network_error', message: 'Impossible de contacter le serveur.' })
   }
 }
