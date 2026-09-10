@@ -100,7 +100,9 @@ test('bulk location puts every item in the chosen place', async () => {
 test('shows a retry hint when the scan fails', async () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const connector = new FakeFridgeConnector()
-  connector.scanReceipt = jest.fn().mockResolvedValue({ ok: false, error: { type: 'extraction_failed', message: 'Extraction impossible.' } })
+  connector.scanReceipt = jest
+    .fn()
+    .mockResolvedValue({ ok: false, error: { type: 'extraction_failed', message: "L'extraction du ticket a échoué — réessayez avec une photo plus nette." } })
 
   await render(
     <ThemeProvider>
@@ -112,7 +114,10 @@ test('shows a retry hint when the scan fails', async () => {
     </ThemeProvider>,
   )
 
-  await waitFor(() => expect(screen.getByText('Extraction impossible, réessaie ou reprends la photo.')).toBeTruthy())
+  await waitFor(() => expect(screen.getByTestId('receipt-scan-error-title')).toBeTruthy())
+  // The backend's own message, not a generic client-side sentence — a
+  // parse/provider/network failure each say something different.
+  expect(screen.getByText("L'extraction du ticket a échoué — réessayez avec une photo plus nette.")).toBeTruthy()
 
   // Retry re-reads the same photo rather than sending the user back to the camera.
   await act(async () => {
@@ -121,4 +126,29 @@ test('shows a retry hint when the scan fails', async () => {
 
   expect(connector.scanReceipt).toHaveBeenCalledTimes(2)
   expect(router.replace).not.toHaveBeenCalled()
+})
+
+test('hides the retry button when no retry can fix the failure', async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const connector = new FakeFridgeConnector()
+  // A missing AI-provider key is an admin fix, not a "try again" — retrying
+  // would just fail the same way a second time.
+  connector.scanReceipt = jest
+    .fn()
+    .mockResolvedValue({ ok: false, error: { type: 'provider_not_configured', message: 'Ce provider IA ne dispose pas des identifiants nécessaires.' } })
+
+  await render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConnectorProvider connector={connector}>
+          <ReceiptReviewScreen imageUri="file://receipt.jpg" />
+        </ConnectorProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  )
+
+  await waitFor(() => expect(screen.getByTestId('receipt-scan-error-title')).toBeTruthy())
+  expect(screen.getByText('Ce provider IA ne dispose pas des identifiants nécessaires.')).toBeTruthy()
+  expect(screen.queryByTestId('receipt-review-retry')).toBeNull()
+  expect(screen.getByTestId('receipt-review-retake')).toBeTruthy()
 })

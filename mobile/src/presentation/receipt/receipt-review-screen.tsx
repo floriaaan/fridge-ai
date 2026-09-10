@@ -29,7 +29,7 @@ import { pointerCursor } from '../shared/hover.js'
 import { goBack } from '../shared/navigation.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { CalendarIcon, CircleCheckIcon, ReceiptIcon, StoreIcon, WalletIcon } from '../dashboard/dashboard-icons.js'
+import { CalendarIcon, CircleCheckIcon, CircleXIcon, ReceiptIcon, StoreIcon, WalletIcon } from '../dashboard/dashboard-icons.js'
 import { FormField } from '../fridge/form-field.js'
 import { ReceiptItemRow, type EditableReceiptItem, type ReceiptItemErrors } from './receipt-item-row.js'
 import { useScanReceiptMutation } from '../../application/receipt/scan-receipt.mutation.js'
@@ -37,8 +37,39 @@ import { useImportReceiptMutation } from '../../application/receipt/import-recei
 import { LOCATIONS } from '../../domain/fridge/location.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ReceiptDraftItem } from '../../domain/receipt/receipt-draft.js'
+import type { ApiError } from '../../domain/shared/api-error.js'
 
 const LOCATION_LABELS: Record<LocationValue, string> = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' }
+
+/**
+ * An error is a state to act on, not a sentence to read — same contract as
+ * the recipe composer's `GenerationError`. The backend already names *why*
+ * the scan failed (`ApiError.type`/`.message` — see `error-serializer.ts`);
+ * this used to collapse everything, from a bad photo to a missing AI-provider
+ * key to the phone losing its connection, into the same one-liner
+ * ("Extraction impossible, réessaie ou reprends la photo."), so a household
+ * whose admin forgot to set the Gemini key saw the exact same screen as one
+ * that photographed a receipt sideways — and "réessaie" was offered as if it
+ * could ever fix the first case.
+ */
+interface ScanError {
+  title: string
+  message: string
+  recovery: 'retry' | null
+}
+
+function toScanError(error: ApiError): ScanError {
+  // Nothing the household can do from this screen fixes a missing
+  // credential — that's a `settings` change made by whoever runs the
+  // instance. Offering "Réessayer" here would just repeat the same failure.
+  if (error.type === 'provider_not_configured') {
+    return { title: 'Extraction indisponible', message: error.message, recovery: null }
+  }
+  if (error.type === 'network_error') {
+    return { title: 'Connexion impossible', message: error.message, recovery: 'retry' }
+  }
+  return { title: 'Extraction impossible', message: error.message, recovery: 'retry' }
+}
 
 // Distinguishes "empty" from "invalid" from "valid" so callers can decide what
 // to do with each case without `new Date(...).toISOString()` throwing on an
@@ -78,7 +109,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
   const [items, setItems] = useState<EditableReceiptItem[]>([])
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const [itemErrors, setItemErrors] = useState<Record<number, ReceiptItemErrors>>({})
-  const [scanError, setScanError] = useState<string | null>(null)
+  const [scanError, setScanError] = useState<ScanError | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [imported, setImported] = useState<number | null>(null)
   const startedRef = useRef(false)
@@ -87,7 +118,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
     setScanError(null)
     const result = await scanReceipt.mutateAsync(imageUri)
     if (!result.ok) {
-      setScanError('Extraction impossible, réessaie ou reprends la photo.')
+      setScanError(toScanError(result.error))
       return
     }
     setStoreName(result.value.storeName)
@@ -240,17 +271,25 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
   if (imported !== null) {
     return (
       <AppShell nav={nav} header={header}>
-        <YStack alignItems="center" gap="$3" marginTop="$8">
-          <YStack width={64} height={64} borderRadius={999} backgroundColor={palette.freshBg} alignItems="center" justifyContent="center">
-            <CircleCheckIcon size={30} color={palette.freshText} />
+        {/* Buttons pinned to the bottom of the screen, not to wherever the
+            message happens to end — the outer `flex:1` fills AppShell's
+            scroll area (its `contentContainerStyle` carries `flexGrow:1`
+            for exactly this), the icon/text block centers in what's left,
+            and the buttons rest at the very bottom: the thumb-reachable
+            zone, on any phone, regardless of how short the message is. */}
+        <YStack flex={1} minHeight={0} alignItems="center">
+          <YStack flex={1} alignItems="center" justifyContent="center" gap="$3" paddingTop="$6">
+            <YStack width={64} height={64} borderRadius={999} backgroundColor={palette.freshBg} alignItems="center" justifyContent="center">
+              <CircleCheckIcon size={30} color={palette.freshText} />
+            </YStack>
+            <Text testID="receipt-review-success" fontSize={20} fontWeight="800" color={palette.ink} textAlign="center">
+              {imported} produit{imported > 1 ? 's' : ''} ajouté{imported > 1 ? 's' : ''} au garde-manger
+            </Text>
+            <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} textAlign="center">
+              Ton foyer les voit déjà.
+            </Text>
           </YStack>
-          <Text testID="receipt-review-success" fontSize={20} fontWeight="800" color={palette.ink} textAlign="center">
-            {imported} produit{imported > 1 ? 's' : ''} ajouté{imported > 1 ? 's' : ''} au garde-manger
-          </Text>
-          <Text fontSize={13} fontWeight="500" color={palette.inkSecondary} textAlign="center">
-            Ton foyer les voit déjà.
-          </Text>
-          <YStack width="100%" gap="$2" marginTop="$4">
+          <YStack width="100%" gap="$2" paddingBottom="$2">
             <AuthButton
               testID="receipt-review-open-fridge"
               label="Voir le garde-manger"
@@ -272,6 +311,24 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
     return (
       <AppShell nav={nav} header={header}>
         <YStack alignItems="center" gap="$3" marginTop="$8">
+          {/* The photo itself, small — the same trust the review list gives
+              the shot below (see its own comment): the wait is legible as
+              "reading *this* ticket", not a generic spinner. */}
+          <Image
+            testID="receipt-reading-photo"
+            source={{ uri: imageUri }}
+            resizeMode="cover"
+            accessibilityLabel="Photo du ticket en cours de lecture"
+            style={{
+              width: 96,
+              height: 96,
+              borderTopLeftRadius: 22,
+              borderTopRightRadius: 10,
+              borderBottomRightRadius: 22,
+              borderBottomLeftRadius: 10,
+              backgroundColor: palette.cream,
+            }}
+          />
           {/* The same wait, drawn the same way as the recipe composer's — see
               DESIGN.md: a wait with no measurable progress is `PulseDots`, not
               the platform's wheel. This one is the app's longest. */}
@@ -290,25 +347,55 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
   if (scanError) {
     return (
       <AppShell nav={nav} header={header}>
-        <YStack gap="$3" marginTop="$8">
-          <Text fontSize={14} color={palette.expiredText} textAlign="center">
-            {scanError}
-          </Text>
-          {/* Retry re-reads the same photo. It used to route back to the
-              camera, throwing away the shot the user had just framed. */}
-          <AuthButton
-            testID="receipt-review-retry"
-            label="Réessayer"
-            pendingLabel="Lecture..."
-            pending={scanReceipt.isPending}
-            onPress={runScan}
-          />
-          <AuthButton
-            testID="receipt-review-retake"
-            label="Reprendre la photo"
-            variant="secondary"
-            onPress={() => router.replace('/receipts/scan')}
-          />
+        {/* Same shape as the success state above (circle + title + body),
+            coral instead of lime — icon AND colour AND word, this system's
+            status language, not a bare line of red text. Buttons pinned to
+            the bottom of the screen for the same reason as the success
+            state: the thumb-reachable zone, not wherever the message ends. */}
+        <YStack flex={1} minHeight={0} alignItems="center">
+          <YStack flex={1} alignItems="center" justifyContent="center" gap="$3" paddingTop="$6">
+            <YStack width={64} height={64} borderRadius={999} backgroundColor={palette.expiredBg} alignItems="center" justifyContent="center">
+              <CircleXIcon size={30} color={palette.expiredText} />
+            </YStack>
+            <Text testID="receipt-scan-error-title" fontSize={17} fontWeight="800" color={palette.ink} textAlign="center">
+              {scanError.title}
+            </Text>
+            {/* The backend's own message — what actually failed (a bad photo,
+                a missing AI-provider key, an unreachable server), not one
+                catch-all sentence for every cause. */}
+            <Text
+              testID="receipt-scan-error"
+              fontSize={13}
+              fontWeight="500"
+              color={palette.inkSecondary}
+              textAlign="center"
+              maxWidth={320}
+              accessibilityLiveRegion="polite"
+            >
+              {scanError.message}
+            </Text>
+          </YStack>
+          <YStack width="100%" gap="$2" paddingBottom="$2">
+            {/* Retry re-reads the same photo. It used to route back to the
+                camera, throwing away the shot the user had just framed — and
+                it used to show unconditionally, even when the cause (no AI
+                provider configured) guarantees a second identical failure. */}
+            {scanError.recovery === 'retry' ? (
+              <AuthButton
+                testID="receipt-review-retry"
+                label="Réessayer"
+                pendingLabel="Lecture..."
+                pending={scanReceipt.isPending}
+                onPress={runScan}
+              />
+            ) : null}
+            <AuthButton
+              testID="receipt-review-retake"
+              label="Reprendre la photo"
+              variant="secondary"
+              onPress={() => router.replace('/receipts/scan')}
+            />
+          </YStack>
         </YStack>
       </AppShell>
     )
