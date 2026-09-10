@@ -94,8 +94,13 @@ export function InviteShareCard({
           hold one row instead of wrapping to two. `gap="$3"`, not `$2`:
           `dense` pads its own facing hitSlop back to 6px a side (12px
           combined), and a facing gap under that overlaps two pills' press
-          areas — the same threshold `Chip` rows are held to. */}
-      <XStack gap="$3" justifyContent="space-between">
+          areas — the same threshold `Chip` rows are held to.
+          `flexWrap="wrap"`, not `nowrap`: three labeled pills fit one line
+          at the default text size, but RN scales that text with the
+          system font setting, and the row has no horizontal scroll to
+          fall back on — wrap is what keeps a large-type reading intact
+          instead of clipping "Afficher le QR" (2026-09-10 audit). */}
+      <XStack gap="$3" rowGap="$2" flexWrap="wrap">
         <PillButton
           testID="household-invite-share"
           label="Partager"
