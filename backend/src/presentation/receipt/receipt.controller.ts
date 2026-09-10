@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import type { HttpContext } from '@adonisjs/core/http'
+import logger from '@adonisjs/core/services/logger'
 import { requireAuthenticatedUser } from '#presentation/shared/auth-context'
 import { serializeError } from '#presentation/shared/error-serializer'
 import { importReceiptValidator } from './receipt.validator.js'
@@ -18,10 +19,28 @@ export default class ReceiptController {
       size: '10mb',
     })
     if (!image || !image.tmpPath) {
+      // The most common real cause of "extraction impossible" with nothing
+      // in the AI-adapter logs: the multipart upload itself never produced
+      // a usable file (wrong field name, no file attached, tmp write
+      // failed) — this used to fall straight through to a generic
+      // extraction_failed with no trace anywhere.
+      logger.warn(
+        { field: 'image', hasFile: Boolean(image), clientName: image?.clientName },
+        'receipt scan: no usable file in upload',
+      )
       const { status, body } = serializeError('extraction_failed')
       return ctx.response.status(status).json(body)
     }
     if (!image.isValid) {
+      logger.warn(
+        {
+          clientName: image.clientName,
+          size: image.size,
+          extname: image.extname,
+          errors: image.errors,
+        },
+        'receipt scan: uploaded file failed validation',
+      )
       const { status, body } = serializeError('extraction_failed')
       return ctx.response.status(status).json(body)
     }

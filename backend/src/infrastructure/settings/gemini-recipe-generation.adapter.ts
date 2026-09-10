@@ -7,6 +7,7 @@ import type { RecipeDraft } from '#domain/recipe/recipe-draft'
 import { buildRecipeGenerationPrompt } from '#domain/recipe/recipe-generation-prompt'
 import { parseRecipeDraftsJson } from '#domain/recipe/recipe-draft-parser'
 import { RecipeGenerationUnavailableError } from '#domain/recipe/recipe-generation.errors'
+import { logAiAdapterFailure } from './log-ai-adapter-failure.js'
 
 export class GeminiRecipeGenerationAdapter implements RecipeGenerationPort {
   constructor(private readonly apiKey: string) {}
@@ -15,11 +16,23 @@ export class GeminiRecipeGenerationAdapter implements RecipeGenerationPort {
     if (!this.apiKey) throw new RecipeGenerationUnavailableError('gemini')
 
     const client = new GoogleGenAI({ apiKey: this.apiKey })
-    const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ role: 'user', parts: [{ text: buildRecipeGenerationPrompt(context) }] }],
-    })
+    let text: string
+    try {
+      const response = await client.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ role: 'user', parts: [{ text: buildRecipeGenerationPrompt(context) }] }],
+      })
+      text = response.text ?? ''
+    } catch (error) {
+      logAiAdapterFailure('recipe-generation', 'gemini', error)
+      throw error
+    }
 
-    return parseRecipeDraftsJson(response.text ?? '')
+    try {
+      return parseRecipeDraftsJson(text)
+    } catch (error) {
+      logAiAdapterFailure('recipe-generation', 'gemini', error, text.slice(0, 500))
+      throw error
+    }
   }
 }
