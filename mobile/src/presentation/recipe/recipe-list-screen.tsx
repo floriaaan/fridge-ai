@@ -250,6 +250,10 @@ export function RecipeListScreen() {
         }
       >
         <FlatList
+          // Without this, `contentContainerStyle`'s `flexGrow: 1` has no
+          // parent height to grow into — the list stays shrink-wrapped to
+          // its own content and the empty state never gets room to center.
+          style={{ flex: 1 }}
           data={recipesQuery.isPending || recipesQuery.isError ? [] : library}
           keyExtractor={(recipe) => recipe.id}
           // The gap between rows belongs to the list, not to a wrapper View
@@ -273,7 +277,10 @@ export function RecipeListScreen() {
               />
             </YStack>
           )}
-          contentContainerStyle={{ ...shellContentStyle({ isWide, hasMobileNav }), paddingTop: 8 }}
+          // `flexGrow: 1`: lets the empty state fill and vertically center in
+          // the visible list area instead of pinning to the top — a no-op
+          // once the list itself is taller than the screen.
+          contentContainerStyle={{ ...shellContentStyle({ isWide, hasMobileNav }), paddingTop: 8, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           refreshControl={pullToRefreshControl(refresh, palette)}
           ListHeaderComponent={
@@ -602,7 +609,7 @@ function LibraryControls({
  */
 function RecipesError({ palette, onRetry }: { palette: SoftPalette; onRetry: () => void }) {
   return (
-    <YStack gap="$3" marginTop="$8" paddingHorizontal="$4" alignItems="center">
+    <YStack flex={1} justifyContent="center" alignItems="center" gap="$3" paddingHorizontal="$4">
       <ChefHatIcon size={30} color={palette.expiredText} />
       <Text fontSize={15} fontWeight="700" color={palette.ink}>
         Recettes indisponibles
@@ -616,6 +623,7 @@ function RecipesError({ palette, onRetry }: { palette: SoftPalette; onRetry: () 
         accessibilityLabel="Réessayer de charger les recettes"
         onPress={onRetry}
         palette={palette}
+        centered
       />
     </YStack>
   )
@@ -629,7 +637,7 @@ function RecipesError({ palette, onRetry }: { palette: SoftPalette; onRetry: () 
  */
 function NoMatches({ palette }: { palette: SoftPalette }) {
   return (
-    <YStack gap="$3" marginTop="$6" paddingHorizontal="$4" alignItems="center">
+    <YStack flex={1} justifyContent="center" alignItems="center" gap="$3" paddingHorizontal="$4">
       <Text fontSize={14} fontWeight="700" color={palette.ink} textAlign="center">
         Aucune recette ne correspond
       </Text>
@@ -642,6 +650,7 @@ function NoMatches({ palette }: { palette: SoftPalette }) {
         onPress={() => router.push('/(tabs)/recipes/generate')}
         palette={palette}
         icon={(color) => <SparklesIcon size={15} color={color} />}
+        centered
       />
     </YStack>
   )
@@ -649,7 +658,7 @@ function NoMatches({ palette }: { palette: SoftPalette }) {
 
 function EmptyRecipes({ palette, rescue }: { palette: SoftPalette; rescue: Product | null }) {
   return (
-    <YStack gap="$3" marginTop="$8" paddingHorizontal="$4" alignItems="center">
+    <YStack flex={1} justifyContent="center" alignItems="center" gap="$3" paddingHorizontal="$4">
       <ChefHatIcon size={32} color={palette.inkSecondary} />
       <Text fontSize={15} fontWeight="700" color={palette.ink}>
         Aucune recette pour l’instant
@@ -670,6 +679,7 @@ function EmptyRecipes({ palette, rescue }: { palette: SoftPalette; rescue: Produ
         onPress={() => router.push('/(tabs)/recipes/generate')}
         palette={palette}
         icon={(color) => <SparklesIcon size={15} color={color} />}
+        centered
       />
     </YStack>
   )

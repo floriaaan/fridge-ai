@@ -11,6 +11,10 @@
  *
  * `alignSelf: 'flex-start'` is the load-bearing default: a Pressable in a
  * YStack stretches, and a pill that stretches stops being a pill.
+ * `centered` swaps that for `alignSelf: 'center'` — for the one other shape
+ * this pill takes, the sole CTA under a centered empty-state icon+heading,
+ * where flex-start pins it to the left edge instead of under the text it
+ * answers.
  *
  * `AuthButton` stays separate on purpose — it is the 50pt full-width form
  * submit of the auth screens, a different control with a different job.
@@ -36,6 +40,7 @@ export function PillButton({
   accessibilityLabel,
   tone = 'accent',
   size = 'default',
+  centered = false,
 }: {
   testID?: string
   label: string
@@ -48,6 +53,8 @@ export function PillButton({
   /** Announced instead of `label` when the label alone is not a sentence ("Réessayer"). */
   accessibilityLabel?: string
   size?: keyof typeof PILL_HEIGHT
+  /** For a centered empty state's own CTA — see the note above `flex-start`. */
+  centered?: boolean
 }) {
   const hover = useHoverPress()
   const height = PILL_HEIGHT[size]
@@ -63,7 +70,7 @@ export function PillButton({
       hitSlop={{ top: slop, bottom: slop, left: 6, right: 6 }}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      style={[pointerCursor, { alignSelf: 'flex-start' }]}
+      style={[pointerCursor, { alignSelf: centered ? 'center' : 'flex-start' }]}
     >
       <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
         <XStack

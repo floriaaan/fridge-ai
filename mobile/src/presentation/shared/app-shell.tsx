@@ -444,7 +444,11 @@ export function AppShell({
           <ScrollView
             ref={scrollRef}
             style={{ flex: 1, minHeight: 0 }}
-            contentContainerStyle={{ ...contentStyle, paddingTop: header ? 4 : contentStyle.paddingTop }}
+            // `flexGrow: 1`: lets short content (an empty state) fill and
+            // vertically center in the visible area instead of pinning to
+            // the top — a no-op once content is taller than the screen,
+            // which is the ordinary case, so nothing else here changes.
+            contentContainerStyle={{ ...contentStyle, paddingTop: header ? 4 : contentStyle.paddingTop, flexGrow: 1 }}
             refreshControl={refresh ? pullToRefreshControl(refresh, palette) : undefined}
             onScroll={onScrollOffset ? (event) => onScrollOffset(event.nativeEvent.contentOffset.y) : undefined}
             scrollEventThrottle={onScrollOffset ? 16 : undefined}

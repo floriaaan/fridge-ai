@@ -570,6 +570,7 @@ function CabinetError({ palette, onRetry }: { palette: SoftPalette; onRetry: () 
         accessibilityLabel="Réessayer de charger le garde-manger"
         onPress={onRetry}
         palette={palette}
+        centered
       />
     </YStack>
   )
@@ -598,6 +599,7 @@ function EmptyFridge({ search, palette }: { search: string; palette: SoftPalette
         onPress={() => router.push('/(tabs)/fridge/new')}
         palette={palette}
         icon={(color) => <PlusIcon size={15} color={color} />}
+        centered
       />
     </YStack>
   )

@@ -209,7 +209,7 @@ export function ShoppingListScreen() {
       ) : null}
 
       {!itemsQuery.isPending && !itemsQuery.isError && items.length === 0 ? (
-        <YStack alignItems="center" gap="$3" marginTop="$8">
+        <YStack flex={1} justifyContent="center" alignItems="center" gap="$3" paddingHorizontal="$4">
           <ShoppingCartIcon size={32} color={palette.inkSecondary} />
           <Text fontSize={15} fontWeight="700" color={palette.ink}>
             Liste de courses vide
@@ -222,6 +222,7 @@ export function ShoppingListScreen() {
             label="Ajouter un article"
             onPress={() => router.push('/(tabs)/shopping-list/new')}
             palette={palette}
+            centered
           />
         </YStack>
       ) : null}
