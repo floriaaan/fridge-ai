@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Text, YStack } from '../shared/tamagui-typed.js'
+import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { KeyboardAvoidingView, Platform } from 'react-native'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { FormCard } from '../shared/form-card.js'
+import { Chip } from '../shared/chip.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { PencilIcon, ScaleIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
@@ -16,6 +17,9 @@ import { useUpdateShoppingItemMutation } from '../../application/shopping-list/u
 import { Quantity } from '../../domain/fridge/quantity.js'
 
 type ShoppingItemFormMode = { mode: 'create' } | { mode: 'edit'; itemId: string }
+
+/** Same list as the fridge form's unit chips (fridge-form-screen.tsx) — one vocabulary for quantity units app-wide. */
+const UNIT_SUGGESTIONS = ['g', 'kg', 'mL', 'L', 'pièce(s)']
 
 export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess?: () => void }) {
   const palette = useSoftPalette()
@@ -116,23 +120,42 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
             palette={palette}
             icon={(color) => <PencilIcon size={13} color={color} />}
           />
-          <FormField
-            testID="shopping-item-form-amount"
-            label="Quantité"
-            value={amount}
-            onChangeText={setAmount}
-            palette={palette}
-            keyboardType="number-pad"
-            icon={(color) => <ScaleIcon size={13} color={color} />}
-          />
-          <FormField
-            testID="shopping-item-form-unit"
-            label="Unité"
-            value={unit}
-            onChangeText={setUnit}
-            palette={palette}
-            autoCapitalize="none"
-          />
+          <XStack gap="$2">
+            <YStack flex={1}>
+              <FormField
+                testID="shopping-item-form-amount"
+                label="Quantité"
+                value={amount}
+                onChangeText={setAmount}
+                palette={palette}
+                keyboardType="number-pad"
+                icon={(color) => <ScaleIcon size={13} color={color} />}
+              />
+            </YStack>
+            <YStack flex={1}>
+              <FormField
+                testID="shopping-item-form-unit"
+                label="Unité"
+                value={unit}
+                onChangeText={setUnit}
+                palette={palette}
+                autoCapitalize="none"
+              />
+            </YStack>
+          </XStack>
+          <XStack gap="$3" flexWrap="wrap">
+            {UNIT_SUGGESTIONS.map((suggestion) => (
+              <Chip
+                key={suggestion}
+                testID={`shopping-item-form-unit-${suggestion}`}
+                label={suggestion}
+                selected={unit === suggestion}
+                onPress={() => setUnit(suggestion)}
+                palette={palette}
+                size="dense"
+              />
+            ))}
+          </XStack>
 
           {error ? (
             <Text fontSize={13} color={palette.expiredText}>
