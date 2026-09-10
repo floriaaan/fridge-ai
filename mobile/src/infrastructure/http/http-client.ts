@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import { Result } from '../../domain/shared/result.js'
 import { telemetry } from '../telemetry/telemetry.js'
 import { authClient } from '../auth/auth-client.js'
@@ -30,7 +31,13 @@ async function tracedFetch(path: string, method: string, init: RequestInit): Pro
   // any request that doesn't go through `authClient`'s own fetch. Without
   // this, every call below is unauthenticated on native, no matter how
   // recently the user signed in.
-  const cookie = await authClient.getCookie()
+  //
+  // Web never needed this: the browser's own cookie jar already attaches the
+  // session cookie via `credentials: 'include'` below. It matters more than
+  // "unneeded" — `expo-secure-store`'s web shim doesn't implement
+  // `getValueWithKeyAsync` at all, so calling `getCookie()` here on web threw
+  // on every single request, silently failing every `apiFetch` call.
+  const cookie = Platform.OS === 'web' ? null : await authClient.getCookie()
 
   const headers = {
     ...(init.headers as Record<string, string>),
