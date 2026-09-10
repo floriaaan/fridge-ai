@@ -263,7 +263,7 @@ export function ShoppingListScreen() {
                 isLast={index === unchecked.length - 1}
                 onToggle={(next) => handleToggle(item, next)}
                 onEdit={() => handleEdit(item)}
-                onDelete={() => setSheetItem(item)}
+                onDelete={() => handleDelete(item)}
                 onLongPress={() => setSheetItem(item)}
               />
             ))}
@@ -302,7 +302,7 @@ export function ShoppingListScreen() {
                 isLast={index === checked.length - 1}
                 onToggle={(next) => handleToggle(item, next)}
                 onEdit={() => handleEdit(item)}
-                onDelete={() => setSheetItem(item)}
+                onDelete={() => handleDelete(item)}
                 onLongPress={() => setSheetItem(item)}
               />
             ))}

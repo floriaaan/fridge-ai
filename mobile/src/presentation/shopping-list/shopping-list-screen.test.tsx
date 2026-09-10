@@ -87,7 +87,7 @@ test("tapping the row's Modifier action navigates to the item's edit route", asy
   expect(router.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/(tabs)/shopping-list/[id]/edit' }))
 })
 
-test("the row's Supprimer action asks first, then deletes", async () => {
+test("the row's Supprimer action deletes right away, no confirmation step", async () => {
   const connector = new FakeFridgeConnector()
   const deleteSpy = jest.spyOn(connector, 'deleteShoppingItem')
   await renderScreen(connector)
@@ -96,10 +96,8 @@ test("the row's Supprimer action asks first, then deletes", async () => {
   const targetTestId = before[0].props.testID as string
   await fireEvent.press(before[0])
 
-  // Nothing is gone yet: the sheet names the item and offers a way out.
-  expect(deleteSpy).not.toHaveBeenCalled()
-  await fireEvent.press(screen.getByTestId('shopping-list-delete-confirm'))
-
+  // The swipe + tap on Supprimer is itself the deliberate step — no sheet in between.
+  expect(screen.queryByTestId('shopping-list-delete-confirm')).toBeNull()
   await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1))
   await waitFor(() => expect(screen.queryByTestId(targetTestId, { includeHiddenElements: true })).toBeNull())
 })
@@ -122,7 +120,6 @@ test('a failed delete shows a hint instead of removing the row', async () => {
   const deleteButtons = await screen.findAllByTestId(/^shopping-row-delete-/, { includeHiddenElements: true })
   const targetTestId = deleteButtons[0].props.testID as string
   await fireEvent.press(deleteButtons[0])
-  await fireEvent.press(screen.getByTestId('shopping-list-delete-confirm'))
 
   await waitFor(() => expect(screen.getByText('Suppression impossible.')).toBeTruthy())
   expect(screen.queryByTestId(targetTestId, { includeHiddenElements: true })).toBeTruthy()
