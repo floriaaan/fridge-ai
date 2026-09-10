@@ -143,6 +143,14 @@ export function HouseholdScreen() {
     <>
     <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh} header={header}>
 
+      {/* The header's title is generic ("Foyer", same convention as every
+          other screen) — the custom household name still needs to be shown
+          somewhere, to every member, not just the owner viewing the invite
+          card below. */}
+      <Text testID="household-name" fontSize={13} fontWeight="600" color={palette.inkSecondary}>
+        {data.name}
+      </Text>
+
       {data.inviteCode ? (
         <InviteShareCard
           householdName={data.name}
