@@ -62,6 +62,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { SkeletonList } from '../shared/skeleton.js'
+import { EmptyStateLottie } from '../shared/empty-state-lottie.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
@@ -210,7 +211,7 @@ export function ShoppingListScreen() {
 
       {!itemsQuery.isPending && !itemsQuery.isError && items.length === 0 ? (
         <YStack flex={1} justifyContent="center" alignItems="center" gap="$3" paddingHorizontal="$4">
-          <ShoppingCartIcon size={32} color={palette.inkSecondary} />
+          <EmptyStateLottie animation="shopping-list" size={256} />
           <Text fontSize={15} fontWeight="700" color={palette.ink}>
             Liste de courses vide
           </Text>

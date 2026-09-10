@@ -15,6 +15,7 @@ import { useHint } from '../shared/hint-bubble.js'
 import { pullToRefreshControl, usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { useScanSheet } from '../shared/scan-sheet.js'
 import { SkeletonCard, SkeletonGroup } from '../shared/skeleton.js'
+import { EmptyStateLottie } from '../shared/empty-state-lottie.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { BanIcon, ChefHatIcon, ClockIcon, SearchIcon, SparklesIcon, TagIcon, XIcon } from '../dashboard/dashboard-icons.js'
@@ -659,7 +660,7 @@ function NoMatches({ palette }: { palette: SoftPalette }) {
 function EmptyRecipes({ palette, rescue }: { palette: SoftPalette; rescue: Product | null }) {
   return (
     <YStack flex={1} justifyContent="center" alignItems="center" gap="$3" paddingHorizontal="$4">
-      <ChefHatIcon size={32} color={palette.inkSecondary} />
+      <EmptyStateLottie animation="recipes" size={256} />
       <Text fontSize={15} fontWeight="700" color={palette.ink}>
         Aucune recette pour l’instant
       </Text>
