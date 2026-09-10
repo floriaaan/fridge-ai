@@ -47,7 +47,7 @@ export default class HaLinkController {
       userId: user.id,
       householdId: ctx.household.id,
       instanceUrl: payload.instanceUrl,
-      token: payload.token,
+      token: payload.token ?? '',
     })
     if (!result.ok) {
       const { status, body } = serializeError(result.error)

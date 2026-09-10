@@ -333,22 +333,37 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async getHaLink(): Promise<HaLink | null> {
     const result = await apiFetch<HaLink>('/api/settings/home-assistant')
+    if (__DEV__) {
+      // `JSON.stringify`, not the object itself: RN's console truncates a
+      // nested array of objects (Vine's `details`) to `[Object]`, which is
+      // exactly the part worth reading when the error is `validation_failed`.
+      console.log('[home_assistant.get_link]', result.ok ? { configured: result.value.configured } : JSON.stringify({ error: result.error }))
+    }
     return result.ok ? result.value : null
   }
 
   async saveHaConnection(input: SaveHaConnectionInput): Promise<Result<HaLink, ApiError>> {
+    // Never the token, per the same rule the backend client follows.
+    if (__DEV__) console.log('[home_assistant.save_connection] connecting', { instanceUrl: input.instanceUrl })
     const result = await apiFetch<HaLink>('/api/settings/home-assistant', {
       method: 'PUT',
       body: JSON.stringify(input),
     })
+    if (__DEV__) {
+      console.log('[home_assistant.save_connection]', result.ok ? 'connected' : JSON.stringify({ error: result.error }))
+    }
     return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 
   async discoverHaTodoEntities(input: DiscoverHaEntitiesInput): Promise<Result<HaTodoEntity[], ApiError>> {
+    if (__DEV__) console.log('[home_assistant.discover] connecting', { instanceUrl: input.instanceUrl })
     const result = await apiFetch<{ entities: HaTodoEntity[] }>('/api/settings/home-assistant/discover', {
       method: 'POST',
       body: JSON.stringify(input),
     })
+    if (__DEV__) {
+      console.log('[home_assistant.discover]', result.ok ? { entities: result.value.entities.length } : JSON.stringify({ error: result.error }))
+    }
     return result.ok ? Result.ok(result.value.entities) : Result.err(result.error)
   }
 
@@ -357,11 +372,13 @@ export class HttpFridgeConnector implements FridgeConnector {
       method: 'PATCH',
       body: JSON.stringify(input),
     })
+    if (__DEV__) console.log('[home_assistant.bind_list]', result.ok ? { entity: input.todoEntityId } : JSON.stringify({ error: result.error }))
     return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 
   async unlinkHa(): Promise<Result<void, ApiError>> {
     const result = await apiFetch<void>('/api/settings/home-assistant', { method: 'DELETE' })
+    if (__DEV__) console.log('[home_assistant.unlink]', result.ok ? 'ok' : { error: result.error })
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
