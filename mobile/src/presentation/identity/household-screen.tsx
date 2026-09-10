@@ -14,7 +14,7 @@
  * gates on — never on the role string alone).
  */
 import { useState } from 'react'
-import { Animated, Pressable } from 'react-native'
+import { Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
@@ -25,13 +25,14 @@ import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { goBack } from '../shared/navigation.js'
 import { PillButton } from '../shared/pill-button.js'
-import { pointerCursor, useHoverPress } from '../shared/hover.js'
+import { pointerCursor } from '../shared/hover.js'
 import { AuthButton } from './auth-button.js'
 import { InviteShareCard } from './invite-share-card.js'
 import { ROLE_LABELS } from './role-labels.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ChevronRightIcon, HomeIcon, LogOutIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { HomeIcon, LogOutIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { IdentityCard } from '../settings/identity-card.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useRegenerateInviteCodeMutation } from '../../application/identity/regenerate-invite-code.mutation.js'
@@ -52,7 +53,6 @@ export function HouseholdScreen() {
   const [hint, showHint] = useHint()
   const [memberToRemove, setMemberToRemove] = useState<HouseholdMember | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
-  const haRowHover = useHoverPress()
 
   const data = household.data
   const isOwner = data?.role === 'owner'
@@ -143,34 +143,6 @@ export function HouseholdScreen() {
     <>
     <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh} header={header}>
 
-      <YStack
-        marginTop="$5"
-        backgroundColor={palette.brandDeep}
-        padding="$5"
-        gap="$2"
-        style={{
-          borderTopLeftRadius: 36,
-          borderTopRightRadius: 20,
-          borderBottomRightRadius: 36,
-          borderBottomLeftRadius: 20,
-          shadowColor: palette.shadowCool,
-          shadowOffset: { width: 0, height: 16 },
-          shadowOpacity: 0.22,
-          shadowRadius: 28,
-          elevation: 6,
-        }}
-      >
-        <Text fontSize={12} fontWeight="600" color={palette.brandDeepTextSecondary}>
-          VOTRE FOYER
-        </Text>
-        <Text testID="household-name" fontSize={24} fontWeight="800" color={palette.brandDeepText} lineHeight={30}>
-          {data.name}
-        </Text>
-        <Text fontSize={13} fontWeight="500" color={palette.brandDeepTextSecondary}>
-          {data.members.length} membre{data.members.length > 1 ? 's' : ''} · tu es {ROLE_LABELS[data.role].toLowerCase()}
-        </Text>
-      </YStack>
-
       {data.inviteCode ? (
         <InviteShareCard
           householdName={data.name}
@@ -203,39 +175,24 @@ export function HouseholdScreen() {
           <Text fontSize={15} fontWeight="800" color={palette.ink}>
             Maison connectée
           </Text>
-          <Text fontSize={13} color={palette.inkSecondary}>
-            Garde ta liste de courses en phase avec Home Assistant.
-          </Text>
-          <Pressable
+          {/* Same card style as the Foyer button on Réglages (2026-09-09 ask):
+              an `IdentityCard`, not the bespoke mintPale row this used to be. */}
+          <IdentityCard
             testID="ha-settings-row"
+            bg={palette.mintPale}
+            labelColor={palette.mintPaleText}
+            chipColor={palette.chipTeal}
+            icon={<HomeIcon size={18} color={palette.onDark} />}
+            label="Home Assistant"
+            value={haLink.data?.configured && haLink.data.todoEntityName ? haLink.data.todoEntityName : 'Non configuré'}
+            secondary="Garde ta liste de courses en phase avec Home Assistant."
+            corner="b"
+            palette={palette}
             onPress={() => router.push('/home-assistant')}
-            onHoverIn={haRowHover.onHoverIn}
-            onHoverOut={haRowHover.onHoverOut}
-            onPressIn={haRowHover.onPressIn}
-            onPressOut={haRowHover.onPressOut}
-            accessibilityRole="button"
             accessibilityLabel={`Home Assistant. ${
               haLink.data?.configured && haLink.data.todoEntityName ? haLink.data.todoEntityName : 'Non configuré'
             }`}
-            style={pointerCursor}
-          >
-            <Animated.View style={{ transform: [{ scale: haRowHover.scale }] }}>
-              <XStack
-                alignItems="center"
-                gap="$3"
-                padding="$3"
-                minHeight={44}
-                backgroundColor={palette.mintPale}
-                borderRadius={14}
-              >
-                <HomeIcon size={18} color={palette.mintPaleText} />
-                <Text flex={1} fontSize={14} fontWeight="700" color={palette.ink} numberOfLines={1}>
-                  {haLink.data?.configured && haLink.data.todoEntityName ? haLink.data.todoEntityName : 'Non configuré'}
-                </Text>
-                <ChevronRightIcon size={18} color={palette.mintPaleText} />
-              </XStack>
-            </Animated.View>
-          </Pressable>
+          />
         </YStack>
       ) : null}
 

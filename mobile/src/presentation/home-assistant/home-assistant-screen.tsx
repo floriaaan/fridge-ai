@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
+import { Animated, Pressable, Switch } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
@@ -6,11 +8,12 @@ import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { FormCard } from '../shared/form-card.js'
 import { AuthField } from '../identity/auth-field.js'
-import { Chip } from '../shared/chip.js'
 import { PillButton } from '../shared/pill-button.js'
 import { ActionSheet } from '../shared/action-sheet.js'
+import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { HomeIcon, LogOutIcon } from '../dashboard/dashboard-icons.js'
+import type { SoftPalette } from '../dashboard/soft-palette.js'
+import { ArrowLeftIcon, ArrowRightIcon, CircleCheckIcon, HomeIcon, LogOutIcon, RefreshIcon } from '../dashboard/dashboard-icons.js'
 import { TodoEntityPicker } from './todo-entity-picker.js'
 import { useHaLinkQuery } from '../../application/home-assistant/ha-link.query.js'
 import { useSaveHaConnectionMutation } from '../../application/home-assistant/save-ha-connection.mutation.js'
@@ -29,6 +32,104 @@ const DIRECTION_HINTS: Record<HaSyncDirection, string> = {
   two_way: 'Les ajouts faits ici et dans Home Assistant se retrouvent des deux côtés.',
   push: 'Home Assistant reflète cette liste. Un article supprimé là-bas revient.',
   pull: 'Cette liste suit Home Assistant. Tes modifications ici seront écrasées.',
+}
+
+const DIRECTION_ICONS: Record<HaSyncDirection, typeof ArrowRightIcon> = {
+  two_way: RefreshIcon,
+  push: ArrowRightIcon,
+  pull: ArrowLeftIcon,
+}
+
+/**
+ * One radio per line, an icon ahead of the label — same card-row language
+ * `TodoEntityPicker`'s rows use (mint fill + check when selected), so the
+ * two lists in this screen read as the same kind of control (2026-09-09
+ * design pass: chips read as filters, not as "pick exactly one of three").
+ */
+function DirectionRow({
+  direction,
+  selected,
+  onPress,
+}: {
+  direction: HaSyncDirection
+  selected: boolean
+  onPress: () => void
+}) {
+  const palette = useSoftPalette()
+  const hover = useHoverPress()
+  const Icon = DIRECTION_ICONS[direction]
+  return (
+    <Pressable
+      testID={`ha-direction-${direction}`}
+      onPress={onPress}
+      onHoverIn={hover.onHoverIn}
+      onHoverOut={hover.onHoverOut}
+      onPressIn={hover.onPressIn}
+      onPressOut={hover.onPressOut}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={DIRECTION_LABELS[direction]}
+      style={pointerCursor}
+    >
+      <XStack
+        alignItems="center"
+        gap="$3"
+        paddingVertical="$3"
+        paddingHorizontal="$3"
+        minHeight={52}
+        borderRadius={16}
+        backgroundColor={selected ? palette.mintPale : palette.gradientBottom}
+        style={{
+          shadowColor: palette.shadowCool,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          elevation: 1,
+        }}
+      >
+        <Icon size={18} color={selected ? palette.mintPaleText : palette.inkSecondary} />
+        <Text flex={1} fontSize={14} fontWeight="700" color={selected ? palette.mintPaleText : palette.ink}>
+          {DIRECTION_LABELS[direction]}
+        </Text>
+        {selected ? <CircleCheckIcon size={18} color={palette.mintPaleText} /> : null}
+      </XStack>
+    </Pressable>
+  )
+}
+
+/** A labeled on/off row — the native `Switch`, not another `Chip`: this is a
+ * single setting toggling, not one choice among several (2026-09-09 ask). */
+function SwitchRow({
+  testID,
+  label,
+  accessibilityLabel,
+  value,
+  onValueChange,
+  palette,
+}: {
+  testID?: string
+  label: ReactNode
+  /** VoiceOver/TalkBack announce the bare `Switch` with no name of its own — pass the row's label as text here. */
+  accessibilityLabel: string
+  value: boolean
+  onValueChange: (value: boolean) => void
+  palette: SoftPalette
+}) {
+  return (
+    <XStack alignItems="center" justifyContent="space-between" gap="$3">
+      <Text flex={1} fontSize={14} fontWeight="600" color={palette.ink}>
+        {label}
+      </Text>
+      <Switch
+        testID={testID}
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: palette.paperRing, true: palette.mintPale }}
+        thumbColor={palette.onDark}
+        accessibilityLabel={accessibilityLabel}
+      />
+    </XStack>
+  )
 }
 
 /** French phrasing for the five distinct connection failures — never a
@@ -57,6 +158,7 @@ export function HomeAssistantScreen() {
   const discoverEntities = useDiscoverHaTodoEntitiesMutation()
   const bindList = useBindHaListMutation()
   const unlink = useUnlinkHaMutation()
+  const editLinkHover = useHoverPress()
 
   const [step, setStep] = useState<'connect' | 'list'>('connect')
   const [instanceUrl, setInstanceUrl] = useState('')
@@ -155,7 +257,12 @@ export function HomeAssistantScreen() {
         <ScreenHeader
           palette={palette}
           icon={(color) => <HomeIcon size={19} color={color} />}
-          title="Maison connectée"
+          title="Home Assistant"
+          // A step name, not a step count: "Étape 1/2" would still leave the
+          // question of what each step *is*. The two states were otherwise
+          // unlabeled — the only cue a foyer had for "which screen is this"
+          // was which fields happened to be on it (2026-09-09 design pass).
+          subtitle={step === 'connect' ? 'Connexion' : 'Liste et synchronisation'}
           onBack={() => router.back()}
         />
       }
@@ -193,60 +300,65 @@ export function HomeAssistantScreen() {
           />
         </FormCard>
       ) : (
-        <YStack gap="$4">
-          <TodoEntityPicker
-            entities={
-              entities.length > 0
-                ? entities
-                : link.data?.todoEntityId && link.data.todoEntityName
-                  ? [{ entityId: link.data.todoEntityId, friendlyName: link.data.todoEntityName }]
-                  : []
-            }
-            selectedEntityId={selectedEntityId}
-            onSelect={(entityId, friendlyName) => {
-              setSelectedEntityId(entityId)
-              setSelectedEntityName(friendlyName)
-            }}
-          />
+        // One `FormCard`, like every other form screen (shopping-item,
+        // fridge-item, receipt review) — this step used to be five loose
+        // groups floating directly on the blob background, the one screen
+        // in the app that skipped the single-card convention (2026-09-09
+        // design pass: "incohérent avec le reste de l'app"). Each group
+        // keeps its own small label, same style throughout, so the card
+        // reads as three questions answered in order rather than one
+        // undifferentiated stack of controls.
+        <FormCard palette={palette} gap="$4">
+          <YStack gap="$2">
+            <Text fontSize={13} fontWeight="700" color={palette.ink}>
+              Liste à synchroniser
+            </Text>
+            <TodoEntityPicker
+              entities={
+                entities.length > 0
+                  ? entities
+                  : link.data?.todoEntityId && link.data.todoEntityName
+                    ? [{ entityId: link.data.todoEntityId, friendlyName: link.data.todoEntityName }]
+                    : []
+              }
+              selectedEntityId={selectedEntityId}
+              onSelect={(entityId, friendlyName) => {
+                setSelectedEntityId(entityId)
+                setSelectedEntityName(friendlyName)
+              }}
+            />
+          </YStack>
 
           <YStack gap="$2">
-            <Text fontSize={13} color={palette.inkSecondary}>
+            <Text fontSize={13} fontWeight="700" color={palette.ink}>
               Sens de synchronisation
             </Text>
-            <XStack gap="$3" flexWrap="wrap">
+            <YStack gap="$2">
               {(Object.keys(DIRECTION_LABELS) as HaSyncDirection[]).map((value) => (
-                <Chip
-                  key={value}
-                  label={DIRECTION_LABELS[value]}
-                  selected={direction === value}
-                  onPress={() => setDirection(value)}
-                  palette={palette}
-                />
+                <DirectionRow key={value} direction={value} selected={direction === value} onPress={() => setDirection(value)} />
               ))}
-            </XStack>
+            </YStack>
             <Text fontSize={12} color={palette.inkSecondary}>
               {DIRECTION_HINTS[direction]}
             </Text>
           </YStack>
 
           <YStack gap="$2">
-            <Text fontSize={13} color={palette.inkSecondary}>
+            <Text fontSize={13} fontWeight="700" color={palette.ink}>
               Synchronisation
             </Text>
-            <XStack gap="$3" flexWrap="wrap">
-              <Chip
-                testID="ha-enabled-toggle"
-                label="Synchronisation active"
-                selected={enabled}
-                onPress={() => setEnabled(!enabled)}
-                palette={palette}
-              />
-            </XStack>
+            <SwitchRow
+              testID="ha-enabled-toggle"
+              label="Synchronisation active"
+              accessibilityLabel="Synchronisation active"
+              value={enabled}
+              onValueChange={setEnabled}
+              palette={palette}
+            />
+            <Text fontSize={12} color={palette.inkSecondary}>
+              {lastSyncLabel(link.data?.lastSyncAt ?? null, link.data?.lastError ?? null)}
+            </Text>
           </YStack>
-
-          <Text fontSize={12} color={palette.inkSecondary}>
-            {lastSyncLabel(link.data?.lastSyncAt ?? null, link.data?.lastError ?? null)}
-          </Text>
 
           {saveError ? (
             <Text fontSize={13} color={palette.expiredText} accessibilityLiveRegion="polite">
@@ -254,26 +366,39 @@ export function HomeAssistantScreen() {
             </Text>
           ) : null}
 
-          <PillButton testID="ha-save" label="Enregistrer" palette={palette} onPress={handleSave} />
+          <YStack gap="$3" marginTop="$2">
+            <XStack gap="$3" justifyContent="space-between">
+              <PillButton testID="ha-save" label="Enregistrer" palette={palette} onPress={handleSave} />
+              <PillButton
+                testID="ha-unlink"
+                label="Délier"
+                tone="quiet"
+                palette={palette}
+                icon={(color) => <LogOutIcon size={16} color={color} />}
+                onPress={() => setConfirmingUnlink(true)}
+              />
+            </XStack>
 
-          <Text
-            fontSize={13}
-            fontWeight="600"
-            color={palette.inkSecondary}
-            onPress={() => setStep('connect')}
-          >
-            Modifier la connexion
-          </Text>
-
-          <PillButton
-            testID="ha-unlink"
-            label="Délier"
-            tone="quiet"
-            palette={palette}
-            icon={(color) => <LogOutIcon size={16} color={color} />}
-            onPress={() => setConfirmingUnlink(true)}
-          />
-        </YStack>
+            <Pressable
+              testID="ha-edit-connection"
+              onPress={() => setStep('connect')}
+              onHoverIn={editLinkHover.onHoverIn}
+              onHoverOut={editLinkHover.onHoverOut}
+              onPressIn={editLinkHover.onPressIn}
+              onPressOut={editLinkHover.onPressOut}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Modifier la connexion"
+              style={[pointerCursor, { alignSelf: 'center' }]}
+            >
+              <Animated.View style={{ transform: [{ scale: editLinkHover.scale }] }}>
+                <Text fontSize={13} fontWeight="600" color={palette.inkSecondary} textAlign="center">
+                  Modifier la connexion
+                </Text>
+              </Animated.View>
+            </Pressable>
+          </YStack>
+        </FormCard>
       )}
 
       <ActionSheet

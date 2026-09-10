@@ -88,11 +88,19 @@ export function InviteShareCard({
         Donne-le à quelqu’un du foyer : il le saisit à l’inscription et voit le même garde-manger.
       </Text>
 
-      <XStack gap="$3" flexWrap="wrap">
+      {/* Same "one line, not a wrap" fix as the Home Assistant modal's
+          Enregistrer/Délier row (2026-09-09) — `dense` (`Chip`'s own
+          compact recipe) buys back the width three labeled pills need to
+          hold one row instead of wrapping to two. `gap="$3"`, not `$2`:
+          `dense` pads its own facing hitSlop back to 6px a side (12px
+          combined), and a facing gap under that overlaps two pills' press
+          areas — the same threshold `Chip` rows are held to. */}
+      <XStack gap="$3" justifyContent="space-between">
         <PillButton
           testID="household-invite-share"
           label="Partager"
-          icon={(color) => <ShareIcon size={15} color={color} />}
+          size="dense"
+          icon={(color) => <ShareIcon size={13} color={color} />}
           onPress={handleShare}
           accessibilityLabel="Partager le code d’invitation"
           palette={palette}
@@ -101,7 +109,8 @@ export function InviteShareCard({
           testID="household-invite-copy"
           label="Copier"
           tone="quiet"
-          icon={(color) => <CopyIcon size={15} color={color} />}
+          size="dense"
+          icon={(color) => <CopyIcon size={13} color={color} />}
           onPress={handleCopy}
           accessibilityLabel="Copier le code d’invitation"
           palette={palette}
@@ -110,7 +119,8 @@ export function InviteShareCard({
           testID="household-invite-qr-toggle"
           label={showQr ? 'Masquer le QR' : 'Afficher le QR'}
           tone="quiet"
-          icon={(color) => <QrCodeIcon size={15} color={color} />}
+          size="dense"
+          icon={(color) => <QrCodeIcon size={13} color={color} />}
           onPress={() => setShowQr(!showQr)}
           palette={palette}
         />

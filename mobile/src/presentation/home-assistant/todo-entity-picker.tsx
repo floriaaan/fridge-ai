@@ -4,6 +4,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { ripple } from '../shared/material.js'
+import { CircleCheckIcon } from '../dashboard/dashboard-icons.js'
 import type { HaTodoEntity } from '../../domain/home-assistant/ha-link.js'
 
 function normalize(value: string): string {
@@ -21,6 +22,12 @@ function TodoEntityRow({
 }) {
   const palette = useSoftPalette()
   const hover = useHoverPress()
+  // A card row, not a flat tinted rectangle: same language as `MemberRow`
+  // (household-screen) — its own surface + a card-float shadow — so the
+  // list reads as rows of cards rather than a bare radio list. Selection
+  // uses the Home Assistant mint pairing (matching the "Home Assistant"
+  // `IdentityCard` and its config button) instead of `accentLime`, which
+  // read as unrelated to the screen it sits on (2026-09-09 design pass).
   return (
     <Pressable
       testID={`todo-entity-${entity.entityId}`}
@@ -38,19 +45,29 @@ function TodoEntityRow({
       <XStack
         alignItems="center"
         justifyContent="space-between"
+        gap="$2"
         paddingVertical="$3"
         paddingHorizontal="$3"
-        borderRadius={14}
-        backgroundColor={selected ? palette.accentLime : 'transparent'}
+        minHeight={56}
+        borderRadius={16}
+        backgroundColor={selected ? palette.mintPale : palette.gradientBottom}
+        style={{
+          shadowColor: palette.shadowCool,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          elevation: 1,
+        }}
       >
-        <YStack>
-          <Text fontSize={14} fontWeight="700" color={palette.ink}>
+        <YStack flex={1} minWidth={0}>
+          <Text fontSize={14} fontWeight="700" color={selected ? palette.mintPaleText : palette.ink}>
             {entity.friendlyName}
           </Text>
-          <Text fontSize={12} color={palette.inkSecondary}>
+          <Text fontSize={12} color={selected ? palette.mintPaleText : palette.inkSecondary}>
             {entity.entityId}
           </Text>
         </YStack>
+        {selected ? <CircleCheckIcon size={18} color={palette.mintPaleText} /> : null}
       </XStack>
     </Pressable>
   )
@@ -90,7 +107,7 @@ export function TodoEntityPicker({
           backgroundColor: palette.cream,
         }}
       />
-      <YStack>
+      <YStack gap="$2">
         {filtered.map((entity) => (
           <TodoEntityRow
             key={entity.entityId}
