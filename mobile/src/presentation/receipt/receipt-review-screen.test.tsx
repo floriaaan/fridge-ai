@@ -40,6 +40,20 @@ test('scans the image on mount and pre-fills the form from the draft', async () 
   expect(screen.getByTestId('receipt-review-photo').props.source).toEqual({ uri: 'file://receipt.jpg' })
 })
 
+test('pre-fills an item’s expiry from the AI’s estimate, counted from the receipt’s own date — and leaves it blank with none', async () => {
+  await renderWithProviders(<ReceiptReviewScreen imageUri="file://receipt.jpg" />)
+
+  await waitFor(() => expect(screen.getByTestId('receipt-item-0-toggle')).toBeTruthy())
+
+  // Fixture: scannedAt 2026-08-28, "Lait demi-écrémé" carries expiresInDays: 10.
+  await fireEvent.press(screen.getByTestId('receipt-item-0-toggle'))
+  expect(screen.getByTestId('receipt-item-0-expires-at').props.value).toBe('2026-09-07')
+
+  // "Pain de mie" carries no estimate (expiresInDays: null) — nothing guessed.
+  await fireEvent.press(screen.getByTestId('receipt-item-1-toggle'))
+  expect(screen.getByTestId('receipt-item-1-expires-at').props.value).toBe('')
+})
+
 test('importing confirms what landed in the fridge instead of dropping the user on the dashboard', async () => {
   await renderWithProviders(<ReceiptReviewScreen imageUri="file://receipt.jpg" />)
 

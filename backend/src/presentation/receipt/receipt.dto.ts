@@ -11,6 +11,7 @@ export interface ReceiptDraftDto {
     unit: string
     category: string | null
     price: number | null
+    expiresInDays: number | null
   }[]
 }
 

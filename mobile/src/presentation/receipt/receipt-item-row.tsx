@@ -6,6 +6,7 @@ import { CalendarIcon, ChevronRightIcon, PencilIcon, ScaleIcon, TagIcon, WalletI
 import { FormField } from '../fridge/form-field.js'
 import { LOCATIONS } from '../../domain/fridge/location.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
+import { daysUntilExpiry, expiryLabel } from '../dashboard/product-status.js'
 
 /**
  * String fields for every text input (same convention `fridge-form-screen.tsx`
@@ -20,6 +21,13 @@ export interface EditableReceiptItem {
   price: string
   location: LocationValue
   expiresAt: string
+  /**
+   * True when `expiresAt` was filled in from the AI's `expiresInDays` guess
+   * rather than typed. Drives the "estimée" hint below, and clears the
+   * moment the household edits the field — at that point it's their date,
+   * not a guess to keep flagging.
+   */
+  expiresAtEstimated: boolean
 }
 
 export type ReceiptItemErrors = Partial<Record<'name' | 'quantity' | 'price' | 'expiresAt', string>>
@@ -57,13 +65,20 @@ export function ReceiptItemRow({
   const hasError = Boolean(errors && Object.keys(errors).length > 0)
 
   function set<K extends keyof EditableReceiptItem>(key: K, value: EditableReceiptItem[K]) {
-    onChange({ ...item, [key]: value })
+    // Editing the date by hand is the household taking ownership of it —
+    // the "estimée" hint below only makes sense while the value is still
+    // the AI's guess, untouched.
+    onChange({ ...item, [key]: value, ...(key === 'expiresAt' ? { expiresAtEstimated: false } : null) })
   }
 
   const summary = [
     item.quantity.trim().length > 0 ? `${item.quantity} ${item.unit}`.trim() : null,
     LOCATION_LABELS[item.location],
     item.price.trim().length > 0 ? `${item.price} €` : null,
+    // Same vocabulary the fridge list and dashboard use for a date
+    // (`expiryLabel`/`daysUntilExpiry`) — one source of truth for "what does
+    // this date mean", not a second phrasing invented for this screen.
+    item.expiresAt.trim().length > 0 ? expiryLabel(daysUntilExpiry({ expiresAt: item.expiresAt })) : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -199,7 +214,11 @@ export function ReceiptItemRow({
             palette={palette}
             keyboardType="numbers-and-punctuation"
             placeholder="AAAA-MM-JJ"
-            hint="Laisse vide si le produit se garde longtemps."
+            hint={
+              item.expiresAtEstimated
+                ? 'Estimée par l’IA à partir du produit — vérifie si besoin.'
+                : 'Laisse vide si le produit se garde longtemps.'
+            }
             error={errors?.expiresAt}
             icon={(color) => <CalendarIcon size={13} color={color} />}
           />

@@ -83,7 +83,23 @@ function parseDateOrNull(value: string): string | null | 'invalid' {
   return date.toISOString()
 }
 
-function toEditable(item: ReceiptDraftItem): EditableReceiptItem {
+/**
+ * `scannedAt` is the ticket's own purchase date, not "today" — a receipt
+ * reviewed a week after the shopping trip should still count shelf life
+ * from when the food was actually bought. `null` when the AI had no
+ * estimate for this item, or the ticket's own date failed to parse.
+ */
+function estimateExpiresAt(scannedAt: string, expiresInDays: number | null): string | null {
+  if (expiresInDays === null) return null
+  const scanned = new Date(scannedAt)
+  if (Number.isNaN(scanned.getTime())) return null
+  const expires = new Date(scanned)
+  expires.setUTCDate(expires.getUTCDate() + expiresInDays)
+  return expires.toISOString().slice(0, 10)
+}
+
+function toEditable(item: ReceiptDraftItem, scannedAt: string): EditableReceiptItem {
+  const estimated = estimateExpiresAt(scannedAt, item.expiresInDays)
   return {
     name: item.name,
     quantity: String(item.quantity),
@@ -91,7 +107,11 @@ function toEditable(item: ReceiptDraftItem): EditableReceiptItem {
     category: item.category ?? '',
     price: item.price !== null ? String(item.price) : '',
     location: 'fridge',
-    expiresAt: '',
+    // A pre-filled guess, not a fact — still just as editable as every other
+    // extracted field, and `expiresAtEstimated` fades once the household
+    // types over it (see `receipt-item-row.tsx`).
+    expiresAt: estimated ?? '',
+    expiresAtEstimated: estimated !== null,
   }
 }
 
@@ -124,7 +144,7 @@ export function ReceiptReviewScreen({ imageUri }: { imageUri: string }) {
     setStoreName(result.value.storeName)
     setScannedAt(result.value.scannedAt.slice(0, 10))
     setTotalAmount(String(result.value.totalAmount))
-    setItems(result.value.items.map(toEditable))
+    setItems(result.value.items.map((item) => toEditable(item, result.value.scannedAt)))
   }
 
   useEffect(() => {

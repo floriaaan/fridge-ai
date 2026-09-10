@@ -47,4 +47,35 @@ test.group('parseReceiptDraftJson', () => {
     })
     assert.throws(() => parseReceiptDraftJson(badItem), ReceiptExtractionParseError)
   })
+
+  test('carries the model’s expiresInDays estimate onto the item', ({ assert }) => {
+    const withEstimate = JSON.stringify({
+      storeName: 'Carrefour',
+      scannedAt: '2026-08-26T18:00:00Z',
+      totalAmount: 2.4,
+      items: [{ name: 'Yaourt nature', quantity: 1, unit: 'piece', category: 'Produits laitiers', price: 2.4, expiresInDays: 7 }],
+    })
+    const draft = parseReceiptDraftJson(withEstimate)
+    assert.equal(draft.items[0]?.expiresInDays, 7)
+  })
+
+  test('defaults expiresInDays to null when the model gives none, or a nonsensical one', ({ assert }) => {
+    const noEstimate = JSON.stringify({
+      storeName: 'Carrefour',
+      scannedAt: '2026-08-26T18:00:00Z',
+      totalAmount: 1,
+      items: [{ name: 'Riz', quantity: 1, unit: 'piece', category: null, price: null }],
+    })
+    assert.isNull(parseReceiptDraftJson(noEstimate).items[0]?.expiresInDays)
+
+    // A negative day count is a hallucination, not a value to trust onto a
+    // household's fridge — the item still parses, just without the guess.
+    const negativeEstimate = JSON.stringify({
+      storeName: 'Carrefour',
+      scannedAt: '2026-08-26T18:00:00Z',
+      totalAmount: 1,
+      items: [{ name: 'Riz', quantity: 1, unit: 'piece', category: null, price: null, expiresInDays: -3 }],
+    })
+    assert.isNull(parseReceiptDraftJson(negativeEstimate).items[0]?.expiresInDays)
+  })
 })

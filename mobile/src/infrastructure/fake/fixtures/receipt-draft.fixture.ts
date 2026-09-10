@@ -5,7 +5,9 @@ export const fakeReceiptDraft: ReceiptDraft = {
   scannedAt: '2026-08-28T10:00:00.000Z',
   totalAmount: 24.5,
   items: [
-    { name: 'Lait demi-écrémé', quantity: 2, unit: 'L', category: 'Produits laitiers', price: 2.4 },
-    { name: 'Pain de mie', quantity: 1, unit: 'pièce', category: 'Boulangerie', price: 1.8 },
+    { name: 'Lait demi-écrémé', quantity: 2, unit: 'L', category: 'Produits laitiers', price: 2.4, expiresInDays: 10 },
+    // No estimate on purpose: exercises the "AI had nothing to say" path
+    // alongside the estimated one above.
+    { name: 'Pain de mie', quantity: 1, unit: 'pièce', category: 'Boulangerie', price: 1.8, expiresInDays: null },
   ],
 }
