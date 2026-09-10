@@ -5,10 +5,12 @@
  * here so new screens don't reinvent it or, worse, ship a silent no-op.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Animated, Easing } from 'react-native'
 import { Text, XStack, YStack } from './tamagui-typed.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { IS_ANDROID, materialRoles, surfaceShadow } from './material.js'
 import { CircleCheckIcon, TriangleAlertIcon } from '../dashboard/dashboard-icons.js'
+import { useReduceMotion } from './hover.js'
 
 /** Hints clear themselves: a toast that never leaves stops reading as feedback. */
 const HINT_MS = 3200
@@ -53,9 +55,11 @@ export function useHint(): [Hint | null, (message: string, kind?: Hint['kind']) 
  * card redesign below (a 2026-09 complaint: "pill flottant" read as too
  * discreet — that was never Android's shape to begin with).
  *
- * iOS/web: a full-width card, asymmetric radii matching every other card in
- * this system (`IngredientGroup`, `CookedAction`…), not the shrink-to-fit
- * pill this used to be — same content, same timing, same live region.
+ * iOS/web: a full-width card, one uniform corner radius on every side (a
+ * 2026-09 complaint: the earlier asymmetric radii it borrowed from
+ * `IngredientGroup`/`CookedAction` read as inconsistent borders on a toast,
+ * where every other surface — Android's Snackbar included — keeps all four
+ * corners equal) — same content, same timing, same live region.
  */
 export function HintBubble({
   hint,
@@ -77,17 +81,55 @@ export function HintBubble({
    */
   liftForNativeTabBar?: boolean
 }) {
-  if (!hint) return null
+  const reduceMotion = useReduceMotion()
+  // A hint clearing itself is a prop going straight to null — with no state
+  // of its own the toast would vanish in the same frame it appeared in, so
+  // `rendered` holds the last real hint through the exit fade, and the exit
+  // animation is what actually unmounts it. Adjusted during render (React's
+  // own pattern for mirroring a changed prop into state) rather than in the
+  // effect below, which is left to do only the actual side effect: driving
+  // the animation.
+  const [rendered, setRendered] = useState<Hint | null>(null)
+  const [trackedHint, setTrackedHint] = useState<Hint | null>(hint)
+  const [progress] = useState(() => new Animated.Value(0))
+
+  if (hint !== trackedHint) {
+    setTrackedHint(hint)
+    if (hint) setRendered(hint)
+  }
+
+  useEffect(() => {
+    if (hint) {
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: reduceMotion ? 0 : 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start()
+    } else {
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: reduceMotion ? 0 : 160,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setRendered(null)
+      })
+    }
+  }, [hint, progress, reduceMotion])
+
+  if (!rendered) return null
   const roles = materialRoles(palette)
+  const entrance = {
+    opacity: progress,
+    transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+  }
 
   if (IS_ANDROID) {
     return (
-      <YStack
-        position="absolute"
-        left={16}
-        right={16}
-        bottom={96}
-        style={{ pointerEvents: 'none' }}
+      <Animated.View
+        style={[{ position: 'absolute', left: 16, right: 16, bottom: 96 }, entrance]}
+        pointerEvents="none"
         accessibilityLiveRegion="polite"
       >
         <YStack
@@ -100,24 +142,21 @@ export function HintBubble({
           style={surfaceShadow(palette, 3, { offsetY: 6, opacity: 0.2, radius: 12 })}
         >
           <Text fontSize={14} fontWeight="500" color={roles.inverseOnSurface}>
-            {hint.message}
+            {rendered.message}
           </Text>
         </YStack>
-      </YStack>
+      </Animated.View>
     )
   }
 
-  const bg = hint.kind === 'success' ? palette.mintPale : hint.kind === 'error' ? palette.expiredBg : palette.brandDeep
-  const text = hint.kind === 'success' ? palette.mintPaleText : hint.kind === 'error' ? palette.expiredText : palette.brandDeepText
-  const Icon = hint.kind === 'success' ? CircleCheckIcon : hint.kind === 'error' ? TriangleAlertIcon : null
+  const bg = rendered.kind === 'success' ? palette.mintPale : rendered.kind === 'error' ? palette.expiredBg : palette.brandDeep
+  const text = rendered.kind === 'success' ? palette.mintPaleText : rendered.kind === 'error' ? palette.expiredText : palette.brandDeepText
+  const Icon = rendered.kind === 'success' ? CircleCheckIcon : rendered.kind === 'error' ? TriangleAlertIcon : null
 
   return (
-    <YStack
-      position="absolute"
-      left={20}
-      right={20}
-      bottom={liftForNativeTabBar ? 100 : 18}
-      style={{ pointerEvents: 'none' }}
+    <Animated.View
+      style={[{ position: 'absolute', left: 20, right: 20, bottom: liftForNativeTabBar ? 100 : 18 }, entrance]}
+      pointerEvents="none"
       accessibilityLiveRegion="polite"
     >
       <XStack
@@ -128,18 +167,15 @@ export function HintBubble({
         paddingHorizontal="$4"
         minHeight={52}
         style={{
-          borderTopLeftRadius: 26,
-          borderTopRightRadius: 14,
-          borderBottomRightRadius: 26,
-          borderBottomLeftRadius: 14,
+          borderRadius: 18,
           ...surfaceShadow(palette, 3, { offsetY: 10, opacity: 0.18, radius: 20 }),
         }}
       >
         {Icon ? <Icon size={18} color={text} /> : null}
         <Text fontSize={13} fontWeight="700" color={text} flex={1}>
-          {hint.message}
+          {rendered.message}
         </Text>
       </XStack>
-    </YStack>
+    </Animated.View>
   )
 }
