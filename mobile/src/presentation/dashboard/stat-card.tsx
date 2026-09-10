@@ -56,6 +56,7 @@ export function StatCard({
   const card = (
     <YStack
       flex={1}
+      minHeight={128}
       backgroundColor={bg}
       padding="$4"
       gap="$2"
@@ -93,16 +94,22 @@ export function StatCard({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       // The card used to *be* the row's flex child; it is now two levels down,
-      // and every level has to carry the stretch or the row equalises the
-      // wrappers while the pastel fills inside them keep their own content
-      // heights — three cards of three different heights, which is what web
-      // showed ("Dates dépassées" wraps to two lines where the others don't).
-      // `alignSelf: 'stretch'` is the belt to `flex: 1`'s braces: it pins the
-      // cross-axis size even where the parent's `align-items` is not inherited
-      // the way React Native's own layout engine assumes.
+      // so *this* level (the row's direct child) carries `flex: 1` for width
+      // — three equal columns. `Animated.View` below is a single-child
+      // pass-through, not a row participant, so it must NOT repeat
+      // `flex: 1` (i.e. `flex-basis: 0`): react-native-web's base View rule
+      // forces `min-height: 0` on every View, and a `flex-basis: 0` item is
+      // then free to size *below* its own content's height where native
+      // Yoga wouldn't — the pastel card would collapse to a sliver and its
+      // icon+label+value would spill out under it into the next section
+      // (caught live on web: "Dates dépassées" wraps to two lines where the
+      // others don't, and shorter cards clipped their own content). Its
+      // `alignSelf: 'stretch'` alone still fills this button's cross-axis
+      // (width, in this column-direction wrapper) with no grow/shrink-driven
+      // height collapse.
       style={[{ flex: 1, alignSelf: 'stretch' }, pointerCursor]}
     >
-      <Animated.View style={{ flex: 1, alignSelf: 'stretch', transform: [{ scale: hover.scale }] }}>{card}</Animated.View>
+      <Animated.View style={{ alignSelf: 'stretch', transform: [{ scale: hover.scale }] }}>{card}</Animated.View>
     </Pressable>
   )
 }
