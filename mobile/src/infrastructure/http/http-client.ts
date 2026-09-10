@@ -2,9 +2,38 @@ import { Platform } from 'react-native'
 import { Result } from '../../domain/shared/result.js'
 import { telemetry } from '../telemetry/telemetry.js'
 import { authClient } from '../auth/auth-client.js'
+import { queryClient } from '../../application/shared/query-client.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL as string
+
+/**
+ * The backend revoking a session mid-visit (cookie expired, signed out
+ * elsewhere, server restarted with in-memory sessions) used to leave the app
+ * stuck between two states forever: every protected call now 401s, but
+ * nothing ever told the `(tabs)`/`(auth)` gates — both read `useSessionQuery`
+ * off TanStack's cache, which nothing here refetches on its own (no
+ * `AppState`/`focusManager` wiring, and the screens that hold it never
+ * remount) — so `session.data` stayed the last *truthy* answer from cold
+ * start and the app went on rendering protected screens against a session
+ * the server had already thrown away. Not signed in, not signed out either.
+ *
+ * `requireAuthenticatedUser` on the backend (see `auth-context.ts`) throws
+ * exactly one shape for this — `{ type: 'unauthenticated' }` — deliberately
+ * distinct from `invalid_credentials` (a rejected sign-in attempt, which
+ * never reaches here: it goes through `authClient.signIn.email`, not this
+ * module), so this only fires for a session that *was* valid and just died.
+ */
+function handleUnauthenticated() {
+  // Flips every gate and query reading `useSessionQuery()` to "signed out"
+  // immediately — no need to re-ask the backend to confirm what it just
+  // said. `(tabs)/_layout.tsx` redirects to `/(auth)/sign-in` on its next
+  // render once `session.data` is `null`.
+  queryClient.setQueryData(['session'], null)
+  // Best-effort: also drops the now-dead cookie from SecureStore, so later
+  // requests stop sending it. The gate flip above doesn't depend on this.
+  authClient.signOut().catch(() => {})
+}
 
 /**
  * Wraps one outgoing call in a client span and injects `traceparent`, so the
@@ -81,7 +110,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Res
     // A 204 always means "success, no body" — nothing to parse.
     if (response.status === 204) return Result.ok(undefined as T)
     const body = await response.json()
-    if (!response.ok) return Result.err(body.error as ApiError)
+    if (!response.ok) {
+      const error = body.error as ApiError
+      if (error.type === 'unauthenticated') handleUnauthenticated()
+      return Result.err(error)
+    }
     return Result.ok(body as T)
   } catch (error) {
     // Covers two cases: `tracedFetch` already logged a pure transport
@@ -109,7 +142,11 @@ export async function apiFetchMultipart<T>(path: string, formData: FormData): Pr
     })
     if (response.status === 204) return Result.ok(undefined as T)
     const body = await response.json()
-    if (!response.ok) return Result.err(body.error as ApiError)
+    if (!response.ok) {
+      const error = body.error as ApiError
+      if (error.type === 'unauthenticated') handleUnauthenticated()
+      return Result.err(error)
+    }
     return Result.ok(body as T)
   } catch (error) {
     console.error(`[api] POST ${path} could not be completed`, error)
