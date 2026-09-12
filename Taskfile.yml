@@ -3,6 +3,16 @@ version: '3'
 vars:
   BACKEND: fridge-ai-backend
   MOBILE: fridge-ai-mobile
+  # -f is explicit below, which turns off Compose's own compose.yaml +
+  # compose.override.yaml auto-lookup — so re-add the override by hand
+  # whenever it's there (cf. compose.override.yml.example).
+  COMPOSE:
+    sh: |
+      if [ -f compose.override.yml ]; then
+        echo "docker compose -f compose.yml -f compose.override.yml"
+      else
+        echo "docker compose -f compose.yml"
+      fi
 
 tasks:
   setup:
@@ -25,18 +35,27 @@ tasks:
   dev:db:
     desc: Start only the Postgres container.
     cmds:
-      - docker compose -f compose.yml up -d db
+      # --wait: block until the healthcheck passes, not just until the
+      # container starts — dev:back connects right after this returns and
+      # Postgres isn't ready to accept connections the instant it starts.
+      - "{{.COMPOSE}} up -d --wait db"
 
   dev:back:
     desc: Run the backend dev server locally (HMR).
     dir: backend
     cmds:
+      # `node ace serve` silently falls back to a random port when 3333 is
+      # already held (cf. dev/kill-port.sh) — a leftover process from a
+      # killed pane would otherwise start serving somewhere else with no
+      # warning, and every client still pointed at :3333 just sees
+      # "unreachable".
+      - ../dev/kill-port.sh "${PORT:-3333}"
       - pnpm run dev
 
-  dev:proxy:
-    desc: Run the same-origin dev proxy (Caddy, :8080 → Metro :8081 + backend :3333/api) — point mobile web at this origin so the session cookie is never cross-site. Run alongside `task dev:back` and `task dev:mobile`.
+  dev:tmux:
+    desc: Open a tmux session with the full dev stack (backend, mobile, otel logs) plus a claude pane and a scratch bash pane.
     cmds:
-      - caddy run --config dev/Caddyfile --adapter caddyfile
+      - dev/tmux-dev.sh
 
   db:migrate:
     desc: Run pending database migrations.
@@ -129,29 +148,29 @@ tasks:
   up:
     desc: Start the production-like stack.
     cmds:
-      - docker compose -f compose.yml up -d --build
+      - "{{.COMPOSE}} up -d --build"
 
   down:
     desc: Stop the stack.
     cmds:
-      - docker compose -f compose.yml down
+      - "{{.COMPOSE}} down"
 
   logs:
     desc: Tail logs for the whole stack.
     cmds:
-      - docker compose -f compose.yml logs -f
+      - "{{.COMPOSE}} logs -f"
 
   up:app-only:
     desc: Start the app without the observability stack (db + backend only).
     cmds:
-      - docker compose -f compose.yml up -d --build db backend
+      - "{{.COMPOSE}} up -d --build db backend"
 
   obs:down:
     desc: Stop the observability stack, leaving the app running.
     cmds:
-      - docker compose -f compose.yml stop otel-collector openobserve
+      - "{{.COMPOSE}} stop otel-collector openobserve"
 
   obs:logs:
     desc: Tail the collector's logs — where a rejected or misrouted export shows up.
     cmds:
-      - docker compose -f compose.yml logs -f otel-collector
+      - "{{.COMPOSE}} logs -f otel-collector"
