@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { requireAuthenticatedUser } from '#presentation/shared/auth-context'
 import { serializeError } from '#presentation/shared/error-serializer'
+import { traceAction } from '#presentation/shared/trace-action'
 import {
   createShoppingItemValidator,
   updateShoppingItemValidator,
@@ -14,67 +15,115 @@ import { DeleteShoppingItem } from '#application/shopping-list/delete-shopping-i
 export default class ShoppingItemController {
   async index(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
-    const items = await ctx.containerResolver.make('shoppingList.items')
-    const result = await new ListShoppingItems(items).execute({ householdId: ctx.household.id })
-    return ctx.response.json({ items: result.map(toShoppingItemDto) })
+    return traceAction(
+      ctx,
+      'shopping_list',
+      ListShoppingItems,
+      async () => {
+        const items = await ctx.containerResolver.make('shoppingList.items')
+        const result = await new ListShoppingItems(items).execute({ householdId: ctx.household.id })
+        ctx.response.json({ items: result.map(toShoppingItemDto) })
+      },
+      { action: 'shopping_list.get_items' },
+    )
   }
 
   async store(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
-    const payload = await ctx.request.validateUsing(createShoppingItemValidator)
-    const items = await ctx.containerResolver.make('shoppingList.items')
-    const idGenerator = await ctx.containerResolver.make('shared.idGenerator')
-    const clock = await ctx.containerResolver.make('shared.clock')
+    return traceAction(
+      ctx,
+      'shopping_list',
+      CreateShoppingItem,
+      async () => {
+        const payload = await ctx.request.validateUsing(createShoppingItemValidator)
+        const items = await ctx.containerResolver.make('shoppingList.items')
+        const idGenerator = await ctx.containerResolver.make('shared.idGenerator')
+        const clock = await ctx.containerResolver.make('shared.clock')
 
-    const result = await new CreateShoppingItem(items, idGenerator, clock).execute({
-      householdId: ctx.household.id,
-      ...payload,
-    })
-    if (!result.ok) {
-      const { status, body } = serializeError(result.error)
-      return ctx.response.status(status).json(body)
-    }
-    const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
-    await mirror.itemCreated(result.value)
-    return ctx.response.status(201).json({ item: toShoppingItemDto(result.value) })
+        const result = await new CreateShoppingItem(items, idGenerator, clock).execute({
+          householdId: ctx.household.id,
+          ...payload,
+        })
+        if (!result.ok) {
+          const { status, body } = serializeError(result.error)
+          ctx.response.status(status).json(body)
+          return result
+        }
+        const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
+        // A merge (`created: false`) touched an existing line — HA already has
+        // it, so this must update that entry, not add a second one.
+        if (result.value.created) {
+          await mirror.itemCreated(result.value.item)
+        } else {
+          await mirror.itemUpdated(result.value.item)
+        }
+        ctx.response.status(201).json({ item: toShoppingItemDto(result.value.item) })
+        return result
+      },
+      {
+        isError: (r) => !r.ok,
+        entityId: (r) => (r.ok ? r.value.item.id : undefined),
+        action: 'shopping_list.create_item',
+      },
+    )
   }
 
   async update(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
-    const payload = await ctx.request.validateUsing(updateShoppingItemValidator)
-    const items = await ctx.containerResolver.make('shoppingList.items')
-    const clock = await ctx.containerResolver.make('shared.clock')
+    return traceAction(
+      ctx,
+      'shopping_list',
+      UpdateShoppingItem,
+      async () => {
+        const payload = await ctx.request.validateUsing(updateShoppingItemValidator)
+        const items = await ctx.containerResolver.make('shoppingList.items')
+        const clock = await ctx.containerResolver.make('shared.clock')
 
-    const result = await new UpdateShoppingItem(items, clock).execute({
-      householdId: ctx.household.id,
-      itemId: ctx.params.id,
-      ...payload,
-    })
-    if (!result.ok) {
-      const { status, body } = serializeError(result.error)
-      return ctx.response.status(status).json(body)
-    }
-    const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
-    await mirror.itemUpdated(result.value)
-    return ctx.response.json({ item: toShoppingItemDto(result.value) })
+        const result = await new UpdateShoppingItem(items, clock).execute({
+          householdId: ctx.household.id,
+          itemId: ctx.params.id,
+          ...payload,
+        })
+        if (!result.ok) {
+          const { status, body } = serializeError(result.error)
+          ctx.response.status(status).json(body)
+          return result
+        }
+        const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
+        await mirror.itemUpdated(result.value)
+        ctx.response.json({ item: toShoppingItemDto(result.value) })
+        return result
+      },
+      { isError: (r) => !r.ok, action: 'shopping_list.update_item' },
+    )
   }
 
   async destroy(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
-    const items = await ctx.containerResolver.make('shoppingList.items')
-    // Fetched before the delete so its haUid is still known — DeleteShoppingItem
-    // does its own lookup internally and returns void, not the deleted item.
-    const existing = await items.findById(ctx.params.id)
-    const result = await new DeleteShoppingItem(items).execute({
-      householdId: ctx.household.id,
-      itemId: ctx.params.id,
-    })
-    if (!result.ok) {
-      const { status, body } = serializeError(result.error)
-      return ctx.response.status(status).json(body)
-    }
-    const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
-    await mirror.itemDeleted(ctx.household.id, existing?.haUid ?? null)
-    return ctx.response.status(204).send('')
+    return traceAction(
+      ctx,
+      'shopping_list',
+      DeleteShoppingItem,
+      async () => {
+        const items = await ctx.containerResolver.make('shoppingList.items')
+        // Fetched before the delete so its haUid is still known — DeleteShoppingItem
+        // does its own lookup internally and returns void, not the deleted item.
+        const existing = await items.findById(ctx.params.id)
+        const result = await new DeleteShoppingItem(items).execute({
+          householdId: ctx.household.id,
+          itemId: ctx.params.id,
+        })
+        if (!result.ok) {
+          const { status, body } = serializeError(result.error)
+          ctx.response.status(status).json(body)
+          return result
+        }
+        const mirror = await ctx.containerResolver.make('homeAssistant.shoppingListMirror')
+        await mirror.itemDeleted(ctx.household.id, existing?.haUid ?? null)
+        ctx.response.status(204).send('')
+        return result
+      },
+      { isError: (r) => !r.ok, action: 'shopping_list.delete_item' },
+    )
   }
 }

@@ -2,10 +2,8 @@ import type { ReceiptExtractionPort } from '#domain/receipt/interfaces/receipt-e
 import type { ReceiptDraft } from '#domain/receipt/receipt-draft'
 import { parseReceiptDraftJson } from '#domain/receipt/receipt-draft-parser'
 import { ReceiptExtractionUnavailableError } from '#domain/receipt/receipt-extraction.errors'
-
-const EXTRACTION_PROMPT = `Analyse cette photo de ticket de caisse et retourne UNIQUEMENT un JSON de la forme :
-{"storeName": string, "scannedAt": string (ISO 8601), "totalAmount": number, "items": [{"name": string, "quantity": number, "unit": string, "category": string | null, "price": number | null}]}
-Pas de texte hors du JSON.`
+import { RECEIPT_EXTRACTION_PROMPT } from '#domain/receipt/receipt-extraction-prompt'
+import { logAiAdapterFailure } from './log-ai-adapter-failure.js'
 
 export class OllamaReceiptExtractionAdapter implements ReceiptExtractionPort {
   constructor(
@@ -16,19 +14,41 @@ export class OllamaReceiptExtractionAdapter implements ReceiptExtractionPort {
   async extract(image: Buffer): Promise<ReceiptDraft> {
     if (!this.model) throw new ReceiptExtractionUnavailableError('ollama')
 
-    const response = await fetch(`${this.baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        prompt: EXTRACTION_PROMPT,
-        images: [image.toString('base64')],
-        stream: false,
-      }),
-    })
-    if (!response.ok) throw new ReceiptExtractionUnavailableError('ollama')
+    let response: Response
+    try {
+      response = await fetch(`${this.baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.model,
+          prompt: RECEIPT_EXTRACTION_PROMPT,
+          images: [image.toString('base64')],
+          stream: false,
+        }),
+      })
+    } catch (error) {
+      // Unreachable host — never surfaced before, silently became the same
+      // generic "provider not configured" as a genuinely missing model.
+      logAiAdapterFailure('receipt-extraction', 'ollama', error, `unreachable at ${this.baseUrl}`)
+      throw new ReceiptExtractionUnavailableError('ollama')
+    }
+    if (!response.ok) {
+      logAiAdapterFailure(
+        'receipt-extraction',
+        'ollama',
+        new Error(`HTTP ${response.status}`),
+        await response.text().catch(() => undefined),
+      )
+      throw new ReceiptExtractionUnavailableError('ollama')
+    }
 
     const body = (await response.json()) as { response?: string }
-    return parseReceiptDraftJson(body.response ?? '')
+    const text = body.response ?? ''
+    try {
+      return parseReceiptDraftJson(text)
+    } catch (error) {
+      logAiAdapterFailure('receipt-extraction', 'ollama', error, text.slice(0, 500))
+      throw error
+    }
   }
 }

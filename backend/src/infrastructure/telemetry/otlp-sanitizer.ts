@@ -53,6 +53,12 @@ const ALLOWED_SIGNAL_ATTRIBUTES = new Set([
   'app.screen',
   'app.operation',
   'app.telemetry.dropped',
+  'action',
+  // Single shared entity-id key for every domain (product/recipe/item/
+  // receipt/targetUser), mirroring the backend's own `entityId` field in
+  // trace-action.ts — one allowlist entry instead of five per-domain ones.
+  'entity.id',
+  'app.storage_key',
 ])
 
 interface OtlpAttribute {

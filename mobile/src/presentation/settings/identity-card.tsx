@@ -68,6 +68,7 @@ export function IdentityCard({
 
   const card = (
     <YStack
+      testID={onPress ? undefined : testID}
       backgroundColor={bg}
       padding="$4"
       gap="$3"

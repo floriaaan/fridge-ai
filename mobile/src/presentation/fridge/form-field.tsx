@@ -57,7 +57,7 @@ export function FormField({
   const borderColor = error ? palette.expired : focused ? palette.accentLime : 'transparent'
 
   return (
-    <YStack gap="$1">
+    <YStack gap="$2">
       <XStack alignItems="center" gap="$1.5">
         {icon ? icon(palette.inkSecondary) : null}
         <Text fontSize={12} fontWeight="700" color={palette.ink}>

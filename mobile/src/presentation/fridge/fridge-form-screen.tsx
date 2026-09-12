@@ -9,7 +9,7 @@
  * OpenFoodFacts lookup the app already fetches, per-field errors, and a
  * guard before an accidental back throws the typing away.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView } from 'react-native'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -32,7 +32,6 @@ import {
   ScaleIcon,
   ScanLineIcon,
   SnowflakeIcon,
-  TagIcon,
   XIcon,
 } from '../dashboard/dashboard-icons.js'
 import { daysUntilExpiry, expiryLabel } from '../dashboard/product-status.js'
@@ -166,16 +165,6 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
   const createProduct = useCreateProductMutation()
   const updateProduct = useUpdateProductMutation()
   const pending = createProduct.isPending || updateProduct.isPending
-
-  /**
-   * The lookup already returns OpenFoodFacts' own taxonomy; it used to be
-   * fetched, stored, and never offered, leaving the user to invent a
-   * category string their flatmate would spell differently.
-   */
-  const categorySuggestions = useMemo(() => {
-    const fromLookup = categories ?? []
-    return Array.from(new Set(fromLookup.map((c) => c.trim()).filter((c) => c.length > 0))).slice(0, 4)
-  }, [categories])
 
   const expiryDays = expiresAt.trim().length > 0 ? daysUntilExpiry({ expiresAt: expiresAt.trim() }) : null
 
@@ -326,7 +315,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                   />
                 </YStack>
               </XStack>
-              <XStack gap="$3" flexWrap="wrap">
+              <XStack gap="$2.5" flexWrap="wrap">
                 {UNIT_SUGGESTIONS.map((suggestion) => (
                   <Chip
                     key={suggestion}
@@ -339,30 +328,6 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                   />
                 ))}
               </XStack>
-
-              <FormField
-                testID="fridge-form-category"
-                label="Catégorie"
-                value={category}
-                onChangeText={edit(setCategory)}
-                palette={palette}
-                hint={`Sert à trier tes produits. Vide = « ${DEFAULT_CATEGORY} ».`}
-                icon={(color) => <TagIcon size={13} color={color} />}
-              />
-              {categorySuggestions.length > 0 ? (
-                <XStack gap="$3" flexWrap="wrap">
-                  {categorySuggestions.map((suggestion) => (
-                    <Chip
-                      key={suggestion}
-                      testID={`fridge-form-category-${suggestion}`}
-                      label={suggestion}
-                      selected={category === suggestion}
-                      onPress={() => edit(setCategory)(suggestion)}
-                      palette={palette}
-                    />
-                  ))}
-                </XStack>
-              ) : null}
 
               <YStack gap="$2">
                 <FormField
@@ -377,7 +342,7 @@ export function FridgeFormScreen(props: FridgeFormMode & { onSuccess?: () => voi
                   error={fieldErrors.expiresAt}
                   icon={(color) => <CalendarIcon size={13} color={color} />}
                 />
-                <XStack gap="$3" flexWrap="wrap">
+                <XStack gap="$2.5" flexWrap="wrap">
                   {DATE_SHORTCUTS.map((shortcut) => (
                     <Chip
                       key={shortcut.label}

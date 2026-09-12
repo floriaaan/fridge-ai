@@ -8,3 +8,5 @@ tmp/
 *.log
 .DS_Store
 data/
+.claude/skills/impeccable/scripts/bin/
+.github/skills/impeccable/scripts/bin/

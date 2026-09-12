@@ -5,6 +5,8 @@ export interface ReceiptDraftItem {
   unit: string
   category: string | null
   price: number | null
+  /** The model's own estimate of days-until-expiry from the purchase date — see `receipt-extraction-prompt.ts`. `null` when it has no reasonable guess. */
+  expiresInDays: number | null
 }
 
 export interface ReceiptDraft {

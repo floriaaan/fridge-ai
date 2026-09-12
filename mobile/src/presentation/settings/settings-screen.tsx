@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
@@ -9,7 +8,6 @@ import { Chip } from '../shared/chip.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { HomeIcon, LogOutIcon, SettingsIcon, SparklesIcon, UserIcon } from '../dashboard/dashboard-icons.js'
 import { IdentityCard, RoleBadge } from './identity-card.js'
 import { MemberAvatars } from '../shared/member-avatars.js'
@@ -23,17 +21,6 @@ import { useSetActiveAiProviderMutation } from '../../application/settings/set-a
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
-
-function SectionLabel({ children, palette, icon }: { children: string; palette: SoftPalette; icon: ReactNode }) {
-  return (
-    <XStack alignItems="center" gap="$2">
-      {icon}
-      <Text fontSize={15} fontWeight="800" color={palette.ink}>
-        {children}
-      </Text>
-    </XStack>
-  )
-}
 
 // A pushed screen (reached from the dashboard's "Réglages" link), not one
 // of the four tabs — so `AppShell`'s `{ kind: 'stack' }` nav: no bottom
@@ -175,61 +162,67 @@ export function SettingsScreen() {
         />
       </YStack>
 
-      <YStack marginTop="$6" gap="$2">
-        <SectionLabel palette={palette} icon={<SparklesIcon size={15} color={palette.inkSecondary} />}>
-          Intelligence artificielle
-        </SectionLabel>
-        {/* What the section governs, before what it offers. Named "Fournisseur
-            IA", it asked the foyer to pick between three vendors without ever
-            saying what the pick changes. */}
-        <Text fontSize={13} color={palette.inkSecondary}>
-          Lit tes tickets de caisse et invente tes recettes.
-        </Text>
-        {canChooseProvider ? (
-          <XStack gap="$3" flexWrap="wrap" marginTop="$1">
-            {availableProviders.map((provider) => (
-              <Chip
-                key={provider}
-                testID={`ai-provider-${provider}`}
-                label={PROVIDER_LABELS[provider]}
-                selected={settings.data?.activeProvider === provider}
-                onPress={() => handleSelectProvider(provider)}
-                palette={palette}
-              />
-            ))}
-          </XStack>
-        ) : null}
-        {setProvider.isPending ? (
-          // The mutation had no visible state at all: on a slow connection a
-          // tap on "Ollama" produced nothing until the invalidation landed.
-          <Text fontSize={12} fontWeight="600" color={palette.inkSecondary} accessibilityLiveRegion="polite">
-            Changement en cours…
-          </Text>
-        ) : null}
-        {settings.data && !canChooseProvider && availableProviders.length === 1 ? (
-          // One provider with credentials is a fact, not a choice: a row of one
-          // chip is a control that cannot control anything.
-          <Text fontSize={14} fontWeight="700" color={palette.ink} marginTop="$1">
-            {PROVIDER_LABELS[availableProviders[0]]}
-          </Text>
-        ) : null}
-        {settings.data && availableProviders.length === 0 ? (
-          // `activeProvider` can name a provider whose key is gone — the picker
-          // then drew an empty row and no selection, explaining nothing.
-          <Text fontSize={13} color={palette.expiredText} marginTop="$1">
-            Aucun fournisseur n’est configuré sur ce serveur.
-          </Text>
-        ) : null}
-        {!settings.isPending && !settings.data ? (
-          <Text fontSize={13} color={palette.expiredText}>
-            Impossible de charger les réglages.
-          </Text>
-        ) : null}
-        {providerError ? (
-          <Text fontSize={13} color={palette.expiredText} accessibilityLiveRegion="polite">
-            {providerError}
-          </Text>
-        ) : null}
+      <YStack marginTop="$3" gap="$2">
+        {/* Same card language as the Foyer button above (2026-09-09 ask): a
+            static `IdentityCard` — no `onPress`, same as the Compte card —
+            rather than a bare label + chips floating on the page background. */}
+        <IdentityCard
+          testID="settings-ai-provider"
+          bg={palette.lavender}
+          labelColor={palette.lavenderText}
+          chipColor={palette.chipViolet}
+          icon={<SparklesIcon size={18} color={palette.onDark} />}
+          label="Intelligence artificielle"
+          // What the section governs, before what it offers. Named
+          // "Fournisseur IA", it asked the foyer to pick between three
+          // vendors without ever saying what the pick changes.
+          value={settings.data?.activeProvider ? PROVIDER_LABELS[settings.data.activeProvider] : '—'}
+          secondary="Lit tes tickets de caisse et invente tes recettes."
+          corner="a"
+          palette={palette}
+          footer={
+            <YStack gap="$2">
+              {canChooseProvider ? (
+                <XStack gap="$3" flexWrap="wrap">
+                  {availableProviders.map((provider) => (
+                    <Chip
+                      key={provider}
+                      testID={`ai-provider-${provider}`}
+                      label={PROVIDER_LABELS[provider]}
+                      selected={settings.data?.activeProvider === provider}
+                      onPress={() => handleSelectProvider(provider)}
+                      palette={palette}
+                    />
+                  ))}
+                </XStack>
+              ) : null}
+              {setProvider.isPending ? (
+                // The mutation had no visible state at all: on a slow connection a
+                // tap on "Ollama" produced nothing until the invalidation landed.
+                <Text fontSize={12} fontWeight="600" color={palette.lavenderText} accessibilityLiveRegion="polite">
+                  Changement en cours…
+                </Text>
+              ) : null}
+              {settings.data && availableProviders.length === 0 ? (
+                // `activeProvider` can name a provider whose key is gone — the picker
+                // then drew an empty row and no selection, explaining nothing.
+                <Text fontSize={13} color={palette.expiredText}>
+                  Aucun fournisseur n’est configuré sur ce serveur.
+                </Text>
+              ) : null}
+              {!settings.isPending && !settings.data ? (
+                <Text fontSize={13} color={palette.expiredText}>
+                  Impossible de charger les réglages.
+                </Text>
+              ) : null}
+              {providerError ? (
+                <Text fontSize={13} color={palette.expiredText} accessibilityLiveRegion="polite">
+                  {providerError}
+                </Text>
+              ) : null}
+            </YStack>
+          }
+        />
       </YStack>
 
       <YStack marginTop="$8" gap="$2">

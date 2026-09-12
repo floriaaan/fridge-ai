@@ -34,6 +34,16 @@ function parseItem(item: unknown, index: number): ReceiptDraftItem {
     unit: record.unit,
     category: typeof record.category === 'string' ? record.category : null,
     price: typeof record.price === 'number' ? record.price : null,
+    // Defensive floor/bound, not just a type check: a model hallucinating a
+    // negative or fractional-day answer is worse than no answer at all, and
+    // silently trusting it would write a wrong expiry no one asked to
+    // approve — the item still renders with an empty date instead.
+    expiresInDays:
+      typeof record.expiresInDays === 'number' &&
+      Number.isFinite(record.expiresInDays) &&
+      record.expiresInDays >= 0
+        ? Math.round(record.expiresInDays)
+        : null,
   }
 }
 

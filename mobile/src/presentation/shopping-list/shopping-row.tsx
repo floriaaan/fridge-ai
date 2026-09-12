@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Animated } from 'react-native'
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable'
+import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable'
 // react-native-gesture-handler's own `Pressable`, not React Native core's —
 // an audit found the swipe checking the item directly instead of opening
 // the actions: core `Pressable` claims RN's legacy JS touch-responder
@@ -11,6 +12,8 @@ import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable'
 // two arbitrate correctly via native gesture-recognizer negotiation
 // instead of racing across two unrelated touch systems.
 import { Pressable } from 'react-native-gesture-handler'
+import { useAnimatedReaction, runOnJS } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
@@ -19,6 +22,98 @@ import { CheckedName } from './checked-name.js'
 import { useQuietRowFeedback } from './use-quiet-row-feedback.js'
 import type { ShoppingItem } from '../../domain/shopping-list/shopping-item.js'
 import { ripple } from '../shared/material.js'
+
+/**
+ * How far past the actions panel (in multiples of its own width, 144pt —
+ * two 72pt buttons) a right-swipe has to travel before it counts as a
+ * "keep going, I mean it" full swipe and fires delete on its own — no
+ * separate tap needed. `progress` is 1 at the panel's resting-open width and
+ * grows unbounded past it (overshoot is unfriction'd, see `Swipeable`
+ * props), so 2.5 lands around a near-full-width drag on a phone screen.
+ */
+const FULL_SWIPE_PROGRESS_THRESHOLD = 2.5
+
+/**
+ * Lives in its own component (not inline in `renderRightActions`) so
+ * `useAnimatedReaction` attaches to a fiber of its own — a hook called from
+ * inside a render-prop function runs against whichever component is
+ * mid-render when `Swipeable` invokes it, which is not this row.
+ */
+function RowActions({
+  item,
+  progress,
+  isOpen,
+  onEdit,
+  onDelete,
+  swipeableMethods,
+}: {
+  item: ShoppingItem
+  progress: SharedValue<number>
+  isOpen: boolean
+  onEdit: () => void
+  onDelete: () => void
+  swipeableMethods: SwipeableMethods
+}) {
+  const palette = useSoftPalette()
+
+  // A plain closure re-created every render — cheap, and it keeps
+  // `onDelete`/`swipeableMethods` current without mutating anything a
+  // worklet has already captured (a `ref.current` write done that way is
+  // what Reanimated's "already passed to a worklet" error warns about).
+  // Passing both as dependencies makes the reaction re-subscribe with the
+  // fresh closure instead of running with the one from first mount.
+  function triggerFullSwipeDelete() {
+    swipeableMethods.close()
+    onDelete()
+  }
+
+  useAnimatedReaction(
+    () => progress.value >= FULL_SWIPE_PROGRESS_THRESHOLD,
+    (crossedFar, wasFar) => {
+      if (crossedFar && !wasFar) {
+        runOnJS(triggerFullSwipeDelete)()
+      }
+    },
+    [swipeableMethods, onDelete],
+  )
+
+  return (
+    <XStack accessibilityElementsHidden={!isOpen} importantForAccessibility={isOpen ? 'auto' : 'no-hide-descendants'}>
+      <Pressable
+        testID={`shopping-row-edit-${item.id}`}
+        onPress={() => {
+          swipeableMethods.close()
+          onEdit()
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Modifier ${item.name}`}
+        style={pointerCursor}
+      >
+        <YStack backgroundColor={palette.mintPale} alignItems="center" justifyContent="center" width={72} height="100%">
+          <Text fontSize={12} fontWeight="700" color={palette.mintPaleText}>
+            Modifier
+          </Text>
+        </YStack>
+      </Pressable>
+      <Pressable
+        testID={`shopping-row-delete-${item.id}`}
+        onPress={() => {
+          swipeableMethods.close()
+          onDelete()
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Supprimer ${item.name}`}
+        style={pointerCursor}
+      >
+        <YStack backgroundColor={palette.expiredBg} alignItems="center" justifyContent="center" width={72} height="100%">
+          <Text fontSize={12} fontWeight="700" color={palette.expiredText}>
+            Supprimer
+          </Text>
+        </YStack>
+      </Pressable>
+    </XStack>
+  )
+}
 
 export function ShoppingRow({
   item,
@@ -49,41 +144,15 @@ export function ShoppingRow({
     <Swipeable
       onSwipeableOpen={() => setIsOpen(true)}
       onSwipeableClose={() => setIsOpen(false)}
-      renderRightActions={(_progress, _translation, swipeableMethods) => (
-        <XStack accessibilityElementsHidden={!isOpen} importantForAccessibility={isOpen ? 'auto' : 'no-hide-descendants'}>
-          <Pressable
-            testID={`shopping-row-edit-${item.id}`}
-            onPress={() => {
-              swipeableMethods.close()
-              onEdit()
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`Modifier ${item.name}`}
-            style={pointerCursor}
-          >
-            <YStack backgroundColor={palette.mintPale} alignItems="center" justifyContent="center" width={72} height="100%">
-              <Text fontSize={12} fontWeight="700" color={palette.mintPaleText}>
-                Modifier
-              </Text>
-            </YStack>
-          </Pressable>
-          <Pressable
-            testID={`shopping-row-delete-${item.id}`}
-            onPress={() => {
-              swipeableMethods.close()
-              onDelete()
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`Supprimer ${item.name}`}
-            style={pointerCursor}
-          >
-            <YStack backgroundColor={palette.expiredBg} alignItems="center" justifyContent="center" width={72} height="100%">
-              <Text fontSize={12} fontWeight="700" color={palette.expiredText}>
-                Supprimer
-              </Text>
-            </YStack>
-          </Pressable>
-        </XStack>
+      renderRightActions={(progress, _translation, swipeableMethods) => (
+        <RowActions
+          item={item}
+          progress={progress}
+          isOpen={isOpen}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          swipeableMethods={swipeableMethods}
+        />
       )}
     >
       <Pressable

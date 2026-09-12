@@ -162,6 +162,9 @@ export const RefreshIcon = icon([
 // instead of this file's 2px round stroke, and shifted shape per platform.
 export const ArrowLeftIcon = icon([{ d: 'M19 12H5' }, { d: 'm12 19-7-7 7-7' }])
 
+// Home Assistant's sync-direction rows ("Vers Home Assistant").
+export const ArrowRightIcon = icon([{ d: 'M5 12h14' }, { d: 'm12 5 7 7-7 7' }])
+
 // Search fields (the fridge list's own filter field).
 export const SearchIcon = icon([{ cx: '11', cy: '11', r: '8' }, { d: 'm21 21-4.3-4.3' }])
 

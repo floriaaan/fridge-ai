@@ -62,6 +62,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { SkeletonList } from '../shared/skeleton.js'
+import { EmptyStateLottie } from '../shared/empty-state-lottie.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
@@ -209,8 +210,8 @@ export function ShoppingListScreen() {
       ) : null}
 
       {!itemsQuery.isPending && !itemsQuery.isError && items.length === 0 ? (
-        <YStack alignItems="center" gap="$3" marginTop="$8">
-          <ShoppingCartIcon size={32} color={palette.inkSecondary} />
+        <YStack flex={1} justifyContent="center" alignItems="center" gap="$3" paddingHorizontal="$4">
+          <EmptyStateLottie animation="shopping-list" size={256} />
           <Text fontSize={15} fontWeight="700" color={palette.ink}>
             Liste de courses vide
           </Text>
@@ -222,6 +223,7 @@ export function ShoppingListScreen() {
             label="Ajouter un article"
             onPress={() => router.push('/(tabs)/shopping-list/new')}
             palette={palette}
+            centered
           />
         </YStack>
       ) : null}
@@ -261,7 +263,7 @@ export function ShoppingListScreen() {
                 isLast={index === unchecked.length - 1}
                 onToggle={(next) => handleToggle(item, next)}
                 onEdit={() => handleEdit(item)}
-                onDelete={() => setSheetItem(item)}
+                onDelete={() => handleDelete(item)}
                 onLongPress={() => setSheetItem(item)}
               />
             ))}
@@ -300,7 +302,7 @@ export function ShoppingListScreen() {
                 isLast={index === checked.length - 1}
                 onToggle={(next) => handleToggle(item, next)}
                 onEdit={() => handleEdit(item)}
-                onDelete={() => setSheetItem(item)}
+                onDelete={() => handleDelete(item)}
                 onLongPress={() => setSheetItem(item)}
               />
             ))}

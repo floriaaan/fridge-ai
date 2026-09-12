@@ -1,14 +1,25 @@
 import { Stack } from 'expo-router'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { ThemeProvider } from '../presentation/shared/theme-provider.js'
 import { ConnectorProvider } from '../application/shared/connector-context.js'
+import { queryClient } from '../application/shared/query-client.js'
 import { createConnector } from '../../providers/create-connector.js'
 import { startTelemetry } from '../../providers/start-telemetry.js'
+import { wireTelemetry } from '../../providers/wire-telemetry.js'
+
+// Module load, not an effect: this only assigns a reference (see
+// `wire-telemetry.ts`) — nothing to defer past the first frame, and every
+// `getTelemetry()` call under `src/presentation` needs it wired before the
+// first screen can possibly report a failure.
+wireTelemetry()
 
 export default function RootLayout() {
-  const [queryClient] = useState(() => new QueryClient())
+  // Module-level singleton, not `useState(() => new QueryClient())` — see
+  // `query-client.ts`: `http-client.ts` needs the same instance to flip the
+  // cached session on a 401, and a client built inside this component would
+  // be unreachable from a plain module.
   const [connector] = useState(() => createConnector())
 
   // In an effect, not at module load: telemetry must never sit on the path

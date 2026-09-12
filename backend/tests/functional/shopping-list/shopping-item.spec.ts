@@ -97,6 +97,74 @@ test.group('shopping-list: CRUD', (group) => {
     destroy.assertBodyContains({ error: { type: 'shopping_item_not_found' } })
   })
 
+  test('adding the same name twice merges the quantity instead of duplicating the line', async ({
+    client,
+    assert,
+  }) => {
+    const cookie = await signUpWithHousehold(client, 'shopping-merge@example.com')
+
+    const first = await client
+      .post('/api/shopping-items')
+      .headers({ cookie })
+      .json({ name: 'Farine', quantity: { amount: 300, unit: 'g' }, source: 'manual' })
+    first.assertStatus(201)
+
+    // Different case/accents/whitespace, different unit in the same family
+    // (kg converts to the finer g), different source — still the same line.
+    const second = await client
+      .post('/api/shopping-items')
+      .headers({ cookie })
+      .json({ name: '  FARINE  ', quantity: { amount: 1, unit: 'kg' }, source: 'recipe' })
+    second.assertStatus(201)
+    second.assertBodyContains({
+      item: { id: first.body().item.id, quantity: { amount: 1300, unit: 'g' } },
+    })
+
+    const list = await client.get('/api/shopping-items').headers({ cookie })
+    list.assertBodyContains({ items: [{ name: 'Farine', quantity: { amount: 1300, unit: 'g' } }] })
+    assert.equal(list.body().items.length, 1)
+  })
+
+  test('same name, incompatible units: kept as two separate lines', async ({ client, assert }) => {
+    const cookie = await signUpWithHousehold(client, 'shopping-nomerge@example.com')
+
+    await client
+      .post('/api/shopping-items')
+      .headers({ cookie })
+      .json({ name: 'Farine', quantity: { amount: 1, unit: 'unité' }, source: 'manual' })
+    await client
+      .post('/api/shopping-items')
+      .headers({ cookie })
+      .json({ name: 'Farine', quantity: { amount: 1, unit: 'kg' }, source: 'manual' })
+
+    const list = await client.get('/api/shopping-items').headers({ cookie })
+    assert.equal(list.body().items.length, 2)
+  })
+
+  test('a checked item does not absorb a fresh add of the same name', async ({
+    client,
+    assert,
+  }) => {
+    const cookie = await signUpWithHousehold(client, 'shopping-checked@example.com')
+
+    const first = await client
+      .post('/api/shopping-items')
+      .headers({ cookie })
+      .json({ name: 'Farine', quantity: { amount: 1, unit: 'kg' }, source: 'manual' })
+    await client
+      .patch(`/api/shopping-items/${first.body().item.id}`)
+      .headers({ cookie })
+      .json({ checked: true })
+
+    await client
+      .post('/api/shopping-items')
+      .headers({ cookie })
+      .json({ name: 'Farine', quantity: { amount: 1, unit: 'kg' }, source: 'manual' })
+
+    const list = await client.get('/api/shopping-items').headers({ cookie })
+    assert.equal(list.body().items.length, 2)
+  })
+
   test('all shopping-item routes require a household', async ({ client }) => {
     const signUp = await client.post('/api/auth/sign-up/email').json({
       email: 'shopping-no-household@example.com',

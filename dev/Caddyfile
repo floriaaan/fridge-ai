@@ -1,0 +1,25 @@
+# Same-origin dev proxy (option B) — puts the web app (Metro, :8081) and the
+# backend API (:3333) behind one origin so the browser never sees a
+# cross-site request at all: no SameSite/Secure cookie fight, no cert to
+# trust. Point EXPO_PUBLIC_API_URL at this origin (cf. mobile/.env).
+#
+# Plain HTTP, no tls directive needed — unlike the dev/Caddyfile from the
+# earlier HTTPS-proxy attempt (reverted), this one carries no cert.
+{
+	auto_https off
+}
+
+:8080 {
+	# Backend's own routes already live under /api/* (cf.
+	# backend/src/presentation/identity/auth.routes.ts and friends) — forward
+	# verbatim, no path rewrite.
+	handle /api/* {
+		reverse_proxy localhost:3333
+	}
+
+	# Everything else (app bundle, Metro's HMR websocket) goes to Expo's dev
+	# server. `reverse_proxy` upgrades websockets automatically.
+	handle {
+		reverse_proxy localhost:8081
+	}
+}

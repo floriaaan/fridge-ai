@@ -21,6 +21,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { PillButton } from '../shared/pill-button.js'
 import { CopyIcon, QrCodeIcon, RefreshIcon, ShareIcon } from '../dashboard/dashboard-icons.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
+import { getTelemetry } from '../../application/shared/telemetry.js'
 import { AuthButton } from './auth-button.js'
 import { buildJoinLink, buildShareMessage } from '../onboarding/join-link.js'
 
@@ -45,13 +46,23 @@ export function InviteShareCard({
   async function handleShare() {
     try {
       await Share.share({ message: buildShareMessage(householdName, inviteCode) })
-    } catch {
+    } catch (error) {
+      getTelemetry().recordError('share sheet failed to open', {
+        error,
+        attributes: { 'app.operation': 'identity.share_invite' },
+      })
       onFeedback('Le partage n’a pas pu s’ouvrir.')
     }
   }
 
   async function handleCopy() {
-    const ok = await Clipboard.setStringAsync(inviteCode).catch(() => false)
+    const ok = await Clipboard.setStringAsync(inviteCode).catch((error) => {
+      getTelemetry().recordError('clipboard write failed', {
+        error,
+        attributes: { 'app.operation': 'identity.copy_invite' },
+      })
+      return false
+    })
     onFeedback(ok ? 'Code copié.' : 'Impossible de copier le code.')
   }
 
@@ -88,11 +99,24 @@ export function InviteShareCard({
         Donne-le à quelqu’un du foyer : il le saisit à l’inscription et voit le même garde-manger.
       </Text>
 
-      <XStack gap="$3" flexWrap="wrap">
+      {/* Same "one line, not a wrap" fix as the Home Assistant modal's
+          Enregistrer/Délier row (2026-09-09) — `dense` (`Chip`'s own
+          compact recipe) buys back the width three labeled pills need to
+          hold one row instead of wrapping to two. `gap="$3"`, not `$2`:
+          `dense` pads its own facing hitSlop back to 6px a side (12px
+          combined), and a facing gap under that overlaps two pills' press
+          areas — the same threshold `Chip` rows are held to.
+          `flexWrap="wrap"`, not `nowrap`: three labeled pills fit one line
+          at the default text size, but RN scales that text with the
+          system font setting, and the row has no horizontal scroll to
+          fall back on — wrap is what keeps a large-type reading intact
+          instead of clipping "Afficher le QR" (2026-09-10 audit). */}
+      <XStack gap="$3" rowGap="$2" flexWrap="wrap">
         <PillButton
           testID="household-invite-share"
           label="Partager"
-          icon={(color) => <ShareIcon size={15} color={color} />}
+          size="dense"
+          icon={(color) => <ShareIcon size={13} color={color} />}
           onPress={handleShare}
           accessibilityLabel="Partager le code d’invitation"
           palette={palette}
@@ -101,7 +125,8 @@ export function InviteShareCard({
           testID="household-invite-copy"
           label="Copier"
           tone="quiet"
-          icon={(color) => <CopyIcon size={15} color={color} />}
+          size="dense"
+          icon={(color) => <CopyIcon size={13} color={color} />}
           onPress={handleCopy}
           accessibilityLabel="Copier le code d’invitation"
           palette={palette}
@@ -110,7 +135,8 @@ export function InviteShareCard({
           testID="household-invite-qr-toggle"
           label={showQr ? 'Masquer le QR' : 'Afficher le QR'}
           tone="quiet"
-          icon={(color) => <QrCodeIcon size={15} color={color} />}
+          size="dense"
+          icon={(color) => <QrCodeIcon size={13} color={color} />}
           onPress={() => setShowQr(!showQr)}
           palette={palette}
         />

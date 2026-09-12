@@ -10,6 +10,7 @@ const baseItem: EditableReceiptItem = {
   price: '2.4',
   location: 'fridge',
   expiresAt: '',
+  expiresAtEstimated: false,
 }
 
 const noop = () => {}
@@ -73,4 +74,25 @@ test('a field error is shown on the field it belongs to', async () => {
   await renderRow({ errors: { quantity: 'Quantité invalide.' } })
 
   expect(screen.getByTestId('receipt-item-0-quantity-error')).toBeTruthy()
+})
+
+test('a filled-in date shows in the collapsed summary, same wording as the fridge list', async () => {
+  await renderRow({ item: { ...baseItem, expiresAt: '2026-09-20' }, expanded: false })
+
+  expect(screen.getByText(/À consommer sous \d+ j/)).toBeTruthy()
+})
+
+test('an estimated date is flagged for review, and editing it by hand clears the flag', async () => {
+  const onChange = jest.fn()
+  await renderRow({ item: { ...baseItem, expiresAt: '2026-09-20', expiresAtEstimated: true }, onChange })
+
+  expect(screen.getByText('Estimée par l’IA à partir du produit — vérifie si besoin.')).toBeTruthy()
+
+  await fireEvent.changeText(screen.getByTestId('receipt-item-0-expires-at'), '2026-10-01')
+
+  expect(onChange).toHaveBeenCalledWith({
+    ...baseItem,
+    expiresAt: '2026-10-01',
+    expiresAtEstimated: false,
+  })
 })

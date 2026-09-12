@@ -10,6 +10,7 @@ import { fakeReceiptDraft } from './fixtures/receipt-draft.fixture.js'
 import { fakeReceipts } from './fixtures/receipt.fixture.js'
 import { fakeAiSettings } from './fixtures/ai-settings.fixture.js'
 import { fakeUnconfiguredHaLink } from './fixtures/ha-link.fixture.js'
+import { mergeQuantities, normalizeShoppingItemName } from '../../domain/shopping-list/shopping-item-merge.js'
 import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.js'
 import type { Session } from '../../domain/identity/session.js'
 import type { Household } from '../../domain/identity/household.js'
@@ -244,12 +245,33 @@ export class FakeFridgeConnector implements FridgeConnector {
 
   async createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>> {
     const now = new Date().toISOString()
+    // Same "don't duplicate the same product" rule the backend's
+    // `CreateShoppingItem` use-case enforces: a checked item is a closed
+    // instance (see its own comment), so only an unchecked, same-name line
+    // is a merge target.
+    const targetName = normalizeShoppingItemName(input.name)
+    const target = this.shoppingItems.find(
+      (item) => !item.checked && normalizeShoppingItemName(item.name) === targetName,
+    )
+    if (target) {
+      const merged = mergeQuantities(target.quantity, input.quantity)
+      if (merged) {
+        target.quantity = merged
+        target.updatedAt = now
+        return Result.ok(target)
+      }
+    }
+
     const item: ShoppingItem = {
       id: `fake-item-new-${this.nextShoppingItemId++}`,
       name: input.name,
       quantity: input.quantity,
       checked: false,
-      source: 'manual',
+      // Was hardcoded to `'manual'` regardless of `input.source` — the real
+      // backend requires that field and rejects a request without one, but
+      // this fake always "succeeded" anyway, which is why no test caught
+      // mobile sending recipe-page adds with it missing.
+      source: input.source,
       createdAt: now,
       updatedAt: now,
     }

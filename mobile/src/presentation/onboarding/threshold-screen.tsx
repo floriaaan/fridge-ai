@@ -20,14 +20,13 @@
  * gate instead.
  */
 import { useEffect, useState } from 'react'
-import { Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQueryClient } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
+import { getTelemetry } from '../../application/shared/telemetry.js'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { PillButton } from '../shared/pill-button.js'
 import { HintBubble, useHint } from '../shared/hint-bubble.js'
-import { AuthBlobBackground } from '../identity/auth-blob-background.js'
+import { AuthScreenChrome } from '../identity/auth-screen-chrome.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { AuthError } from '../identity/auth-error.js'
 import { AuthField } from '../identity/auth-field.js'
@@ -164,7 +163,13 @@ export function ThresholdScreen({
     // `parseInviteCode`, not `normalizeInviteCode`: what people copy is the
     // whole share message, and normalizing that returns its first eight
     // letters — `REJOINSN` for a message beginning "Rejoins-nous".
-    const clip = await Clipboard.getStringAsync().catch(() => '')
+    const clip = await Clipboard.getStringAsync().catch((error) => {
+      getTelemetry().recordError('clipboard read failed', {
+        error,
+        attributes: { 'app.operation': 'identity.paste_invite' },
+      })
+      return ''
+    })
     const parsed = parseInviteCode(clip ?? '')
     if (!parsed) {
       showHint('Pas de code dans le presse-papier.')
@@ -179,188 +184,152 @@ export function ThresholdScreen({
     onSignedOut()
   }
 
-  const createError = errorMessage(create.error, create.data, "On n’a pas pu créer le foyer.")
+  const createError = errorMessage(create.error, create.data, 'On n’a pas pu créer le foyer.')
   const joinError = errorMessage(join.error, join.data, 'On n’a pas pu rejoindre ce foyer.')
   // The invalid-code case belongs on the field, not only in a sentence under
   // it: the eight cells are what the user has to change.
   const codeRejected = join.data && !join.data.ok && join.data.error.type === 'invalid_invite_code'
 
   return (
-    <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
-      <AuthBlobBackground />
-      <SafeAreaView style={{ flex: 1, minHeight: 0 }} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView
-          style={{ flex: 1, minHeight: 0 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
-        >
-          <ScrollView
-            style={{ flex: 1, minHeight: 0 }}
-            contentContainerStyle={{
-              flexGrow: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingHorizontal: 24,
-              paddingVertical: 32,
+    <AuthScreenChrome maxWidth={440} overlay={<HintBubble hint={hint} palette={palette} />}>
+      <YStack gap="$2">
+        <Text fontSize={24} fontWeight="800" color={palette.ink} lineHeight={30}>
+          {userName ? `Bienvenue, ${userName}.` : 'Bienvenue.'}
+        </Text>
+        <Text fontSize={14} fontWeight="500" color={palette.inkSecondary}>
+          Fridge AI tient un seul garde-manger, partagé par tout le monde qui vit ici. Commence par
+          dire lequel est le tien.
+        </Text>
+      </YStack>
+
+      {/* Branch one: the screen's sole dark surface. */}
+      <YStack
+        testID="threshold-create-card"
+        backgroundColor={palette.brandDeep}
+        overflow="hidden"
+        style={{
+          borderTopLeftRadius: 36,
+          borderTopRightRadius: 20,
+          borderBottomRightRadius: 36,
+          borderBottomLeftRadius: 20,
+          position: 'relative',
+          shadowColor: palette.shadowCool,
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: 0.22,
+          shadowRadius: 28,
+          elevation: 6,
+        }}
+      >
+        <HeroWarmGlow warm={palette.accentWarm} ground={palette.brandDeep} />
+        <YStack padding="$5" gap="$3">
+          <Text fontSize={20} fontWeight="800" color={palette.brandDeepText}>
+            Je démarre le foyer
+          </Text>
+          <Text fontSize={13} fontWeight="500" color={palette.brandDeepTextSecondary}>
+            Tu repartiras avec un code à huit caractères à donner aux autres.
+          </Text>
+          <AuthField
+            label="Nom du foyer"
+            // Tinted from the card it sits on, never the system's flat
+            // gray — the same rule the pastel cards follow.
+            labelColor={palette.brandDeepTextSecondary}
+            placeholder="Maison Bellevue"
+            value={householdName}
+            onChangeText={setHouseholdName}
+            maxLength={80}
+            testID="threshold-household-name"
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              if (canCreate) handleCreate()
             }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <YStack width="100%" maxWidth={440} gap="$5">
-              <XStack alignItems="center" gap="$2" alignSelf="center">
-                <Image
-                  source={require('../../../assets/illustrations/carrot-3d.png')}
-                  style={{ width: 36, height: 36 }}
-                  resizeMode="contain"
-                  accessibilityLabel=""
-                />
-                <Text fontSize={16} fontWeight="800" letterSpacing={1} color={palette.ink}>
-                  FRIDGE AI
-                </Text>
-              </XStack>
+          />
+          {createError ? <AuthError message={createError} /> : null}
+          <AuthButton
+            testID="threshold-create-submit"
+            label="Créer le foyer"
+            pendingLabel="Création..."
+            pending={create.isPending}
+            disabled={!canCreate}
+            onPress={handleCreate}
+          />
+        </YStack>
+      </YStack>
 
-              <YStack gap="$2">
-                <Text fontSize={24} fontWeight="800" color={palette.ink} lineHeight={30}>
-                  {userName ? `Bienvenue, ${userName}.` : 'Bienvenue.'}
-                </Text>
-                <Text fontSize={14} fontWeight="500" color={palette.inkSecondary}>
-                  Fridge AI tient un seul garde-manger, partagé par tout le monde qui vit ici. Commence par
-                  dire lequel est le tien.
-                </Text>
-              </YStack>
+      {/* Branch two: lighter surface, same weight of action. */}
+      <YStack
+        testID="threshold-join-card"
+        backgroundColor={palette.cream}
+        padding="$5"
+        gap="$3"
+        style={{
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 32,
+          borderBottomRightRadius: 20,
+          borderBottomLeftRadius: 32,
+          shadowColor: palette.shadowCool,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.1,
+          shadowRadius: 18,
+          elevation: 2,
+        }}
+      >
+        <Text fontSize={20} fontWeight="800" color={palette.ink}>
+          On m’a donné un code
+        </Text>
+        <Text fontSize={13} fontWeight="500" color={palette.creamText}>
+          Huit lettres ou chiffres, depuis l’écran Foyer de la personne qui t’invite.
+        </Text>
 
-              {/* Branch one: the screen's sole dark surface. */}
-              <YStack
-                testID="threshold-create-card"
-                backgroundColor={palette.brandDeep}
-                overflow="hidden"
-                style={{
-                  borderTopLeftRadius: 36,
-                  borderTopRightRadius: 20,
-                  borderBottomRightRadius: 36,
-                  borderBottomLeftRadius: 20,
-                  position: 'relative',
-                  shadowColor: palette.shadowCool,
-                  shadowOffset: { width: 0, height: 16 },
-                  shadowOpacity: 0.22,
-                  shadowRadius: 28,
-                  elevation: 6,
-                }}
-              >
-                <HeroWarmGlow warm={palette.accentWarm} ground={palette.brandDeep} />
-                <YStack padding="$5" gap="$3">
-                  <Text fontSize={20} fontWeight="800" color={palette.brandDeepText}>
-                    Je démarre le foyer
-                  </Text>
-                  <Text fontSize={13} fontWeight="500" color={palette.brandDeepTextSecondary}>
-                    Tu repartiras avec un code à huit caractères à donner aux autres.
-                  </Text>
-                  <AuthField
-                    label="Nom du foyer"
-                    // Tinted from the card it sits on, never the system's flat
-                    // gray — the same rule the pastel cards follow.
-                    labelColor={palette.brandDeepTextSecondary}
-                    placeholder="Maison Bellevue"
-                    value={householdName}
-                    onChangeText={setHouseholdName}
-                    maxLength={80}
-                    testID="threshold-household-name"
-                    returnKeyType="done"
-                    onSubmitEditing={() => {
-                      if (canCreate) handleCreate()
-                    }}
-                  />
-                  {createError ? <AuthError message={createError} /> : null}
-                  <AuthButton
-                    testID="threshold-create-submit"
-                    label="Créer le foyer"
-                    pendingLabel="Création..."
-                    pending={create.isPending}
-                    disabled={!canCreate}
-                    onPress={handleCreate}
-                  />
-                </YStack>
-              </YStack>
+        <InviteCodeField
+          value={code}
+          onChangeText={setCode}
+          onSubmit={() => canJoin && handleJoin()}
+          invalid={Boolean(codeRejected)}
+          testID="threshold-invite-code"
+        />
 
-              {/* Branch two: lighter surface, same weight of action. */}
-              <YStack
-                testID="threshold-join-card"
-                backgroundColor={palette.cream}
-                padding="$5"
-                gap="$3"
-                style={{
-                  borderTopLeftRadius: 20,
-                  borderTopRightRadius: 32,
-                  borderBottomRightRadius: 20,
-                  borderBottomLeftRadius: 32,
-                  shadowColor: palette.shadowCool,
-                  shadowOffset: { width: 0, height: 10 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 18,
-                  elevation: 2,
-                }}
-              >
-                <Text fontSize={20} fontWeight="800" color={palette.ink}>
-                  On m’a donné un code
-                </Text>
-                <Text fontSize={13} fontWeight="500" color={palette.creamText}>
-                  Huit lettres ou chiffres, depuis l’écran Foyer de la personne qui t’invite.
-                </Text>
+        <XStack gap="$3" flexWrap="wrap">
+          <PillButton
+            testID="threshold-paste"
+            label="Coller"
+            tone="quiet"
+            icon={(color) => <ClipboardIcon size={15} color={color} />}
+            onPress={handlePaste}
+            accessibilityLabel="Coller le code depuis le presse-papier"
+            palette={palette}
+          />
+          <PillButton
+            testID="threshold-scan"
+            label="Scanner un QR"
+            tone="quiet"
+            icon={(color) => <QrCodeIcon size={15} color={color} />}
+            onPress={onScanCode}
+            accessibilityLabel="Scanner le QR code d’invitation"
+            palette={palette}
+          />
+        </XStack>
 
-                <InviteCodeField
-                  value={code}
-                  onChangeText={setCode}
-                  onSubmit={() => canJoin && handleJoin()}
-                  invalid={Boolean(codeRejected)}
-                  testID="threshold-invite-code"
-                />
+        {joinError ? <AuthError message={joinError} /> : null}
+        <AuthButton
+          testID="threshold-join-submit"
+          label="Rejoindre le foyer"
+          pendingLabel="On te fait entrer..."
+          pending={join.isPending}
+          disabled={!canJoin}
+          onPress={handleJoin}
+        />
+      </YStack>
 
-                <XStack gap="$3" flexWrap="wrap">
-                  <PillButton
-                    testID="threshold-paste"
-                    label="Coller"
-                    tone="quiet"
-                    icon={(color) => <ClipboardIcon size={15} color={color} />}
-                    onPress={handlePaste}
-                    accessibilityLabel="Coller le code depuis le presse-papier"
-                    palette={palette}
-                  />
-                  <PillButton
-                    testID="threshold-scan"
-                    label="Scanner un QR"
-                    tone="quiet"
-                    icon={(color) => <QrCodeIcon size={15} color={color} />}
-                    onPress={onScanCode}
-                    accessibilityLabel="Scanner le QR code d’invitation"
-                    palette={palette}
-                  />
-                </XStack>
-
-                {joinError ? <AuthError message={joinError} /> : null}
-                <AuthButton
-                  testID="threshold-join-submit"
-                  label="Rejoindre le foyer"
-                  pendingLabel="On te fait entrer..."
-                  pending={join.isPending}
-                  disabled={!canJoin}
-                  onPress={handleJoin}
-                />
-              </YStack>
-
-              <YStack alignItems="center">
-                <PillButton
-                  testID="threshold-sign-out"
-                  label="Changer de compte"
-                  tone="quiet"
-                  onPress={handleSignOut}
-                  palette={palette}
-                />
-              </YStack>
-            </YStack>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-      <HintBubble hint={hint} palette={palette} />
-    </YStack>
+      <YStack alignItems="center">
+        <PillButton
+          testID="threshold-sign-out"
+          label="Changer de compte"
+          tone="quiet"
+          onPress={handleSignOut}
+          palette={palette}
+        />
+      </YStack>
+    </AuthScreenChrome>
   )
 }
 
@@ -377,6 +346,7 @@ function errorMessage(
   fallback: string,
 ): string | null {
   if (thrown) return `${fallback} Vérifie ta connexion.`
-  if (data && !data.ok && data.error && data.error.type !== 'already_in_household') return data.error.message
+  if (data && !data.ok && data.error && data.error.type !== 'already_in_household')
+    return data.error.message
   return null
 }

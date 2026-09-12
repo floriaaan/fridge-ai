@@ -1,5 +1,7 @@
 import { act, render, screen } from '@testing-library/react-native'
 import { router } from 'expo-router'
+import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
+import { configureTelemetry } from '../../application/shared/telemetry.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { BarcodeScannerScreen } from './barcode-scanner-screen.js'
 
@@ -7,6 +9,12 @@ jest.mock('expo-camera', () => ({
   CameraView: 'CameraView',
   useCameraPermissions: () => [{ granted: true }, jest.fn()],
 }))
+
+// `barcode-scanner-screen.tsx` reaches telemetry through `getTelemetry()`
+// (the boundary lint forbids importing `infrastructure/telemetry` from
+// presentation) — wiring the real singleton in here mirrors what
+// `providers/wire-telemetry.ts` does for the app itself.
+configureTelemetry(telemetry)
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn(), setParams: jest.fn() }, useFocusEffect: jest.fn() }))
 
@@ -104,4 +112,29 @@ test('multiple rapid onBarcodeScanned callbacks only navigate once', async () =>
   })
 
   expect(router.replace).toHaveBeenCalledTimes(1)
+})
+
+test('a router.replace failure in create mode records telemetry and falls back to the fridge tab', async () => {
+  const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
+  ;(router.replace as jest.Mock).mockImplementationOnce(() => {
+    throw new Error('empty stack')
+  })
+
+  await render(
+    <ThemeProvider>
+      <BarcodeScannerScreen mode="create" />
+    </ThemeProvider>,
+  )
+
+  const camera = screen.getByTestId('fridge-barcode-camera')
+  await act(async () => {
+    camera.props.onBarcodeScanned({ data: '3017620422003' })
+  })
+
+  expect(spy).toHaveBeenCalledWith(
+    'barcode scan navigation failed',
+    expect.objectContaining({ attributes: { 'app.operation': 'fridge.barcode_scan_navigate' } }),
+  )
+  expect(router.replace).toHaveBeenLastCalledWith('/(tabs)/fridge')
+  spy.mockRestore()
 })

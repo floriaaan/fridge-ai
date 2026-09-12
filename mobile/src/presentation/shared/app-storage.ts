@@ -14,6 +14,7 @@
  */
 import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
+import { getTelemetry } from '../../application/shared/telemetry.js'
 
 const IS_WEB = Platform.OS === 'web'
 
@@ -21,7 +22,11 @@ export async function readSetting(key: string): Promise<string | null> {
   try {
     if (IS_WEB) return globalThis.localStorage?.getItem(key) ?? null
     return await SecureStore.getItemAsync(key)
-  } catch {
+  } catch (error) {
+    getTelemetry().recordError('local storage read failed', {
+      error,
+      attributes: { 'app.operation': 'storage.read', 'app.storage_key': key },
+    })
     return null
   }
 }
@@ -30,8 +35,12 @@ export async function writeSetting(key: string, value: string): Promise<void> {
   try {
     if (IS_WEB) globalThis.localStorage?.setItem(key, value)
     else await SecureStore.setItemAsync(key, value)
-  } catch {
+  } catch (error) {
     // A flag we could not persist costs a repeated tour, not a broken screen.
+    getTelemetry().recordError('local storage write failed', {
+      error,
+      attributes: { 'app.operation': 'storage.write', 'app.storage_key': key },
+    })
   }
 }
 
@@ -39,7 +48,11 @@ export async function clearSetting(key: string): Promise<void> {
   try {
     if (IS_WEB) globalThis.localStorage?.removeItem(key)
     else await SecureStore.deleteItemAsync(key)
-  } catch {
+  } catch (error) {
     // Same trade as above.
+    getTelemetry().recordError('local storage clear failed', {
+      error,
+      attributes: { 'app.operation': 'storage.clear', 'app.storage_key': key },
+    })
   }
 }

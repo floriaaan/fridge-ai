@@ -40,7 +40,7 @@ import { IS_ANDROID, materialRoles, ripple, surfaceShadow } from './material.js'
 import { Sidebar, type SidebarSection } from './sidebar.js'
 import { BlobBackground } from './blob-background.js'
 import { pullToRefreshControl, type RefreshBinding } from './pull-to-refresh.js'
-import { HintBubble } from './hint-bubble.js'
+import { HintBubble, type Hint } from './hint-bubble.js'
 import {
   ChefHatIcon,
   HomeIcon,
@@ -78,12 +78,21 @@ const TAB_ICONS: Record<SidebarSection, (color: string) => React.ReactNode> = {
 
 export type AppShellNav =
   | { kind: 'tab'; tab: SidebarSection; onScan: () => void }
-  | { kind: 'stack' }
+  /**
+   * `insideTabs`: this stack screen lives under `src/app/(tabs)/**` (a
+   * detail route nested in one tab's own stack, e.g. `recipes/[id]`), so on
+   * iOS the real `NativeTabs` bar — owned by `(tabs)/_layout.tsx`, a
+   * navigator entirely outside `AppShell` — stays on screen through the
+   * push. Leave it `false`/omitted for a screen that lives outside
+   * `(tabs)` entirely (Réglages, Historique des tickets), where iOS shows
+   * no tab bar at all.
+   */
+  | { kind: 'stack'; insideTabs?: boolean }
   | { kind: 'modal' }
 
 export interface AppShellProps {
   nav: AppShellNav
-  hint?: string | null
+  hint?: Hint | null
   contentMaxWidth?: number
   /**
    * Default `true`: children render inside AppShell's own ScrollView.
@@ -149,9 +158,23 @@ const FRAME_PADDING = 16
 /** Layout facts a screen needs to build its own scroll container against (see `scrollable={false}`). */
 export function useAppShellLayout(nav: AppShellNav, contentMaxWidth = 640) {
   const { width } = useWindowDimensions()
-  const isWide = width >= TABLET_BREAKPOINT
+  /**
+   * iPhone landscape width crosses 768 on most modern devices — a bug
+   * report (2026-09): a tab screen switched into the desktop Sidebar frame
+   * in landscape while the real iOS tab bar, a separate navigator this
+   * component does not control, stayed on screen too, so both showed at
+   * once. `Platform.isPad` is iOS's own idiom flag — only a real iPad
+   * should read as "wide" there. Android/web have no such navigator outside
+   * this component's control, so width alone still decides for them.
+   */
+  const isWide = width >= TABLET_BREAKPOINT && (Platform.OS !== 'ios' || Platform.isPad)
   const hasMobileNav = nav.kind === 'tab' && !isWide
-  const isNativeTabBar = hasMobileNav && IS_NATIVE_TAB_PLATFORM
+  // True whenever the real iOS tab bar is the one on screen — either this
+  // is a tab root, or a stack screen nested under it (see `insideTabs` on
+  // `AppShellNav`). Both need the same bottom clearance; neither draws
+  // AppShell's own pill (`hasMobileNav` alone still gates that, below).
+  const isNativeTabBar =
+    !isWide && IS_NATIVE_TAB_PLATFORM && (nav.kind === 'tab' || (nav.kind === 'stack' && nav.insideTabs === true))
   /**
    * The measure a screen may actually draw into, padding excluded.
    *
@@ -388,7 +411,13 @@ export function AppShell({
 }: AppShellProps) {
   const palette = useSoftPalette()
   const { isWide, hasMobileNav, isNativeTabBar } = useAppShellLayout(nav)
-  const contentStyle = shellContentStyle({ isWide, hasMobileNav, contentMaxWidth })
+  // What actually needs the bottom clearance below: AppShell's own drawn
+  // pill/bar (`hasMobileNav`), or the real iOS tab bar persisting through a
+  // nested-stack push (`isNativeTabBar` — see `insideTabs` on `AppShellNav`).
+  // Either way nothing here draws a *second* bar: `hasMobileNav` alone still
+  // gates that below.
+  const reservesBottomChrome = hasMobileNav || isNativeTabBar
+  const contentStyle = shellContentStyle({ isWide, hasMobileNav: reservesBottomChrome, contentMaxWidth })
 
   const content = (
     <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
@@ -404,18 +433,22 @@ export function AppShell({
           bar with a band of bare ground under it instead of scrolling beneath
           the floating pill, which is the whole point of a floating pill. The
           room the chrome needs is already reserved by `shellContentStyle`'s
-          `paddingBottom`. A `kind: 'stack'` screen has no bottom chrome, so it
-          keeps the edge. */}
+          `paddingBottom`. A `kind: 'stack'` screen with no tab bar underneath
+          it (real or drawn) has no bottom chrome, so it keeps the edge. */}
       <SafeAreaView
         style={{ flex: 1, minHeight: 0 }}
-        edges={isWide ? ['left', 'right'] : hasMobileNav ? ['top', 'left', 'right'] : ['top', 'bottom', 'left', 'right']}
+        edges={isWide ? ['left', 'right'] : reservesBottomChrome ? ['top', 'left', 'right'] : ['top', 'bottom', 'left', 'right']}
       >
         {header ? <PinnedHeader contentStyle={contentStyle}>{header}</PinnedHeader> : null}
         {scrollable ? (
           <ScrollView
             ref={scrollRef}
             style={{ flex: 1, minHeight: 0 }}
-            contentContainerStyle={{ ...contentStyle, paddingTop: header ? 4 : contentStyle.paddingTop }}
+            // `flexGrow: 1`: lets short content (an empty state) fill and
+            // vertically center in the visible area instead of pinning to
+            // the top — a no-op once content is taller than the screen,
+            // which is the ordinary case, so nothing else here changes.
+            contentContainerStyle={{ ...contentStyle, paddingTop: header ? 4 : contentStyle.paddingTop, flexGrow: 1 }}
             refreshControl={refresh ? pullToRefreshControl(refresh, palette) : undefined}
             onScroll={onScrollOffset ? (event) => onScrollOffset(event.nativeEvent.contentOffset.y) : undefined}
             scrollEventThrottle={onScrollOffset ? 16 : undefined}
@@ -435,7 +468,7 @@ export function AppShell({
           <MobileTabNav tab={nav.tab} onScan={nav.onScan} />
         )
       ) : null}
-      <HintBubble hint={hint ?? null} palette={palette} />
+      <HintBubble hint={hint ?? null} palette={palette} liftForNativeTabBar={isNativeTabBar} />
     </YStack>
   )
 

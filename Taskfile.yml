@@ -33,6 +33,11 @@ tasks:
     cmds:
       - pnpm run dev
 
+  dev:proxy:
+    desc: Run the same-origin dev proxy (Caddy, :8080 → Metro :8081 + backend :3333/api) — point mobile web at this origin so the session cookie is never cross-site. Run alongside `task dev:back` and `task dev:mobile`.
+    cmds:
+      - caddy run --config dev/Caddyfile --adapter caddyfile
+
   db:migrate:
     desc: Run pending database migrations.
     dir: backend

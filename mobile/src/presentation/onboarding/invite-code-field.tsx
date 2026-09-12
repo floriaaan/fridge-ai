@@ -109,8 +109,14 @@ export function InviteCodeField({
   const [focused, setFocused] = useState(false)
   const revealed = useCascade(value, reduceMotion)
 
+  // `?? ''`: `revealed` tracks `value.length` through `useCascade`'s own
+  // timers, but a timer fires outside React's render cycle — a value shorter
+  // than what a still-in-flight cascade was staged for reads past the end of
+  // `value` for one tick before the effect's cleanup catches up, and
+  // `undefined` reached `CodeCell`'s `char.length` (prod crash, traced from
+  // this exact line).
   const cells = Array.from({ length: INVITE_CODE_LENGTH }, (_, index) =>
-    index < revealed ? value[index] : '',
+    index < revealed ? (value[index] ?? '') : '',
   )
   // The cell the next character lands in — highlighted only while the field
   // holds focus, so a filled-in row at rest carries no false caret.
