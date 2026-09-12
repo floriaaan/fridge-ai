@@ -70,7 +70,9 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async getAuthMethods(): Promise<AuthMethod[]> {
     try {
-      const result = await apiFetch<{ methods: AuthMethod[] }>('/api/auth/methods')
+      const result = await apiFetch<{ methods: AuthMethod[] }>('/api/auth/methods', undefined, {
+        action: 'identity.get_auth_methods',
+      })
       return result.ok ? result.value.methods : []
     } catch (error) {
       reportFailure('identity.get_auth_methods', error)
@@ -128,8 +130,19 @@ export class HttpFridgeConnector implements FridgeConnector {
     }
   }
 
+  /**
+   * Swallows on purpose, like every other identity method here — a failed
+   * sign-out must not strand a screen mid-navigation. Whatever went wrong
+   * server-side, every caller clears its own local session state and
+   * navigates to `/(auth)/sign-in` right after this resolves, so "best
+   * effort, continue anyway" is the same trade `getSession` already makes.
+   */
   async signOut(): Promise<void> {
-    await authClient.signOut()
+    try {
+      await authClient.signOut()
+    } catch (error) {
+      reportFailure('identity.sign_out', error)
+    }
   }
 
   /**
@@ -146,98 +159,129 @@ export class HttpFridgeConnector implements FridgeConnector {
    * never fire either, for the same reason.
    */
   async getHousehold(): Promise<Household | null> {
-    const result = await apiFetch<{ household: Household | null }>('/api/households/mine');
+    const result = await apiFetch<{ household: Household | null }>('/api/households/mine', undefined, {
+      action: 'identity.get_household',
+    })
     if (!result.ok) throw new Error(result.error.message)
     return result.value.household
   }
 
   async createHousehold(name: string): Promise<Result<Household, ApiError>> {
-    const result = await apiFetch<{ household: Household }>('/api/households', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    })
+    const result = await apiFetch<{ household: Household }>(
+      '/api/households',
+      { method: 'POST', body: JSON.stringify({ name }) },
+      { action: 'identity.create_household' },
+    )
     return result.ok ? Result.ok(result.value.household) : Result.err(result.error)
   }
 
   async joinHousehold(inviteCode: string): Promise<Result<Household, ApiError>> {
-    const result = await apiFetch<{ household: Household }>('/api/households/join', {
-      method: 'POST',
-      body: JSON.stringify({ inviteCode }),
-    })
+    const result = await apiFetch<{ household: Household }>(
+      '/api/households/join',
+      { method: 'POST', body: JSON.stringify({ inviteCode }) },
+      { action: 'identity.join_household' },
+    )
     return result.ok ? Result.ok(result.value.household) : Result.err(result.error)
   }
 
   async regenerateInviteCode(): Promise<Result<string, ApiError>> {
-    const result = await apiFetch<{ inviteCode: string }>('/api/households/invite-code/regenerate', {
-      method: 'POST',
-    })
+    const result = await apiFetch<{ inviteCode: string }>(
+      '/api/households/invite-code/regenerate',
+      { method: 'POST' },
+      { action: 'identity.regenerate_invite_code' },
+    )
     return result.ok ? Result.ok(result.value.inviteCode) : Result.err(result.error)
   }
 
   async removeHouseholdMember(userId: string): Promise<Result<void, ApiError>> {
-    const result = await apiFetch<void>(`/api/households/members/${userId}`, { method: 'DELETE' })
+    const result = await apiFetch<void>(
+      `/api/households/members/${userId}`,
+      { method: 'DELETE' },
+      { action: 'identity.remove_household_member', attributes: { targetUserId: userId } },
+    )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async leaveHousehold(): Promise<Result<void, ApiError>> {
-    const result = await apiFetch<void>('/api/households/leave', { method: 'POST' })
+    const result = await apiFetch<void>(
+      '/api/households/leave',
+      { method: 'POST' },
+      { action: 'identity.leave_household' },
+    )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async getShoppingItems(): Promise<ShoppingItem[]> {
-    const result = await apiFetch<{ items: ShoppingItem[] }>('/api/shopping-items')
+    const result = await apiFetch<{ items: ShoppingItem[] }>('/api/shopping-items', undefined, {
+      action: 'shopping_list.get_items',
+    })
     return result.ok ? result.value.items : []
   }
 
   async createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>> {
-    const result = await apiFetch<{ item: ShoppingItem }>('/api/shopping-items', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    })
+    const result = await apiFetch<{ item: ShoppingItem }>(
+      '/api/shopping-items',
+      { method: 'POST', body: JSON.stringify(input) },
+      { action: 'shopping_list.create_item' },
+    )
     return result.ok ? Result.ok(result.value.item) : Result.err(result.error)
   }
 
   async updateShoppingItem(itemId: string, patch: UpdateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>> {
-    const result = await apiFetch<{ item: ShoppingItem }>(`/api/shopping-items/${itemId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(patch),
-    })
+    const result = await apiFetch<{ item: ShoppingItem }>(
+      `/api/shopping-items/${itemId}`,
+      { method: 'PATCH', body: JSON.stringify(patch) },
+      { action: 'shopping_list.update_item', attributes: { itemId } },
+    )
     return result.ok ? Result.ok(result.value.item) : Result.err(result.error)
   }
 
   async deleteShoppingItem(itemId: string): Promise<Result<void, ApiError>> {
-    const result = await apiFetch<void>(`/api/shopping-items/${itemId}`, { method: 'DELETE' })
+    const result = await apiFetch<void>(
+      `/api/shopping-items/${itemId}`,
+      { method: 'DELETE' },
+      { action: 'shopping_list.delete_item', attributes: { itemId } },
+    )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async getRecipes(): Promise<Recipe[]> {
-    const result = await apiFetch<{ recipes: Recipe[] }>('/api/recipes')
+    const result = await apiFetch<{ recipes: Recipe[] }>('/api/recipes', undefined, { action: 'recipe.get_recipes' })
     return result.ok ? result.value.recipes : []
   }
 
   async getRecipe(recipeId: string): Promise<Recipe | null> {
-    const result = await apiFetch<{ recipe: Recipe }>(`/api/recipes/${recipeId}`)
+    const result = await apiFetch<{ recipe: Recipe }>(`/api/recipes/${recipeId}`, undefined, {
+      action: 'recipe.get_recipe',
+      attributes: { recipeId },
+    })
     return result.ok ? result.value.recipe : null
   }
 
   async generateRecipes(prompt?: string): Promise<Result<Recipe[], ApiError>> {
-    const result = await apiFetch<{ recipes: Recipe[] }>('/api/recipes/generate', {
-      method: 'POST',
-      body: JSON.stringify(prompt ? { prompt } : {}),
-    })
+    const result = await apiFetch<{ recipes: Recipe[] }>(
+      '/api/recipes/generate',
+      { method: 'POST', body: JSON.stringify(prompt ? { prompt } : {}) },
+      { action: 'recipe.generate_recipes' },
+    )
     return result.ok ? Result.ok(result.value.recipes) : Result.err(result.error)
   }
 
   async cookRecipe(recipeId: string, productIds: string[]): Promise<Result<Recipe, ApiError>> {
-    const result = await apiFetch<{ recipe: Recipe }>(`/api/recipes/${recipeId}/cooked`, {
-      method: 'POST',
-      body: JSON.stringify({ productIds }),
-    })
+    const result = await apiFetch<{ recipe: Recipe }>(
+      `/api/recipes/${recipeId}/cooked`,
+      { method: 'POST', body: JSON.stringify({ productIds }) },
+      { action: 'recipe.cook_recipe', attributes: { recipeId } },
+    )
     return result.ok ? Result.ok(result.value.recipe) : Result.err(result.error)
   }
 
   async deleteRecipe(recipeId: string): Promise<Result<void, ApiError>> {
-    const result = await apiFetch<void>(`/api/recipes/${recipeId}`, { method: 'DELETE' })
+    const result = await apiFetch<void>(
+      `/api/recipes/${recipeId}`,
+      { method: 'DELETE' },
+      { action: 'recipe.delete_recipe', attributes: { recipeId } },
+    )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
@@ -246,39 +290,52 @@ export class HttpFridgeConnector implements FridgeConnector {
     if (params?.location) query.set('location', params.location)
     if (params?.expiringWithinDays) query.set('expiringWithinDays', String(params.expiringWithinDays))
     const qs = query.toString()
-    const result = await apiFetch<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`)
+    const result = await apiFetch<{ products: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`, undefined, {
+      action: 'fridge.get_products',
+    })
     return result.ok ? result.value.products : []
   }
 
   async getProduct(productId: string): Promise<Product | null> {
-    const result = await apiFetch<{ product: Product }>(`/api/products/${productId}`)
+    const result = await apiFetch<{ product: Product }>(`/api/products/${productId}`, undefined, {
+      action: 'fridge.get_product',
+      attributes: { productId },
+    })
     return result.ok ? result.value.product : null
   }
 
   async createProduct(input: CreateProductInput): Promise<Result<Product, ApiError>> {
-    const result = await apiFetch<{ product: Product }>('/api/products', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    })
+    const result = await apiFetch<{ product: Product }>(
+      '/api/products',
+      { method: 'POST', body: JSON.stringify(input) },
+      { action: 'fridge.create_product' },
+    )
     return result.ok ? Result.ok(result.value.product) : Result.err(result.error)
   }
 
   async updateProduct(productId: string, patch: UpdateProductInput): Promise<Result<Product, ApiError>> {
-    const result = await apiFetch<{ product: Product }>(`/api/products/${productId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(patch),
-    })
+    const result = await apiFetch<{ product: Product }>(
+      `/api/products/${productId}`,
+      { method: 'PATCH', body: JSON.stringify(patch) },
+      { action: 'fridge.update_product', attributes: { productId } },
+    )
     return result.ok ? Result.ok(result.value.product) : Result.err(result.error)
   }
 
   async deleteProduct(productId: string): Promise<Result<void, ApiError>> {
-    const result = await apiFetch<void>(`/api/products/${productId}`, { method: 'DELETE' })
+    const result = await apiFetch<void>(
+      `/api/products/${productId}`,
+      { method: 'DELETE' },
+      { action: 'fridge.delete_product', attributes: { productId } },
+    )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async getExpiringSoonProducts(days?: number): Promise<Product[]> {
     const qs = days ? `?days=${days}` : ''
-    const result = await apiFetch<{ products: Product[] }>(`/api/products/expiring-soon${qs}`)
+    const result = await apiFetch<{ products: Product[] }>(`/api/products/expiring-soon${qs}`, undefined, {
+      action: 'fridge.get_expiring_soon_products',
+    })
     return result.ok ? result.value.products : []
   }
 
@@ -292,6 +349,8 @@ export class HttpFridgeConnector implements FridgeConnector {
   async lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null> {
     const result = await apiFetch<{ result: ProductLookupResult | null }>(
       `/api/products/lookup?barcode=${encodeURIComponent(barcode)}`,
+      undefined,
+      { action: 'fridge.lookup_product' },
     )
     if (!result.ok) throw new Error(result.error.message)
     return result.value.result
@@ -321,43 +380,54 @@ export class HttpFridgeConnector implements FridgeConnector {
       // which isn't guaranteed to work against `file://` on the new fetch.
       formData.append('image', new File(imageUri), 'receipt.jpg')
     }
-    const result = await apiFetchMultipart<{ draft: ReceiptDraft }>('/api/receipts/scan', formData)
+    const result = await apiFetchMultipart<{ draft: ReceiptDraft }>('/api/receipts/scan', formData, {
+      action: 'receipt.scan',
+    })
     return result.ok ? Result.ok(result.value.draft) : Result.err(result.error)
   }
 
   async importReceipt(input: ImportReceiptInput): Promise<Result<{ receipt: Receipt; products: Product[] }, ApiError>> {
-    const result = await apiFetch<{ receipt: Receipt; products: Product[] }>('/api/receipts/import', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    })
+    const result = await apiFetch<{ receipt: Receipt; products: Product[] }>(
+      '/api/receipts/import',
+      { method: 'POST', body: JSON.stringify(input) },
+      { action: 'receipt.import' },
+    )
     return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 
   async getReceipts(): Promise<Receipt[]> {
-    const result = await apiFetch<{ receipts: Receipt[] }>('/api/receipts')
+    const result = await apiFetch<{ receipts: Receipt[] }>('/api/receipts', undefined, {
+      action: 'receipt.get_receipts',
+    })
     return result.ok ? result.value.receipts : []
   }
 
   async getReceipt(receiptId: string): Promise<{ receipt: Receipt; products: Product[] } | null> {
-    const result = await apiFetch<{ receipt: Receipt; products: Product[] }>(`/api/receipts/${receiptId}`)
+    const result = await apiFetch<{ receipt: Receipt; products: Product[] }>(`/api/receipts/${receiptId}`, undefined, {
+      action: 'receipt.get_receipt',
+      attributes: { receiptId },
+    })
     return result.ok ? result.value : null
   }
 
   async getAiSettings(): Promise<AiSettings | null> {
-    const result = await apiFetch<AiSettings>('/api/settings/ai')
+    const result = await apiFetch<AiSettings>('/api/settings/ai', undefined, { action: 'settings.get_ai_settings' })
     return result.ok ? result.value : null
   }
 
   async setActiveAiProvider(provider: AiProvider): Promise<Result<AiSettings, ApiError>> {
-    const result = await apiFetch<AiSettings>('/api/settings/ai', {
-      method: 'PATCH',
-      body: JSON.stringify({ provider }),
-    })
+    const result = await apiFetch<AiSettings>(
+      '/api/settings/ai',
+      { method: 'PATCH', body: JSON.stringify({ provider }) },
+      { action: 'settings.set_active_ai_provider' },
+    )
     return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 
   async getHaLink(): Promise<HaLink | null> {
-    const result = await apiFetch<HaLink>('/api/settings/home-assistant')
+    const result = await apiFetch<HaLink>('/api/settings/home-assistant', undefined, {
+      action: 'home_assistant.get_link',
+    })
     if (__DEV__) {
       // `JSON.stringify`, not the object itself: RN's console truncates a
       // nested array of objects (Vine's `details`) to `[Object]`, which is
@@ -370,10 +440,11 @@ export class HttpFridgeConnector implements FridgeConnector {
   async saveHaConnection(input: SaveHaConnectionInput): Promise<Result<HaLink, ApiError>> {
     // Never the token, per the same rule the backend client follows.
     if (__DEV__) console.log('[home_assistant.save_connection] connecting', { instanceUrl: input.instanceUrl })
-    const result = await apiFetch<HaLink>('/api/settings/home-assistant', {
-      method: 'PUT',
-      body: JSON.stringify(input),
-    })
+    const result = await apiFetch<HaLink>(
+      '/api/settings/home-assistant',
+      { method: 'PUT', body: JSON.stringify(input) },
+      { action: 'home_assistant.save_connection' },
+    )
     if (__DEV__) {
       console.log('[home_assistant.save_connection]', result.ok ? 'connected' : JSON.stringify({ error: result.error }))
     }
@@ -382,10 +453,11 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async discoverHaTodoEntities(input: DiscoverHaEntitiesInput): Promise<Result<HaTodoEntity[], ApiError>> {
     if (__DEV__) console.log('[home_assistant.discover] connecting', { instanceUrl: input.instanceUrl })
-    const result = await apiFetch<{ entities: HaTodoEntity[] }>('/api/settings/home-assistant/discover', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    })
+    const result = await apiFetch<{ entities: HaTodoEntity[] }>(
+      '/api/settings/home-assistant/discover',
+      { method: 'POST', body: JSON.stringify(input) },
+      { action: 'home_assistant.discover' },
+    )
     if (__DEV__) {
       console.log('[home_assistant.discover]', result.ok ? { entities: result.value.entities.length } : JSON.stringify({ error: result.error }))
     }
@@ -393,22 +465,31 @@ export class HttpFridgeConnector implements FridgeConnector {
   }
 
   async bindHaList(input: BindHaListInput): Promise<Result<HaLink, ApiError>> {
-    const result = await apiFetch<HaLink>('/api/settings/home-assistant', {
-      method: 'PATCH',
-      body: JSON.stringify(input),
-    })
+    const result = await apiFetch<HaLink>(
+      '/api/settings/home-assistant',
+      { method: 'PATCH', body: JSON.stringify(input) },
+      { action: 'home_assistant.bind_list' },
+    )
     if (__DEV__) console.log('[home_assistant.bind_list]', result.ok ? { entity: input.todoEntityId } : JSON.stringify({ error: result.error }))
     return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 
   async unlinkHa(): Promise<Result<void, ApiError>> {
-    const result = await apiFetch<void>('/api/settings/home-assistant', { method: 'DELETE' })
+    const result = await apiFetch<void>(
+      '/api/settings/home-assistant',
+      { method: 'DELETE' },
+      { action: 'home_assistant.unlink' },
+    )
     if (__DEV__) console.log('[home_assistant.unlink]', result.ok ? 'ok' : { error: result.error })
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
 
   async syncShoppingListWithHa(): Promise<Result<{ synced: boolean }, ApiError>> {
-    const result = await apiFetch<{ synced: boolean }>('/api/shopping-items/sync', { method: 'POST' })
+    const result = await apiFetch<{ synced: boolean }>(
+      '/api/shopping-items/sync',
+      { method: 'POST' },
+      { action: 'home_assistant.sync_shopping_list' },
+    )
     return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 }

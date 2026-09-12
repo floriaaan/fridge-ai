@@ -1,12 +1,14 @@
 import { Platform } from 'react-native'
 import { authClient } from '../auth/auth-client.js'
 import { HttpFridgeConnector } from './http-fridge-connector.js'
+import { telemetry } from '../telemetry/telemetry.js'
 
 jest.mock('../auth/auth-client.js', () => ({
   authClient: {
     signIn: {
       email: jest.fn(),
     },
+    signOut: jest.fn().mockResolvedValue(undefined),
     // Read by every apiFetch call (http-client.ts) to attach the session
     // cookie — unrelated to what most tests in this file exercise, but
     // still awaited on every request, so it needs a resolved value here.
@@ -55,6 +57,20 @@ test('signInEmail() falls back to default type/message when error has no code/me
   if (!result.ok) {
     expect(result.error).toEqual({ type: 'sign_in_failed', message: 'Connexion impossible.' })
   }
+})
+
+test('signOut() swallows an authClient failure and reports it instead of throwing', async () => {
+  const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
+  ;(authClient.signOut as jest.Mock).mockRejectedValueOnce(new Error('network down'))
+
+  const connector = new HttpFridgeConnector()
+  await expect(connector.signOut()).resolves.toBeUndefined()
+
+  expect(spy).toHaveBeenCalledWith(
+    'identity.sign_out failed',
+    expect.objectContaining({ attributes: { 'app.operation': 'identity.sign_out' } }),
+  )
+  spy.mockRestore()
 })
 
 test('getProducts() returns [] when the request fails', async () => {
