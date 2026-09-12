@@ -3,6 +3,8 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { ThemeProvider } from '../presentation/shared/theme-provider.js'
+import { ToastHost } from '../presentation/shared/toast.js'
+import { ErrorBoundary } from '../presentation/shared/error-boundary.js'
 import { ConnectorProvider } from '../application/shared/connector-context.js'
 import { queryClient } from '../application/shared/query-client.js'
 import { createConnector } from '../../providers/create-connector.js'
@@ -33,7 +35,8 @@ export default function RootLayout() {
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <ConnectorProvider connector={connector}>
-            {/* A Stack, not a Slot. `Réglages`, `Foyer` and `Historique des
+            <ErrorBoundary>
+              {/* A Stack, not a Slot. `Réglages`, `Foyer` and `Historique des
                 tickets` used to live inside `(tabs)/`, where iOS's
                 `NativeTabs` only routes to the five declared triggers — so
                 `router.push('/settings')` was a silent no-op on iOS and the
@@ -42,23 +45,25 @@ export default function RootLayout() {
                 here as siblings of the tab group, which needs a real stack
                 navigator at the root to push onto. URLs are unchanged: `(tabs)`
                 is a group, so `/settings` was already `/settings`. */}
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              {/* Between `(auth)` and `(tabs)`, and a sibling of both: an
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                {/* Between `(auth)` and `(tabs)`, and a sibling of both: an
                   account with no foyer is signed in but has no screen inside
                   the tabs that could honestly render, so it gets its own
                   group with its own gate. `join` is the deep-link landing
                   route for `fridgeai://join?code=…`. */}
-              <Stack.Screen name="(onboarding)" />
-              <Stack.Screen name="join" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="settings" />
-              <Stack.Screen name="household" />
-              <Stack.Screen name="receipts" />
-              <Stack.Screen name="home-assistant" options={{ presentation: 'modal' }} />
-            </Stack>
+                <Stack.Screen name="(onboarding)" />
+                <Stack.Screen name="join" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="settings" />
+                <Stack.Screen name="household" />
+                <Stack.Screen name="receipts" />
+                <Stack.Screen name="home-assistant" options={{ presentation: 'modal' }} />
+              </Stack>
+            </ErrorBoundary>
           </ConnectorProvider>
         </QueryClientProvider>
+        <ToastHost />
       </ThemeProvider>
     </GestureHandlerRootView>
   )
