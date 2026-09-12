@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react-native'
 import { router } from 'expo-router'
+import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { BarcodeScannerScreen } from './barcode-scanner-screen.js'
 
@@ -104,4 +105,29 @@ test('multiple rapid onBarcodeScanned callbacks only navigate once', async () =>
   })
 
   expect(router.replace).toHaveBeenCalledTimes(1)
+})
+
+test('a router.replace failure in create mode records telemetry and falls back to the fridge tab', async () => {
+  const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
+  ;(router.replace as jest.Mock).mockImplementationOnce(() => {
+    throw new Error('empty stack')
+  })
+
+  await render(
+    <ThemeProvider>
+      <BarcodeScannerScreen mode="create" />
+    </ThemeProvider>,
+  )
+
+  const camera = screen.getByTestId('fridge-barcode-camera')
+  await act(async () => {
+    camera.props.onBarcodeScanned({ data: '3017620422003' })
+  })
+
+  expect(spy).toHaveBeenCalledWith(
+    'barcode scan navigation failed',
+    expect.objectContaining({ attributes: { 'app.operation': 'fridge.barcode_scan_navigate' } }),
+  )
+  expect(router.replace).toHaveBeenLastCalledWith('/(tabs)/fridge')
+  spy.mockRestore()
 })

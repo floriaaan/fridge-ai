@@ -9,6 +9,7 @@ import { CameraPermissionModal } from '../shared/camera-permission-modal.js'
 import { goBack } from '../shared/navigation.js'
 import { XIcon } from '../dashboard/dashboard-icons.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
+import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
 
 type BarcodeScannerMode = ({ mode: 'create' } | { mode: 'edit'; productId: string }) & {
   // True when the scanner was pushed from a form that's already open (the form's own
@@ -46,8 +47,12 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
     
     try {
       router.replace({ pathname: '/(tabs)/fridge/new', params: { prefillBarcode: data } })
-    } catch {
+    } catch (error) {
       // If router.replace fails (empty stack case), fall back to home route
+      telemetry.recordError('barcode scan navigation failed', {
+        error,
+        attributes: { 'app.operation': 'fridge.barcode_scan_navigate' },
+      })
       router.replace('/(tabs)/fridge')
     }
   }
