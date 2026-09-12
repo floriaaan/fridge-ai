@@ -9,6 +9,7 @@ import { Animated, Easing } from 'react-native'
 import { Text, XStack, YStack } from './tamagui-typed.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { IS_ANDROID, materialRoles, surfaceShadow } from './material.js'
+import { TOAST_PILL_STYLE, ToastPillLayer, toastPillShadow } from './toast-pill.js'
 import { CircleCheckIcon, TriangleAlertIcon } from '../dashboard/dashboard-icons.js'
 import { useReduceMotion } from './hover.js'
 
@@ -41,9 +42,12 @@ export function useHint(): [Hint | null, (message: string, kind?: Hint['kind']) 
     timeout.current = setTimeout(() => setHint(null), HINT_MS)
   }, [])
 
-  useEffect(() => () => {
-    if (timeout.current) clearTimeout(timeout.current)
-  }, [])
+  useEffect(
+    () => () => {
+      if (timeout.current) clearTimeout(timeout.current)
+    },
+    [],
+  )
 
   return [hint, show]
 }
@@ -51,36 +55,18 @@ export function useHint(): [Hint | null, (message: string, kind?: Hint['kind']) 
 /**
  * Android gets a Material 3 **Snackbar**: a left-aligned rectangle on
  * `inverseSurface`, 4dp radius, elevation 3, sitting above the navigation bar
- * — the platform's own component for transient feedback, untouched by the
- * card redesign below (a 2026-09 complaint: "pill flottant" read as too
- * discreet — that was never Android's shape to begin with).
+ * — the platform's own component for transient feedback, deliberately its
+ * own shape and position, not unified with the pill below.
  *
- * iOS/web: a full-width card, one uniform corner radius on every side (a
- * 2026-09 complaint: the earlier asymmetric radii it borrowed from
- * `IngredientGroup`/`CookedAction` read as inconsistent borders on a toast,
- * where every other surface — Android's Snackbar included — keeps all four
- * corners equal) — same content, same timing, same live region.
+ * iOS/web: the same floating top pill as `ToastHost` (the network/transport
+ * toast) — `toast-pill.tsx` is the one place both get their shape, position
+ * and shadow from, so the two can't drift apart the way this toast's
+ * earlier bottom card and that pill once did (2026-09 request: make this
+ * one look like that one). Sitting at the top instead of the bottom also
+ * retires the old `liftForNativeTabBar` clearance prop entirely — there is
+ * no tab bar up there to clear.
  */
-export function HintBubble({
-  hint,
-  palette,
-  liftForNativeTabBar,
-}: {
-  hint: Hint | null
-  palette: SoftPalette
-  /**
-   * True on iOS whenever the real `NativeTabs` bar is the one on screen —
-   * AppShell's `isNativeTabBar`. That bar is a system view drawn by a
-   * navigator outside this tree, so the fixed 18pt below (tuned to just
-   * clear the home indicator when no bar exists at all) put the toast right
-   * behind it: reported as "sous la tab bar sur iOS donc pas visible". No
-   * exact height is available without `useSafeAreaInsets` (no
-   * `SafeAreaProvider` is mounted — see `action-sheet.tsx`), so this is the
-   * same kind of empirical clearance Android's own branch below already
-   * uses for its 80pt bar.
-   */
-  liftForNativeTabBar?: boolean
-}) {
+export function HintBubble({ hint, palette }: { hint: Hint | null; palette: SoftPalette }) {
   const reduceMotion = useReduceMotion()
   // A hint clearing itself is a prop going straight to null — with no state
   // of its own the toast would vanish in the same frame it appeared in, so
@@ -120,15 +106,17 @@ export function HintBubble({
 
   if (!rendered) return null
   const roles = materialRoles(palette)
-  const entrance = {
-    opacity: progress,
-    transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
-  }
 
   if (IS_ANDROID) {
+    const androidEntrance = {
+      opacity: progress,
+      transform: [
+        { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
+      ],
+    }
     return (
       <Animated.View
-        style={[{ position: 'absolute', left: 16, right: 16, bottom: 96 }, entrance]}
+        style={[{ position: 'absolute', left: 16, right: 16, bottom: 96 }, androidEntrance]}
         pointerEvents="none"
         accessibilityLiveRegion="polite"
       >
@@ -149,33 +137,47 @@ export function HintBubble({
     )
   }
 
-  const bg = rendered.kind === 'success' ? palette.mintPale : rendered.kind === 'error' ? palette.expiredBg : palette.brandDeep
-  const text = rendered.kind === 'success' ? palette.mintPaleText : rendered.kind === 'error' ? palette.expiredText : palette.brandDeepText
-  const Icon = rendered.kind === 'success' ? CircleCheckIcon : rendered.kind === 'error' ? TriangleAlertIcon : null
+  const bg =
+    rendered.kind === 'success'
+      ? palette.mintPale
+      : rendered.kind === 'error'
+        ? palette.expiredBg
+        : palette.brandDeep
+  const text =
+    rendered.kind === 'success'
+      ? palette.mintPaleText
+      : rendered.kind === 'error'
+        ? palette.expiredText
+        : palette.brandDeepText
+  const Icon =
+    rendered.kind === 'success'
+      ? CircleCheckIcon
+      : rendered.kind === 'error'
+        ? TriangleAlertIcon
+        : null
 
   return (
-    <Animated.View
-      style={[{ position: 'absolute', left: 20, right: 20, bottom: liftForNativeTabBar ? 100 : 18 }, entrance]}
-      pointerEvents="none"
-      accessibilityLiveRegion="polite"
-    >
+    <ToastPillLayer progress={progress} pointerEvents="none">
       <XStack
         alignItems="center"
         gap="$2"
         backgroundColor={bg}
-        paddingVertical="$3"
-        paddingHorizontal="$4"
-        minHeight={52}
-        style={{
-          borderRadius: 18,
-          ...surfaceShadow(palette, 3, { offsetY: 10, opacity: 0.18, radius: 20 }),
-        }}
+        accessibilityLiveRegion="polite"
+        style={[TOAST_PILL_STYLE, toastPillShadow(palette)]}
       >
         {Icon ? <Icon size={18} color={text} /> : null}
-        <Text fontSize={13} fontWeight="700" color={text} flex={1}>
+        {/* No `flex={1}` (unlike the old edge-to-edge card): the pill now
+            shrink-wraps to its content up to `maxWidth`, and `flex={1}` on
+            a `Text` inside a content-sized row resolves to zero width in
+            RN's layout — the message rendered invisible, background and
+            icon still showing, while the same markup worked fine on the
+            old full-width row where the parent had a real, non-content-sized
+            width to distribute. `ToastHost`'s pill never had this bug: its
+            `Text` was never given `flex={1}` to begin with. */}
+        <Text fontSize={13} fontWeight="700" color={text}>
           {rendered.message}
         </Text>
       </XStack>
-    </Animated.View>
+    </ToastPillLayer>
   )
 }

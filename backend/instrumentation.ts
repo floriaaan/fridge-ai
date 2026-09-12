@@ -35,6 +35,16 @@ const enabled = process.env.OTEL_ENABLED === 'true'
 if (enabled) {
   try {
     /**
+     * `@opentelemetry/api`'s diag logger is a no-op until something sets
+     * one — every runtime export failure (a bad endpoint, a network error,
+     * a batch that never flushes) is then swallowed with zero output, on
+     * both the app's console and everywhere else. `warn` only: `info`
+     * would print one line per successful export.
+     */
+    const { diag, DiagConsoleLogger, DiagLogLevel } = await import('@opentelemetry/api')
+    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN)
+
+    /**
      * Required, not optional. The instrumentations patch a module as it is
      * loaded, which works out of the box for CommonJS (`pg`, `pino`) but not
      * for ESM: `import http from 'node:http'` resolves through a namespace
@@ -48,7 +58,30 @@ if (enabled) {
      * `node:http` as ESM.
      */
     const { register } = await import('node:module')
-    register('@opentelemetry/instrumentation/hook.mjs', import.meta.url)
+    /**
+     * `include` — without it this hook wraps *every* ESM module in the
+     * process, AdonisJS's own included: `#start/routes` and every
+     * `providers/*.ts` file loaded through it. import-in-the-middle fails
+     * to wrap several of them ("failed to wrap .../providers/..."), and the
+     * router that `#start/routes` populates ends up a different instance
+     * from the one the HTTP kernel serves — every route, `/health`
+     * included, 404s. Confirmed by toggling `OTEL_ENABLED`: false serves
+     * normally, true 404s on every route, both on a cold process.
+     *
+     * `node:http` is needed for the same reason as the comment above says:
+     * AdonisJS imports it as ESM, so HttpInstrumentation only sees it
+     * through this hook. `pino` needs it too, for a different reason: it's
+     * plain CommonJS, but `@adonisjs/logger` (itself ESM, `"type":
+     * "module"`) does `import { pino } from 'pino'` — a *named* ESM import
+     * off a CJS package, which Node resolves through its own cjs-module-
+     * lexer static analysis before any code runs, same as `node:http`
+     * above. Without `pino` in this list, `PinoInstrumentation` never sees
+     * the factory AdonisJS actually calls — trace/log correlation and the
+     * mirrored OTLP logs pipeline both go silently empty, not by an error.
+     */
+    register('@opentelemetry/instrumentation/hook.mjs', import.meta.url, {
+      data: { include: ['node:http', 'pino'] },
+    })
 
     const { NodeSDK } = await import('@opentelemetry/sdk-node')
     const { resourceFromAttributes } = await import('@opentelemetry/resources')

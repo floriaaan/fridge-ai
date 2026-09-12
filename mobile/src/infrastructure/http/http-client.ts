@@ -3,9 +3,24 @@ import { Result } from '../../domain/shared/result.js'
 import { telemetry } from '../telemetry/telemetry.js'
 import { authClient } from '../auth/auth-client.js'
 import { queryClient } from '../../application/shared/query-client.js'
+import { showToast } from '../../application/shared/toast.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL as string
+
+const NETWORK_ERROR_MESSAGE = 'Impossible de contacter le serveur.'
+
+/**
+ * Every screen's own error handling is best-effort (an inline message, or
+ * sometimes none at all for a background refetch) — this is the one place
+ * that always fires, regardless of which screen or query is asking, so a
+ * dead server reads as one friendly toast everywhere instead of either
+ * silence or, worse, an unhandled rejection reaching RN's dev redbox.
+ */
+function networkErrorResult<T>(): Result<T, ApiError> {
+  showToast(NETWORK_ERROR_MESSAGE)
+  return Result.err({ type: 'network_error', message: NETWORK_ERROR_MESSAGE })
+}
 
 /** Names the span/log with the business action it belongs to, and carries whatever entity ids the caller already knows — never free text. */
 export interface ActionContext {
@@ -152,7 +167,7 @@ export async function apiFetch<T>(
     // sees" breadcrumb next to it); a *successful* response whose body
     // wasn't valid JSON never gets logged anywhere else at all.
     console.error(`[api] ${init?.method ?? 'GET'} ${path} could not be completed`, error)
-    return Result.err({ type: 'network_error', message: 'Impossible de contacter le serveur.' })
+    return networkErrorResult<T>()
   }
 }
 
@@ -189,6 +204,6 @@ export async function apiFetchMultipart<T>(
     return Result.ok(body as T)
   } catch (error) {
     console.error(`[api] POST ${path} could not be completed`, error)
-    return Result.err({ type: 'network_error', message: 'Impossible de contacter le serveur.' })
+    return networkErrorResult<T>()
   }
 }

@@ -1,6 +1,7 @@
 import { apiFetch, apiFetchMultipart } from './http-client.js'
 import { queryClient } from '../../application/shared/query-client.js'
 import { telemetry } from '../telemetry/telemetry.js'
+import { subscribeToast } from '../../application/shared/toast.js'
 
 // `http-client.ts` reads the session cookie via `authClient.getCookie()` on
 // every request. The real client pulls in `better-auth/react`, an ESM-only
@@ -122,6 +123,47 @@ test('apiFetch() records telemetry with the given action name when the response 
     expect.objectContaining({ attributes: { 'error.type': 'validation_failed', action: 'fridge.create_product' } }),
   )
   spy.mockRestore()
+})
+
+test('apiFetch() shows a toast and returns a network_error Result when fetch itself rejects', async () => {
+  const onToast = jest.fn()
+  const unsubscribe = subscribeToast(onToast)
+  globalThis.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'))
+
+  const result = await apiFetch('/api/products')
+
+  expect(result).toEqual({ ok: false, error: { type: 'network_error', message: 'Impossible de contacter le serveur.' } })
+  expect(onToast).toHaveBeenCalledWith(
+    expect.objectContaining({ message: 'Impossible de contacter le serveur.', variant: 'error' }),
+  )
+  unsubscribe()
+})
+
+test('apiFetchMultipart() shows a toast and returns a network_error Result when fetch itself rejects', async () => {
+  const onToast = jest.fn()
+  const unsubscribe = subscribeToast(onToast)
+  globalThis.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'))
+
+  const result = await apiFetchMultipart('/api/receipts/scan', new FormData())
+
+  expect(result).toEqual({ ok: false, error: { type: 'network_error', message: 'Impossible de contacter le serveur.' } })
+  expect(onToast).toHaveBeenCalledTimes(1)
+  unsubscribe()
+})
+
+test('a business error (4xx/5xx reached the server) does not also show a toast — only a genuine transport failure does', async () => {
+  const onToast = jest.fn()
+  const unsubscribe = subscribeToast(onToast)
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    status: 422,
+    ok: false,
+    json: () => Promise.resolve({ error: { type: 'validation_failed', message: 'oops' } }),
+  }) as unknown as typeof fetch
+
+  await apiFetch('/api/products', { method: 'POST' })
+
+  expect(onToast).not.toHaveBeenCalled()
+  unsubscribe()
 })
 
 test('apiFetch() falls back to method+path as the action label when none is given', async () => {
