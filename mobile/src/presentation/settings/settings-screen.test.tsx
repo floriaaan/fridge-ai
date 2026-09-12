@@ -141,3 +141,24 @@ test('a foyer that could not be read is unavailable, not absent', async () => {
 // household-screen.test.tsx) — it's a foyer-scoped setting, not an
 // account-scoped one, so it lives on the Foyer page next to invite/members
 // rather than on Réglages.
+
+test('the dev debug section triggers a network toast on tap', async () => {
+  await renderAuthenticated()
+
+  await waitFor(() => expect(screen.getByTestId('debug-toast-network-error')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('debug-toast-network-error'))
+
+  // `showToast` has no subscriber mounted in this test tree (`ToastHost`
+  // lives at the app root, not under `SettingsScreen`) — pressing without
+  // throwing is the assertion: the debug button must degrade to a no-op
+  // outside the full app, never crash the screen it's on.
+})
+
+test('the dev debug section triggers a hint via the same HintBubble every real action uses', async () => {
+  await renderAuthenticated()
+
+  await waitFor(() => expect(screen.getByTestId('debug-hint-success')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('debug-hint-success'))
+
+  await waitFor(() => expect(screen.getByText('Ajouté au frigo. (debug)')).toBeTruthy())
+})

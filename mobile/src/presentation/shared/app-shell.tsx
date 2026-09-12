@@ -468,7 +468,7 @@ export function AppShell({
           <MobileTabNav tab={nav.tab} onScan={nav.onScan} />
         )
       ) : null}
-      <HintBubble hint={hint ?? null} palette={palette} liftForNativeTabBar={isNativeTabBar} />
+      <HintBubble hint={hint ?? null} palette={palette} />
     </YStack>
   )
 

@@ -6,7 +6,10 @@ import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { Chip } from '../shared/chip.js'
 import { ActionSheet } from '../shared/action-sheet.js'
+import { PillButton } from '../shared/pill-button.js'
+import { useHint } from '../shared/hint-bubble.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
+import { showToast } from '../../application/shared/toast.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { HomeIcon, LogOutIcon, SettingsIcon, SparklesIcon, UserIcon } from '../dashboard/dashboard-icons.js'
 import { IdentityCard, RoleBadge } from './identity-card.js'
@@ -59,6 +62,7 @@ export function SettingsScreen() {
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
   const [confirmingSignOut, setConfirmingSignOut] = useState(false)
+  const [hint, showHint] = useHint()
   const refresh = usePullToRefresh(
     () => session.refetch(),
     () => household.refetch(),
@@ -112,7 +116,7 @@ export function SettingsScreen() {
   const canChooseProvider = availableProviders.length > 1
 
   return (
-    <AppShell nav={{ kind: 'stack' }} refresh={refresh}
+    <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh}
       header={
         <ScreenHeader
           palette={palette}
@@ -224,6 +228,59 @@ export function SettingsScreen() {
           }
         />
       </YStack>
+
+      {/* Dev-only: fires the two toast kinds on demand instead of needing to
+          actually kill the server or trigger a real screen action to see
+          them — never bundled into a release build. */}
+      {__DEV__ ? (
+        <YStack marginTop="$8" gap="$2">
+          <Text fontSize={13} fontWeight="800" color={palette.ink}>
+            Debug (dev only)
+          </Text>
+          <XStack gap="$2" flexWrap="wrap">
+            <PillButton
+              testID="debug-toast-network-error"
+              label="Toast réseau"
+              tone="quiet"
+              size="dense"
+              palette={palette}
+              onPress={() => showToast('Impossible de contacter le serveur. (debug)')}
+            />
+            <PillButton
+              testID="debug-toast-info"
+              label="Toast info"
+              tone="quiet"
+              size="dense"
+              palette={palette}
+              onPress={() => showToast('Reconnecté au serveur. (debug)', 'info')}
+            />
+            <PillButton
+              testID="debug-hint-success"
+              label="Hint succès"
+              tone="quiet"
+              size="dense"
+              palette={palette}
+              onPress={() => showHint('Ajouté au frigo. (debug)', 'success')}
+            />
+            <PillButton
+              testID="debug-hint-error"
+              label="Hint erreur"
+              tone="quiet"
+              size="dense"
+              palette={palette}
+              onPress={() => showHint('Une erreur est survenue. (debug)', 'error')}
+            />
+            <PillButton
+              testID="debug-hint-neutral"
+              label="Hint neutre"
+              tone="quiet"
+              size="dense"
+              palette={palette}
+              onPress={() => showHint('Bientôt disponible. (debug)')}
+            />
+          </XStack>
+        </YStack>
+      ) : null}
 
       <YStack marginTop="$8" gap="$2">
         <AuthButton
