@@ -1,10 +1,12 @@
-# OpenTelemetry Collector — the single ingestion point for every signal
-# (backend spans/metrics/logs, and mobile telemetry relayed by the backend).
-# Mounted by the `otel-collector` service in compose.yml.
+# Copy to otel-collector.override.yaml (gitignored — infra-specific) and fill
+# in your own endpoint, then mount it via compose.override.yml (see
+# compose.override.yml.example). otelcol takes one `--config` file, so this
+# is a full copy of otel-collector.yaml plus the extra exporter/pipeline
+# entries — not a diff.
 #
-# This file is the vendor seam: swapping the storage backend (OpenObserve,
-# SigNoz, Grafana Tempo/Loki/Mimir, ...) is a change to `exporters` +
-# `service.pipelines`, and nothing else in the repository moves.
+# rootprint accepts logs and traces only (no metrics) over OTLP HTTP+protobuf
+# — cf. docs.rootprint.io/send-logs/otlp — so otlphttp/rootprint is added to
+# the traces and logs pipelines but deliberately left out of metrics.
 
 receivers:
   otlp:
@@ -14,20 +16,13 @@ receivers:
         max_recv_msg_size_mib: 8
       http:
         endpoint: 0.0.0.0:4318
-        # The backend relay (/api/telemetry) is the only mobile-facing path;
-        # CORS here is deliberately absent so a browser cannot post directly.
 
 processors:
-  # Hard ceiling before the collector can OOM the host. Must be first in
-  # every pipeline.
   memory_limiter:
     check_interval: 1s
     limit_mib: 384
     spike_limit_mib: 96
 
-  # Belt-and-braces redaction. The SDKs are already configured not to capture
-  # headers or SQL parameters; this catches anything a future instrumentation
-  # or a hand-written span adds by accident.
   attributes/redact:
     actions:
       - action: delete
@@ -37,8 +32,6 @@ processors:
       - action: delete
         key: url.query
 
-  # /health is polled by Docker every 30s per container. Keeping it would be
-  # most of the trace volume and none of the value.
   filter/noise:
     error_mode: ignore
     traces:
@@ -58,9 +51,6 @@ processors:
     timeout: 5s
 
 connectors:
-  # RED metrics (rate, errors, duration) derived from spans — both services
-  # get latency/error dashboards without any metric code in the application
-  # or, more importantly, on the phone.
   spanmetrics:
     histogram:
       explicit:
@@ -73,16 +63,9 @@ connectors:
 
 exporters:
   otlphttp/store:
-    # No trailing slash: the exporter appends /v1/traces, /v1/logs, /v1/metrics.
     endpoint: ${env:OTLP_STORE_ENDPOINT}
     headers:
       Authorization: Basic ${env:OTLP_STORE_AUTH}
-    # In memory, not on disk. A file-backed queue would survive a collector
-    # restart, but the contrib image runs unprivileged and a named Docker
-    # volume mounts root-owned, so persistence would cost either a root
-    # container or a host-side chown step — too much for the failure it
-    # covers. A *store* restart is already handled: the queue holds while the
-    # retry backs off, and only a collector restart drops what is in flight.
     sending_queue:
       enabled: true
       num_consumers: 4
@@ -92,6 +75,19 @@ exporters:
       initial_interval: 5s
       max_interval: 60s
       max_elapsed_time: 10m
+
+  # Fan-out to a self-hosted rootprint instance. Auto-suffixes /v1/traces and
+  # /v1/logs — do not add a trailing slash or a path here. Use a rootprint
+  # ingest key scoped to a dedicated index for this app's logs, separate from
+  # any index rootprint uses for its own db/quickwit/rootprint container logs.
+  otlphttp/rootprint:
+    endpoint: https://<your-rootprint-host>
+    headers:
+      Authorization: "Bearer ${env:ROOTPRINT_INGEST_TOKEN}"
+    sending_queue:
+      enabled: true
+    retry_on_failure:
+      enabled: true
 
   # One line per received log record on the collector's own stdout — `task
   # obs:logs` is otherwise blind to whether anything is even arriving. Its
@@ -115,7 +111,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, filter/noise, attributes/redact, resource/env, batch]
-      exporters: [otlphttp/store, spanmetrics]
+      exporters: [otlphttp/store, spanmetrics, otlphttp/rootprint]
     metrics:
       receivers: [otlp, spanmetrics]
       processors: [memory_limiter, attributes/redact, resource/env, batch]
@@ -123,4 +119,4 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, attributes/redact, resource/env, batch]
-      exporters: [otlphttp/store, debug]
+      exporters: [otlphttp/store, otlphttp/rootprint, debug]

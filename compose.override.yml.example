@@ -1,0 +1,13 @@
+# Copy to compose.override.yml (gitignored — infra-specific, never commit it).
+# `docker compose` auto-loads compose.override.yml alongside compose.yml, no
+# `-f` flag needed.
+#
+# Use this to point the local otel-collector at an external OTLP sink (e.g.
+# a self-hosted rootprint instance, cf. docs.rootprint.io/send-logs/otlp)
+# without editing the tracked compose.yml or otel-collector.yaml.
+services:
+  otel-collector:
+    environment:
+      ROOTPRINT_INGEST_TOKEN: ${ROOTPRINT_INGEST_TOKEN}
+    volumes:
+      - ./observability/otel-collector.override.yaml:/etc/otelcol/config.yaml:ro

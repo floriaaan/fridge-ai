@@ -1,6 +1,8 @@
 node_modules/
 .env
 !.env.example
+compose.override.yml
+observability/otel-collector.override.yaml
 build/
 dist/
 .adonisjs/
