@@ -7,6 +7,12 @@ import type { ApiError } from '../../domain/shared/api-error.js'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL as string
 
+/** Names the span/log with the business action it belongs to, and carries whatever entity ids the caller already knows — never free text. */
+export interface ActionContext {
+  action?: string
+  attributes?: Record<string, string | number | boolean>
+}
+
 /**
  * The backend revoking a session mid-visit (cookie expired, signed out
  * elsewhere, server restarted with in-memory sessions) used to leave the app
@@ -45,12 +51,18 @@ function handleUnauthenticated() {
  * `null` when it is off, and `end()` cannot throw — so a missing or broken
  * observability stack changes nothing about what this function returns.
  */
-async function tracedFetch(path: string, method: string, init: RequestInit): Promise<Response> {
-  const span = telemetry.startClientSpan(`${method} ${path}`, {
+async function tracedFetch(
+  path: string,
+  method: string,
+  init: RequestInit,
+  context?: ActionContext,
+): Promise<Response> {
+  const span = telemetry.startClientSpan(context?.action ?? `${method} ${path}`, {
     'http.request.method': method,
     // The path, never the query string: it is where ids and search terms live.
     'url.path': path.split('?')[0],
     'server.address': API_URL,
+    ...context?.attributes,
   })
 
   // React Native's `fetch` keeps no cookie jar across requests — unlike a
@@ -100,18 +112,35 @@ async function tracedFetch(path: string, method: string, init: RequestInit): Pro
   }
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Result<T, ApiError>> {
+export async function apiFetch<T>(
+  path: string,
+  init?: RequestInit,
+  context?: ActionContext,
+): Promise<Result<T, ApiError>> {
   try {
-    const response = await tracedFetch(path, init?.method ?? 'GET', {
-      ...init,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...init?.headers },
-    })
+    const response = await tracedFetch(
+      path,
+      init?.method ?? 'GET',
+      {
+        ...init,
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...init?.headers },
+      },
+      context,
+    )
     // A 204 always means "success, no body" — nothing to parse.
     if (response.status === 204) return Result.ok(undefined as T)
     const body = await response.json()
     if (!response.ok) {
       const error = body.error as ApiError
+      // The request reached the backend, so this is not a transport failure
+      // — `tracedFetch` already ended the span as "success" with the status
+      // code attached, which used to leave every 4xx/5xx business error
+      // invisible in traces. Recorded here instead of restructuring the
+      // span's timing above.
+      telemetry.recordError(`action failed: ${error.type}`, {
+        attributes: { 'error.type': error.type, action: context?.action ?? `${init?.method ?? 'GET'} ${path}` },
+      })
       if (error.type === 'unauthenticated') handleUnauthenticated()
       return Result.err(error)
     }
@@ -133,17 +162,25 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Res
  * `FormData` instance itself, and setting it manually would drop that
  * boundary.
  */
-export async function apiFetchMultipart<T>(path: string, formData: FormData): Promise<Result<T, ApiError>> {
+export async function apiFetchMultipart<T>(
+  path: string,
+  formData: FormData,
+  context?: ActionContext,
+): Promise<Result<T, ApiError>> {
   try {
-    const response = await tracedFetch(path, 'POST', {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    })
+    const response = await tracedFetch(
+      path,
+      'POST',
+      { method: 'POST', credentials: 'include', body: formData },
+      context,
+    )
     if (response.status === 204) return Result.ok(undefined as T)
     const body = await response.json()
     if (!response.ok) {
       const error = body.error as ApiError
+      telemetry.recordError(`action failed: ${error.type}`, {
+        attributes: { 'error.type': error.type, action: context?.action ?? `POST ${path}` },
+      })
       if (error.type === 'unauthenticated') handleUnauthenticated()
       return Result.err(error)
     }

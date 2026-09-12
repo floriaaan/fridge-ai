@@ -1,5 +1,6 @@
 import { apiFetch, apiFetchMultipart } from './http-client.js'
 import { queryClient } from '../../application/shared/query-client.js'
+import { telemetry } from '../telemetry/telemetry.js'
 
 // `http-client.ts` reads the session cookie via `authClient.getCookie()` on
 // every request. The real client pulls in `better-auth/react`, an ESM-only
@@ -104,4 +105,38 @@ test('another 401-shaped error (a rejected login, say) does not touch the cached
   await apiFetch('/api/products')
 
   expect(queryClient.getQueryData(['session'])).toEqual({ userId: 'u1' })
+})
+
+test('apiFetch() records telemetry with the given action name when the response is not ok', async () => {
+  const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    status: 422,
+    ok: false,
+    json: () => Promise.resolve({ error: { type: 'validation_failed', message: 'oops' } }),
+  }) as unknown as typeof fetch
+
+  await apiFetch('/api/products', { method: 'POST' }, { action: 'fridge.create_product' })
+
+  expect(spy).toHaveBeenCalledWith(
+    'action failed: validation_failed',
+    expect.objectContaining({ attributes: { 'error.type': 'validation_failed', action: 'fridge.create_product' } }),
+  )
+  spy.mockRestore()
+})
+
+test('apiFetch() falls back to method+path as the action label when none is given', async () => {
+  const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    status: 500,
+    ok: false,
+    json: () => Promise.resolve({ error: { type: 'server_error', message: 'oops' } }),
+  }) as unknown as typeof fetch
+
+  await apiFetch('/api/whatever')
+
+  expect(spy).toHaveBeenCalledWith(
+    'action failed: server_error',
+    expect.objectContaining({ attributes: { 'error.type': 'server_error', action: 'GET /api/whatever' } }),
+  )
+  spy.mockRestore()
 })
