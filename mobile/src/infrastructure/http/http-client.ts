@@ -56,7 +56,7 @@ async function tracedFetch(
   method: string,
   init: RequestInit,
   context?: ActionContext,
-): Promise<Response> {
+): Promise<{ response: Response; span: ReturnType<typeof telemetry.startClientSpan> }> {
   const span = telemetry.startClientSpan(context?.action ?? `${method} ${path}`, {
     'http.request.method': method,
     // The path, never the query string: it is where ids and search terms live.
@@ -89,7 +89,7 @@ async function tracedFetch(
   try {
     const response = await fetch(`${API_URL}${path}`, { ...init, headers })
     span?.end({ attributes: { 'http.response.status_code': response.status } })
-    return response
+    return { response, span }
   } catch (error) {
     span?.end({ error })
     // A transport failure never reaches the backend, so this is the only
@@ -118,7 +118,7 @@ export async function apiFetch<T>(
   context?: ActionContext,
 ): Promise<Result<T, ApiError>> {
   try {
-    const response = await tracedFetch(
+    const { response, span } = await tracedFetch(
       path,
       init?.method ?? 'GET',
       {
@@ -140,6 +140,7 @@ export async function apiFetch<T>(
       // span's timing above.
       telemetry.recordError(`action failed: ${error.type}`, {
         attributes: { 'error.type': error.type, action: context?.action ?? `${init?.method ?? 'GET'} ${path}` },
+        ...(span ? { span } : null),
       })
       if (error.type === 'unauthenticated') handleUnauthenticated()
       return Result.err(error)
@@ -168,7 +169,7 @@ export async function apiFetchMultipart<T>(
   context?: ActionContext,
 ): Promise<Result<T, ApiError>> {
   try {
-    const response = await tracedFetch(
+    const { response, span } = await tracedFetch(
       path,
       'POST',
       { method: 'POST', credentials: 'include', body: formData },
@@ -180,6 +181,7 @@ export async function apiFetchMultipart<T>(
       const error = body.error as ApiError
       telemetry.recordError(`action failed: ${error.type}`, {
         attributes: { 'error.type': error.type, action: context?.action ?? `POST ${path}` },
+        ...(span ? { span } : null),
       })
       if (error.type === 'unauthenticated') handleUnauthenticated()
       return Result.err(error)

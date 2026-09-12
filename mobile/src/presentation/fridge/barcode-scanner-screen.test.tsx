@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react-native'
 import { router } from 'expo-router'
 import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
+import { configureTelemetry } from '../../application/shared/telemetry.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { BarcodeScannerScreen } from './barcode-scanner-screen.js'
 
@@ -8,6 +9,12 @@ jest.mock('expo-camera', () => ({
   CameraView: 'CameraView',
   useCameraPermissions: () => [{ granted: true }, jest.fn()],
 }))
+
+// `barcode-scanner-screen.tsx` reaches telemetry through `getTelemetry()`
+// (the boundary lint forbids importing `infrastructure/telemetry` from
+// presentation) — wiring the real singleton in here mirrors what
+// `providers/wire-telemetry.ts` does for the app itself.
+configureTelemetry(telemetry)
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn(), setParams: jest.fn() }, useFocusEffect: jest.fn() }))
 

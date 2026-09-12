@@ -39,7 +39,9 @@ function parseItem(item: unknown, index: number): ReceiptDraftItem {
     // silently trusting it would write a wrong expiry no one asked to
     // approve — the item still renders with an empty date instead.
     expiresInDays:
-      typeof record.expiresInDays === 'number' && Number.isFinite(record.expiresInDays) && record.expiresInDays >= 0
+      typeof record.expiresInDays === 'number' &&
+      Number.isFinite(record.expiresInDays) &&
+      record.expiresInDays >= 0
         ? Math.round(record.expiresInDays)
         : null,
   }

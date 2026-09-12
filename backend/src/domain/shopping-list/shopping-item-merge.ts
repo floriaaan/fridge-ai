@@ -45,8 +45,10 @@ const VOLUME_TO_ML: Record<string, number> = {
 
 function unitFactor(unit: string): { table: Record<string, number>; factor: number } | null {
   const key = normalizeShoppingItemName(unit)
-  if (key in MASS_TO_GRAMS) return { table: MASS_TO_GRAMS, factor: MASS_TO_GRAMS[key] }
-  if (key in VOLUME_TO_ML) return { table: VOLUME_TO_ML, factor: VOLUME_TO_ML[key] }
+  // The `in` check above already guarantees the key exists — `noUncheckedIndexedAccess`
+  // can't see through it, so the lookup itself still types as possibly `undefined`.
+  if (key in MASS_TO_GRAMS) return { table: MASS_TO_GRAMS, factor: MASS_TO_GRAMS[key]! }
+  if (key in VOLUME_TO_ML) return { table: VOLUME_TO_ML, factor: VOLUME_TO_ML[key]! }
   return null
 }
 

@@ -22,7 +22,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
-import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
+import { getTelemetry } from '../../application/shared/telemetry.js'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { PillButton } from '../shared/pill-button.js'
 import { HintBubble, useHint } from '../shared/hint-bubble.js'
@@ -164,7 +164,7 @@ export function ThresholdScreen({
     // whole share message, and normalizing that returns its first eight
     // letters — `REJOINSN` for a message beginning "Rejoins-nous".
     const clip = await Clipboard.getStringAsync().catch((error) => {
-      telemetry.recordError('clipboard read failed', {
+      getTelemetry().recordError('clipboard read failed', {
         error,
         attributes: { 'app.operation': 'identity.paste_invite' },
       })

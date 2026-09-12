@@ -7,7 +7,14 @@ const fakeDraft = {
   scannedAt: new Date('2026-08-26T18:00:00Z'),
   totalAmount: 4.8,
   items: [
-    { name: 'Lait 1L', quantity: 2, unit: 'piece', category: 'Produits laitiers', price: 2.4, expiresInDays: 10 },
+    {
+      name: 'Lait 1L',
+      quantity: 2,
+      unit: 'piece',
+      category: 'Produits laitiers',
+      price: 2.4,
+      expiresInDays: 10,
+    },
   ],
 }
 

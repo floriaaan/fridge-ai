@@ -104,6 +104,11 @@ export const BLOB_DRIFT_Y = 6
  */
 export function useBlobDrift({ rangeX = BLOB_DRIFT_X_RANGE, amplitudeY = BLOB_DRIFT_Y, duration = 8000 } = {}) {
   const reduceMotion = useReduceMotion()
+  // `Animated.Value` is RN's mutable animation primitive, not a React ref
+  // this rule targets; reading `.current` synchronously here is the
+  // documented pattern for driving `Animated.timing`/`interpolate` from a
+  // stable value across renders.
+  // eslint-disable-next-line react-hooks/refs
   const progress = useRef(new Animated.Value(0)).current
   useEffect(() => {
     if (reduceMotion) return
@@ -120,7 +125,9 @@ export function useBlobDrift({ rangeX = BLOB_DRIFT_X_RANGE, amplitudeY = BLOB_DR
   if (reduceMotion) return { transform: [] }
   return {
     transform: [
+      // eslint-disable-next-line react-hooks/refs -- same Animated.Value read as above
       { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: rangeX }) },
+      // eslint-disable-next-line react-hooks/refs -- same Animated.Value read as above
       { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [-amplitudeY, amplitudeY] }) },
     ],
   }

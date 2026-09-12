@@ -197,7 +197,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     const result = await apiFetch<void>(
       `/api/households/members/${userId}`,
       { method: 'DELETE' },
-      { action: 'identity.remove_household_member', attributes: { targetUserId: userId } },
+      { action: 'identity.remove_household_member', attributes: { 'entity.id': userId } },
     )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
@@ -231,7 +231,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     const result = await apiFetch<{ item: ShoppingItem }>(
       `/api/shopping-items/${itemId}`,
       { method: 'PATCH', body: JSON.stringify(patch) },
-      { action: 'shopping_list.update_item', attributes: { itemId } },
+      { action: 'shopping_list.update_item', attributes: { 'entity.id': itemId } },
     )
     return result.ok ? Result.ok(result.value.item) : Result.err(result.error)
   }
@@ -240,7 +240,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     const result = await apiFetch<void>(
       `/api/shopping-items/${itemId}`,
       { method: 'DELETE' },
-      { action: 'shopping_list.delete_item', attributes: { itemId } },
+      { action: 'shopping_list.delete_item', attributes: { 'entity.id': itemId } },
     )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
@@ -253,7 +253,7 @@ export class HttpFridgeConnector implements FridgeConnector {
   async getRecipe(recipeId: string): Promise<Recipe | null> {
     const result = await apiFetch<{ recipe: Recipe }>(`/api/recipes/${recipeId}`, undefined, {
       action: 'recipe.get_recipe',
-      attributes: { recipeId },
+      attributes: { 'entity.id': recipeId },
     })
     return result.ok ? result.value.recipe : null
   }
@@ -271,7 +271,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     const result = await apiFetch<{ recipe: Recipe }>(
       `/api/recipes/${recipeId}/cooked`,
       { method: 'POST', body: JSON.stringify({ productIds }) },
-      { action: 'recipe.cook_recipe', attributes: { recipeId } },
+      { action: 'recipe.cook_recipe', attributes: { 'entity.id': recipeId } },
     )
     return result.ok ? Result.ok(result.value.recipe) : Result.err(result.error)
   }
@@ -280,7 +280,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     const result = await apiFetch<void>(
       `/api/recipes/${recipeId}`,
       { method: 'DELETE' },
-      { action: 'recipe.delete_recipe', attributes: { recipeId } },
+      { action: 'recipe.delete_recipe', attributes: { 'entity.id': recipeId } },
     )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
@@ -299,7 +299,7 @@ export class HttpFridgeConnector implements FridgeConnector {
   async getProduct(productId: string): Promise<Product | null> {
     const result = await apiFetch<{ product: Product }>(`/api/products/${productId}`, undefined, {
       action: 'fridge.get_product',
-      attributes: { productId },
+      attributes: { 'entity.id': productId },
     })
     return result.ok ? result.value.product : null
   }
@@ -317,7 +317,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     const result = await apiFetch<{ product: Product }>(
       `/api/products/${productId}`,
       { method: 'PATCH', body: JSON.stringify(patch) },
-      { action: 'fridge.update_product', attributes: { productId } },
+      { action: 'fridge.update_product', attributes: { 'entity.id': productId } },
     )
     return result.ok ? Result.ok(result.value.product) : Result.err(result.error)
   }
@@ -326,7 +326,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     const result = await apiFetch<void>(
       `/api/products/${productId}`,
       { method: 'DELETE' },
-      { action: 'fridge.delete_product', attributes: { productId } },
+      { action: 'fridge.delete_product', attributes: { 'entity.id': productId } },
     )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
   }
@@ -405,7 +405,7 @@ export class HttpFridgeConnector implements FridgeConnector {
   async getReceipt(receiptId: string): Promise<{ receipt: Receipt; products: Product[] } | null> {
     const result = await apiFetch<{ receipt: Receipt; products: Product[] }>(`/api/receipts/${receiptId}`, undefined, {
       action: 'receipt.get_receipt',
-      attributes: { receiptId },
+      attributes: { 'entity.id': receiptId },
     })
     return result.ok ? result.value : null
   }

@@ -5,9 +5,15 @@ import * as Clipboard from 'expo-clipboard'
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
+import { configureTelemetry } from '../../application/shared/telemetry.js'
 import { InviteShareCard } from './invite-share-card.js'
 
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }))
+// `invite-share-card.tsx` reaches telemetry through `getTelemetry()` (the
+// boundary lint forbids importing `infrastructure/telemetry` from
+// presentation) — wiring the real singleton in here mirrors what
+// `providers/wire-telemetry.ts` does for the app itself.
+configureTelemetry(telemetry)
 // `showQr` defaults to `false` so this never actually renders, but the
 // import itself still runs at module-load time — `react-native-qrcode-svg`
 // draws through `react-native-svg`, which jest can't resolve without a
@@ -37,7 +43,7 @@ test('a share-sheet failure records telemetry and shows the failure hint', async
   const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
   const onFeedback = jest.fn()
 
-  render(
+  await render(
     <ThemeProvider>
       <Harness onFeedback={onFeedback} />
     </ThemeProvider>,
@@ -57,7 +63,7 @@ test('a clipboard write failure records telemetry and shows the failure hint', a
   const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
   const onFeedback = jest.fn()
 
-  render(
+  await render(
     <ThemeProvider>
       <Harness onFeedback={onFeedback} />
     </ThemeProvider>,

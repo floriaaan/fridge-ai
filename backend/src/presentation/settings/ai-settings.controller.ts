@@ -10,40 +10,52 @@ import { SetActiveAiProvider } from '#application/settings/set-active-ai-provide
 export default class AiSettingsController {
   async show(ctx: HttpContext) {
     requireAuthenticatedUser(ctx)
-    return traceAction(ctx, 'settings', GetEffectiveAiSettings, async () => {
-      const settingsProvider = await ctx.containerResolver.make('settings.aiSettingsProvider')
-      const effective = await new GetEffectiveAiSettings(settingsProvider).execute()
-      ctx.response.json(toAiSettingsDto(effective))
-    })
+    return traceAction(
+      ctx,
+      'settings',
+      GetEffectiveAiSettings,
+      async () => {
+        const settingsProvider = await ctx.containerResolver.make('settings.aiSettingsProvider')
+        const effective = await new GetEffectiveAiSettings(settingsProvider).execute()
+        ctx.response.json(toAiSettingsDto(effective))
+      },
+      { action: 'settings.get_ai_settings' },
+    )
   }
 
   async update(ctx: HttpContext) {
     const user = requireAuthenticatedUser(ctx)
-    return traceAction(ctx, 'settings', SetActiveAiProvider, async () => {
-      const payload = await ctx.request.validateUsing(setActiveAiProviderValidator)
-      const repository = await ctx.containerResolver.make('settings.aiProviderSettingsRepository')
-      const settingsProvider = await ctx.containerResolver.make('settings.aiSettingsProvider')
-      const households = await ctx.containerResolver.make('identity.households')
-      const idGenerator = await ctx.containerResolver.make('shared.idGenerator')
-      const clock = await ctx.containerResolver.make('shared.clock')
+    return traceAction(
+      ctx,
+      'settings',
+      SetActiveAiProvider,
+      async () => {
+        const payload = await ctx.request.validateUsing(setActiveAiProviderValidator)
+        const repository = await ctx.containerResolver.make('settings.aiProviderSettingsRepository')
+        const settingsProvider = await ctx.containerResolver.make('settings.aiSettingsProvider')
+        const households = await ctx.containerResolver.make('identity.households')
+        const idGenerator = await ctx.containerResolver.make('shared.idGenerator')
+        const clock = await ctx.containerResolver.make('shared.clock')
 
-      const result = await new SetActiveAiProvider(
-        repository,
-        settingsProvider,
-        households,
-        idGenerator,
-        clock,
-      ).execute({ userId: user.id, provider: payload.provider })
+        const result = await new SetActiveAiProvider(
+          repository,
+          settingsProvider,
+          households,
+          idGenerator,
+          clock,
+        ).execute({ userId: user.id, provider: payload.provider })
 
-      if (!result.ok) {
-        const { status, body } = serializeError(result.error)
-        ctx.response.status(status).json(body)
+        if (!result.ok) {
+          const { status, body } = serializeError(result.error)
+          ctx.response.status(status).json(body)
+          return result
+        }
+
+        const effective = await settingsProvider.resolveEffective()
+        ctx.response.json(toAiSettingsDto(effective))
         return result
-      }
-
-      const effective = await settingsProvider.resolveEffective()
-      ctx.response.json(toAiSettingsDto(effective))
-      return result
-    }, { isError: (r) => !r.ok })
+      },
+      { isError: (r) => !r.ok },
+    )
   }
 }

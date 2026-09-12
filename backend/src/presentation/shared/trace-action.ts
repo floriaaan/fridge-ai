@@ -22,6 +22,14 @@ export interface TraceActionOptions<T> {
   isError?: (result: T) => boolean
   /** Resolves the id of the entity the action produced/targeted, when it is not already the route's `:id` param. */
   entityId?: (result: T) => string | undefined
+  /**
+   * Overrides the auto-derived `<domain>.<verb_noun>` label. Use only where
+   * the UseCase's own name would stutter or drift from the equivalent
+   * mobile action name (e.g. `ListProducts` → `fridge.get_products`, not
+   * `fridge.list_products`) — `useCase` in the log line still carries the
+   * real class name regardless, so this never hides which class ran.
+   */
+  action?: string
 }
 
 function toSnakeCase(pascalCase: string): string {
@@ -43,7 +51,7 @@ export async function traceAction<T>(
   opts?: TraceActionOptions<T>,
 ): Promise<T> {
   const startedAt = performance.now()
-  const action = `${domain}.${toSnakeCase(useCase.name)}`
+  const action = opts?.action ?? `${domain}.${toSnakeCase(useCase.name)}`
   const base = {
     action,
     useCase: useCase.name,
@@ -66,7 +74,18 @@ export async function traceAction<T>(
     )
     return result
   } catch (error) {
-    ctx.logger.error(
+    // A routine 4xx (validation failure, the 401 `requireAuthenticatedUser`
+    // throws) is not the same kind of event as an unexpected 5xx — mirrors
+    // the exact status-resolution fallback chain `exception-handler.ts` uses
+    // for the same distinction, so a thrown error is classified identically
+    // whether it escapes to the client or only reaches this log line.
+    const status =
+      typeof (error as { status?: unknown })?.status === 'number'
+        ? (error as { status: number }).status
+        : typeof (error as { statusCode?: unknown })?.statusCode === 'number'
+          ? (error as { statusCode: number }).statusCode
+          : 500
+    ctx.logger[status < 500 ? 'warn' : 'error'](
       {
         ...base,
         durationMs: Math.round(performance.now() - startedAt),

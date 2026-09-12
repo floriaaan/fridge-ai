@@ -185,7 +185,15 @@ class MobileTelemetry {
         severityText: 'ERROR',
         severityNumber: 17,
         body: { stringValue: message.slice(0, 2_048) },
-        attributes: toAttributes({ ...options?.attributes, 'error.type': errorType }),
+        // `errorType` only overrides a caller-supplied `error.type` when it is
+        // actually known — otherwise spreading `undefined` last would erase
+        // an `attributes['error.type']` the caller already computed (e.g.
+        // http-client.ts's business-error call sites, which pass a known
+        // `error.type` string but no `options.error`).
+        attributes: toAttributes({
+          ...options?.attributes,
+          ...(errorType !== undefined ? { 'error.type': errorType } : null),
+        }),
         traceId: options?.span?.traceId,
         spanId: options?.span?.spanId,
       })

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
+import { configureTelemetry } from '../../application/shared/telemetry.js'
 import { ConnectorProvider } from '../../application/shared/connector-context.js'
 import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-connector.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
@@ -27,6 +28,12 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(async () => undefined),
   deleteItemAsync: jest.fn(async () => undefined),
 }))
+
+// `threshold-screen.tsx` reaches telemetry through `getTelemetry()` (the
+// boundary lint forbids importing `infrastructure/telemetry` from
+// presentation) — wiring the real singleton in here mirrors what
+// `providers/wire-telemetry.ts` does for the app itself.
+configureTelemetry(telemetry)
 
 async function renderThreshold(overrides: { prefillCode?: string | null } = {}) {
   const connector = new FakeFridgeConnector()

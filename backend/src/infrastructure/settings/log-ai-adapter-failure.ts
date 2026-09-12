@@ -14,6 +14,11 @@ import logger from '@adonisjs/core/services/logger'
  * response was not valid JSON") never says what the model actually sent
  * back; a network-failure caller passes something else useful instead.
  */
-export function logAiAdapterFailure(feature: string, provider: string, error: unknown, detail?: string): void {
+export function logAiAdapterFailure(
+  feature: string,
+  provider: string,
+  error: unknown,
+  detail?: string,
+): void {
   logger.warn({ feature, provider, err: error, ...(detail ? { detail } : {}) }, `${feature} failed`)
 }

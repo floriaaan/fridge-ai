@@ -7,6 +7,13 @@ import { ConnectorProvider } from '../application/shared/connector-context.js'
 import { queryClient } from '../application/shared/query-client.js'
 import { createConnector } from '../../providers/create-connector.js'
 import { startTelemetry } from '../../providers/start-telemetry.js'
+import { wireTelemetry } from '../../providers/wire-telemetry.js'
+
+// Module load, not an effect: this only assigns a reference (see
+// `wire-telemetry.ts`) — nothing to defer past the first frame, and every
+// `getTelemetry()` call under `src/presentation` needs it wired before the
+// first screen can possibly report a failure.
+wireTelemetry()
 
 export default function RootLayout() {
   // Module-level singleton, not `useState(() => new QueryClient())` — see
