@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import * as Clipboard from 'expo-clipboard'
+import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
 import { ConnectorProvider } from '../../application/shared/connector-context.js'
 import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-connector.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
@@ -53,6 +55,22 @@ async function renderThreshold(overrides: { prefillCode?: string | null } = {}) 
   await waitFor(() => expect(screen.getByTestId('threshold-create-card')).toBeTruthy())
   return { connector, onEnteredHousehold }
 }
+
+test('a clipboard read failure records telemetry and shows the empty-clipboard hint', async () => {
+  ;(Clipboard.getStringAsync as jest.Mock).mockRejectedValueOnce(new Error('clipboard unavailable'))
+  const spy = jest.spyOn(telemetry, 'recordError').mockImplementation(() => {})
+
+  await renderThreshold()
+  fireEvent.press(screen.getByTestId('threshold-paste'))
+
+  await waitFor(() =>
+    expect(spy).toHaveBeenCalledWith(
+      'clipboard read failed',
+      expect.objectContaining({ attributes: { 'app.operation': 'identity.paste_invite' } }),
+    ),
+  )
+  spy.mockRestore()
+})
 
 test('both branches are on one screen — no button that opens a second one', async () => {
   await renderThreshold()
