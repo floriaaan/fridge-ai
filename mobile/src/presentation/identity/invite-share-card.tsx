@@ -21,6 +21,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { PillButton } from '../shared/pill-button.js'
 import { CopyIcon, QrCodeIcon, RefreshIcon, ShareIcon } from '../dashboard/dashboard-icons.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
+import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
 import { AuthButton } from './auth-button.js'
 import { buildJoinLink, buildShareMessage } from '../onboarding/join-link.js'
 
@@ -45,13 +46,23 @@ export function InviteShareCard({
   async function handleShare() {
     try {
       await Share.share({ message: buildShareMessage(householdName, inviteCode) })
-    } catch {
+    } catch (error) {
+      telemetry.recordError('share sheet failed to open', {
+        error,
+        attributes: { 'app.operation': 'identity.share_invite' },
+      })
       onFeedback('Le partage n’a pas pu s’ouvrir.')
     }
   }
 
   async function handleCopy() {
-    const ok = await Clipboard.setStringAsync(inviteCode).catch(() => false)
+    const ok = await Clipboard.setStringAsync(inviteCode).catch((error) => {
+      telemetry.recordError('clipboard write failed', {
+        error,
+        attributes: { 'app.operation': 'identity.copy_invite' },
+      })
+      return false
+    })
     onFeedback(ok ? 'Code copié.' : 'Impossible de copier le code.')
   }
 
