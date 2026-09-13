@@ -23,6 +23,7 @@ export function AuthButton({
   disabled,
   onPress,
   variant = 'primary',
+  tone = 'default',
   icon,
   testID,
 }: {
@@ -37,12 +38,24 @@ export function AuthButton({
   disabled?: boolean
   onPress: () => void
   variant?: 'primary' | 'secondary'
+  /**
+   * `secondary`'s outline/label defaults to `ink` — correct on the light
+   * card every other caller sits on (settings, receipts, the fridge detail
+   * sheet…), and deliberately theme-stable there (see the comment below).
+   * `on-dark` is for the one caller that doesn't sit on that card at all:
+   * `AuthMethodFooter`'s PocketID button, permanently on the auth shell's
+   * `brandDeep` panel regardless of light/dark mode — `ink` there is
+   * near-black text on a near-black-ish mocha ground. No effect on `primary`,
+   * whose lime fill already reads on either ground.
+   */
+  tone?: 'default' | 'on-dark'
   icon?: ReactNode
   testID?: string
 }) {
   const palette = useSoftPalette()
   const hover = useHoverPress()
   const isPrimary = variant === 'primary'
+  const secondaryColor = tone === 'on-dark' ? palette.onDark : palette.ink
   const inert = Boolean(pending || disabled)
   return (
     <Pressable
@@ -56,7 +69,7 @@ export function AuthButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: inert, busy: pending }}
-      android_ripple={ripple(isPrimary ? palette.accentLimeText : palette.ink)}
+      android_ripple={ripple(isPrimary ? palette.accentLimeText : secondaryColor)}
       style={pointerCursor}
     >
       <Animated.View
@@ -82,20 +95,21 @@ export function AuthButton({
           // `ink` is already guaranteed high-contrast against the card
           // (gradientBottom) in both themes — a real bug caught by
           // actually rendering dark mode, not just computing light-mode
-          // contrast and assuming it carried over.
-          borderColor: palette.ink,
+          // contrast and assuming it carried over. `tone="on-dark"` swaps
+          // this for `onDark` instead, for the one caller not on that card.
+          borderColor: isPrimary ? undefined : secondaryColor,
         }}
       >
         {pending ? (
           <ActivityIndicator
             testID={testID ? `${testID}-spinner` : undefined}
             size="small"
-            color={isPrimary ? palette.accentLimeText : palette.ink}
+            color={isPrimary ? palette.accentLimeText : secondaryColor}
           />
         ) : (
           icon
         )}
-        <Text fontSize={14} fontWeight="800" color={isPrimary ? palette.accentLimeText : palette.ink}>
+        <Text fontSize={14} fontWeight="800" color={isPrimary ? palette.accentLimeText : secondaryColor}>
           {pending ? (pendingLabel ?? label) : label}
         </Text>
       </Animated.View>

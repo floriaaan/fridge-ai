@@ -38,13 +38,17 @@ test('submitting valid credentials calls onSuccess', async () => {
   await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
 })
 
-test('submitting an empty password shows an error, does not call onSuccess', async () => {
+test('an empty password disables submit — no request, no onSuccess', async () => {
   const onSuccess = jest.fn()
   await renderWithProviders(<LoginForm onSuccess={onSuccess} />)
 
   await fireEvent.changeText(screen.getByTestId('login-email'), 'a@b.com')
-  await fireEvent.press(screen.getByTestId('login-submit'))
+  const submit = screen.getByTestId('login-submit')
+  expect(submit.props.accessibilityState.disabled).toBe(true)
 
-  await waitFor(() => expect(screen.getByText('Email ou mot de passe invalide.')).toBeTruthy())
+  // `canSubmit` guards the handler itself too — pressing a disabled
+  // `Pressable` is a no-op on a real device, but this confirms the gate
+  // isn't purely cosmetic even if a press event slipped through.
+  await fireEvent.press(submit)
   expect(onSuccess).not.toHaveBeenCalled()
 })

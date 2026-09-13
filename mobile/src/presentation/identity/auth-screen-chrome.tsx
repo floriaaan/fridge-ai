@@ -1,21 +1,18 @@
 import type { ReactNode } from 'react'
-import { Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import { YStack } from '../shared/tamagui-typed.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { AuthBlobBackground } from './auth-blob-background.js'
-
-const carrotIllustration = require('../../../assets/illustrations/carrot-3d.png')
+import { AuthWordmark } from './auth-wordmark.js'
 
 /**
- * The chrome every pre-household screen shares: blob ground, safe area,
+ * The chrome the threshold screen uses: blob ground, safe area,
  * keyboard-avoiding scroll, and the carrot+wordmark lockup above the content.
- * Sign-in, sign-up (through `AuthShell`) and the threshold each wrap a
- * different card shape in it — one title+card, two unequal branch cards — so
- * this owns only what stays identical between them. It used to be typed out
- * three times; a keyboard offset or a scroll prop fixed in one copy and not
- * the others is exactly the kind of drift `AppShell` was extracted to stop
- * happening to the tab screens.
+ * Sign-in/sign-up moved off this (see `AuthShell`, now a bottom hero panel
+ * over a photo rather than a centered card) once their own interaction
+ * outgrew "one static card, vertically centered" — this remains exactly
+ * that for the one screen still shaped like it.
  */
 export function AuthScreenChrome({
   maxWidth,
@@ -36,12 +33,7 @@ export function AuthScreenChrome({
 }) {
   const palette = useSoftPalette()
   return (
-    <YStack
-      flex={1}
-      minHeight={0}
-      backgroundColor={palette.gradientBottom}
-      style={{ position: 'relative' }}
-    >
+    <YStack flex={1} minHeight={0} backgroundColor={palette.gradientBottom} style={{ position: 'relative' }}>
       <AuthBlobBackground />
       <SafeAreaView style={{ flex: 1, minHeight: 0 }} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
@@ -61,17 +53,7 @@ export function AuthScreenChrome({
             keyboardShouldPersistTaps="handled"
           >
             <YStack width="100%" maxWidth={maxWidth} gap="$5">
-              <XStack alignItems="center" gap="$2" alignSelf="center">
-                <Image
-                  source={carrotIllustration}
-                  style={{ width: 36, height: 36 }}
-                  resizeMode="contain"
-                  accessibilityLabel=""
-                />
-                <Text fontSize={16} fontWeight="800" letterSpacing={1} color={palette.ink}>
-                  FRIDGE AI
-                </Text>
-              </XStack>
+              <AuthWordmark tone="ink" />
               {children}
             </YStack>
           </ScrollView>

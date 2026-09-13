@@ -1,32 +1,45 @@
 import { useState } from 'react'
 import { YStack } from '../shared/tamagui-typed.js'
+import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { useSignUpMutation } from '../../application/identity/sign-up.mutation.js'
+import { authErrorMessage } from './auth-error-message.js'
 import { AuthButton } from './auth-button.js'
 import { AuthError } from './auth-error.js'
 import { AuthField } from './auth-field.js'
 
 export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
+  const palette = useSoftPalette()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const signUp = useSignUpMutation()
 
+  const trimmedName = name.trim()
+  const trimmedEmail = email.trim()
+  // Not password.trim() — see login-form.tsx's own note.
+  const canSubmit = trimmedName.length > 0 && trimmedEmail.length > 0 && password.length > 0
+
   async function handleSubmit() {
-    const result = await signUp.mutateAsync({ email, password, name })
+    if (!canSubmit) return
+    const result = await signUp.mutateAsync({ email: trimmedEmail, password, name: trimmedName })
     if (result.ok) onSuccess()
   }
 
-  const error = signUp.error
-    ? "Une erreur est survenue lors de l'inscription."
-    : signUp.data && !signUp.data.ok
-      ? signUp.data.error.message
-      : null
+  const error = authErrorMessage(signUp.error, signUp.data, "Une erreur est survenue lors de l'inscription.")
 
   return (
     <YStack gap="$3">
-      <AuthField label="Nom" placeholder="Ton prénom" value={name} onChangeText={setName} testID="signup-name" />
+      <AuthField
+        label="Nom"
+        labelColor={palette.onDarkSecondary}
+        placeholder="Ton prénom"
+        value={name}
+        onChangeText={setName}
+        testID="signup-name"
+      />
       <AuthField
         label="Email"
+        labelColor={palette.onDarkSecondary}
         placeholder="toi@exemple.com"
         value={email}
         onChangeText={setEmail}
@@ -36,6 +49,7 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
       />
       <AuthField
         label="Mot de passe"
+        labelColor={palette.onDarkSecondary}
         placeholder="••••••••"
         value={password}
         onChangeText={setPassword}
@@ -47,6 +61,7 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
         label="S'inscrire"
         pendingLabel="Inscription..."
         pending={signUp.isPending}
+        disabled={!canSubmit}
         onPress={handleSubmit}
         testID="signup-submit"
       />

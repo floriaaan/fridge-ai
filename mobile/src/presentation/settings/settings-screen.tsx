@@ -5,13 +5,23 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { Chip } from '../shared/chip.js'
-import { ActionSheet } from '../shared/action-sheet.js'
+import { ActionSheet, type ActionSheetOption } from '../shared/action-sheet.js'
 import { PillButton } from '../shared/pill-button.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { showToast } from '../../application/shared/toast.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { HomeIcon, LogOutIcon, SettingsIcon, SparklesIcon, UserIcon } from '../dashboard/dashboard-icons.js'
+import {
+  CircleCheckIcon,
+  HomeIcon,
+  LogOutIcon,
+  RefreshIcon,
+  SettingsIcon,
+  SparklesIcon,
+  TriangleAlertIcon,
+  UserIcon,
+} from '../dashboard/dashboard-icons.js'
+import { resetWelcomeSeen } from '../welcome/use-welcome-seen.js'
 import { IdentityCard, RoleBadge } from './identity-card.js'
 import { MemberAvatars } from '../shared/member-avatars.js'
 import { AuthButton } from '../identity/auth-button.js'
@@ -62,6 +72,7 @@ export function SettingsScreen() {
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
   const [confirmingSignOut, setConfirmingSignOut] = useState(false)
+  const [debugMenuOpen, setDebugMenuOpen] = useState(false)
   const [hint, showHint] = useHint()
   const refresh = usePullToRefresh(
     () => session.refetch(),
@@ -80,6 +91,26 @@ export function SettingsScreen() {
       return
     }
     queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
+  }
+
+  // Clears the device flag and previews the result immediately rather than
+  // asking whoever is testing it to force-quit and relaunch — the whole
+  // point of a dev tool is not costing more than the thing it's checking.
+  // Also signs out: `/welcome` finishes onto `/(auth)/sign-up`, and
+  // `(auth)/_layout.tsx` redirects straight to the tabs whenever a session
+  // exists — previewing the onboarding flow while still signed in bounced
+  // off that gate before this reached `/welcome` at all. Best-effort: a
+  // sign-out failure here shouldn't block the one thing this button is for.
+  async function handleResetOnboarding() {
+    setDebugMenuOpen(false)
+    try {
+      await signOut.mutateAsync(undefined)
+      await session.refetch()
+    } catch {
+      // Preview it anyway — see comment above.
+    }
+    await resetWelcomeSeen()
+    router.replace('/welcome')
   }
 
   async function handleSignOut() {
@@ -114,6 +145,73 @@ export function SettingsScreen() {
   // configured this" described a lock that does not exist — the foyer can
   // change the provider whenever more than one has credentials.
   const canChooseProvider = availableProviders.length > 1
+
+  // Every row closes the sheet on its own press — a debug action fires once
+  // and gets out of the way, the same recipe `ActionSheet`'s real callers use.
+  const debugOptions: ActionSheetOption[] = [
+    {
+      testID: 'debug-toast-network-error',
+      label: 'Toast réseau',
+      icon: (color) => <TriangleAlertIcon size={16} color={color} />,
+      tint: palette.chipOrange,
+      onPress: () => {
+        setDebugMenuOpen(false)
+        showToast('Impossible de contacter le serveur. (debug)')
+      },
+    },
+    {
+      testID: 'debug-toast-info',
+      label: 'Toast info',
+      icon: (color) => <CircleCheckIcon size={16} color={color} />,
+      tint: palette.chipTeal,
+      onPress: () => {
+        setDebugMenuOpen(false)
+        showToast('Reconnecté au serveur. (debug)', 'info')
+      },
+    },
+    {
+      testID: 'debug-hint-success',
+      label: 'Hint succès',
+      icon: (color) => <CircleCheckIcon size={16} color={color} />,
+      tint: palette.fresh,
+      onPress: () => {
+        setDebugMenuOpen(false)
+        showHint('Ajouté au frigo. (debug)', 'success')
+      },
+    },
+    {
+      testID: 'debug-hint-error',
+      label: 'Hint erreur',
+      icon: (color) => <TriangleAlertIcon size={16} color={color} />,
+      tint: palette.expired,
+      onPress: () => {
+        setDebugMenuOpen(false)
+        showHint('Une erreur est survenue. (debug)', 'error')
+      },
+    },
+    {
+      testID: 'debug-hint-neutral',
+      label: 'Hint neutre',
+      icon: (color) => <SparklesIcon size={16} color={color} />,
+      tint: palette.chipViolet,
+      onPress: () => {
+        setDebugMenuOpen(false)
+        showHint('Bientôt disponible. (debug)')
+      },
+    },
+    {
+      // Not `destructive`: it touches no household data, only a local device
+      // flag — the red treatment is reserved for a row that can hurt the
+      // foyer's shared state, which this can't.
+      testID: 'debug-reset-onboarding',
+      label: 'Réinitialiser l’onboarding',
+      icon: (color) => <RefreshIcon size={16} color={color} />,
+      tint: palette.navCardViolet,
+      onPress: () => {
+        void handleResetOnboarding()
+      },
+    },
+  ]
 
   return (
     <AppShell nav={{ kind: 'stack' }} hint={hint} refresh={refresh}
@@ -229,56 +327,30 @@ export function SettingsScreen() {
         />
       </YStack>
 
-      {/* Dev-only: fires the two toast kinds on demand instead of needing to
-          actually kill the server or trigger a real screen action to see
-          them — never bundled into a release build. */}
+      {/* Dev-only: one menu instead of a growing row of pills — the row was
+          already wrapping to two lines at five buttons, and "Réinitialiser
+          l'onboarding" made it six. Never bundled into a release build. */}
       {__DEV__ ? (
         <YStack marginTop="$8" gap="$2">
           <Text fontSize={13} fontWeight="800" color={palette.ink}>
             Debug (dev only)
           </Text>
-          <XStack gap="$2" flexWrap="wrap">
-            <PillButton
-              testID="debug-toast-network-error"
-              label="Toast réseau"
-              tone="quiet"
-              size="dense"
-              palette={palette}
-              onPress={() => showToast('Impossible de contacter le serveur. (debug)')}
-            />
-            <PillButton
-              testID="debug-toast-info"
-              label="Toast info"
-              tone="quiet"
-              size="dense"
-              palette={palette}
-              onPress={() => showToast('Reconnecté au serveur. (debug)', 'info')}
-            />
-            <PillButton
-              testID="debug-hint-success"
-              label="Hint succès"
-              tone="quiet"
-              size="dense"
-              palette={palette}
-              onPress={() => showHint('Ajouté au frigo. (debug)', 'success')}
-            />
-            <PillButton
-              testID="debug-hint-error"
-              label="Hint erreur"
-              tone="quiet"
-              size="dense"
-              palette={palette}
-              onPress={() => showHint('Une erreur est survenue. (debug)', 'error')}
-            />
-            <PillButton
-              testID="debug-hint-neutral"
-              label="Hint neutre"
-              tone="quiet"
-              size="dense"
-              palette={palette}
-              onPress={() => showHint('Bientôt disponible. (debug)')}
-            />
-          </XStack>
+          <PillButton
+            testID="debug-menu-open"
+            label="Outils de debug"
+            tone="quiet"
+            size="dense"
+            palette={palette}
+            icon={(color) => <SettingsIcon size={14} color={color} />}
+            onPress={() => setDebugMenuOpen(true)}
+          />
+          <ActionSheet
+            visible={debugMenuOpen}
+            onClose={() => setDebugMenuOpen(false)}
+            title="Outils de debug"
+            description="Jamais en build de production."
+            options={debugOptions}
+          />
         </YStack>
       ) : null}
 

@@ -1,5 +1,5 @@
 ---
-name: Fridge AI
+name: Fridge
 description: A soft household dashboard for a shared fridge — playful, warm, and built entirely on numbers the foyer can act on.
 colors:
   ground-mint: "#E9F6D8"
@@ -58,6 +58,12 @@ typography:
     fontSize: "24px"
     fontWeight: 800
     lineHeight: "30px"
+  onboarding-display:
+    fontFamily: "System sans-serif"
+    fontSize: "44px"
+    fontWeight: 900
+    lineHeight: "46px"
+    letterSpacing: "-1px"
   title:
     fontFamily: "System sans-serif"
     fontSize: "20px"
@@ -185,6 +191,7 @@ The fridge screen's cabinet is a disclosed, screen-scoped material exception, th
 **Character:** Hierarchy is built on size and weight only — never color. A label is always small/regular/secondary-toned above; a value is always larger/bold/ink-toned below.
 
 ### Hierarchy
+- **Onboarding Display** (900, 44px, 46px line-height, -1px tracking): the pre-auth welcome screen's headline only — the one screen in the app that is a single decisive moment rather than a dense in-app view, so it earns a size above the in-app `display` ceiling rather than reusing it undersized. Sits inside the welcome screen's own hero panel, never loose over the photo.
 - **Display** (800, 24px, 30px line-height): the hero headline ("3 produits à surveiller").
 - **Title** (800, 20px): screen/card titles ("Content de te revoir", household name).
 - **Value** (800, 22px): stat-card numbers (StatCard's `value`).
@@ -287,7 +294,7 @@ The parts of a web build nobody drew still carry a look, and it belongs to no de
   - **An icon only when it distinguishes.** A chip takes an optional 13px glyph tinted to match its label — the three location chips carry theirs everywhere they appear, so "Congélateur" is recognisable before it is read. A row of chips that would all carry the *same* glyph (four date shortcuts, three AI providers) carries none: an identical icon repeated down a row is decoration, and the labels already say it.
 
 ### Cards / Containers
-- **Hero card / auth card:** asymmetric 36/20/36/20px radius, `hero-mocha` or white fill, hero-lift shadow, a low-opacity warm radial glow (`HeroWarmGlow`) in one corner.
+- **Hero card / auth card:** asymmetric 36/20/36/20px radius, `hero-mocha` or white fill, hero-lift shadow, a low-opacity warm radial glow (`HeroWarmGlow`) in one corner. The auth card had drifted to 32/20/32/20 and a lighter warm shadow (0.12 opacity, `shadowWarm`) before a pass that brought it back to this exact spec — `shadowCool`, not `shadowWarm`, since the card sits on the mint/photo ground, not `layoutSurface` (see the Warm-Shadow-on-Warm-Ground Rule under Elevation). Sign-in/sign-up's ground (`AuthScreenChrome`'s `background="photo"`) is the same warm kitchen photo the welcome screen opens on, dimmed by `scrim` — reused exactly as documented ("something else has the floor"), not a fresh literal — so the pre-auth funnel reads as one continuous moment; the threshold screen keeps the plain blob ground, unasked. The card's own title runs the `display` scale (24/800) — up from the in-app `title` scale (20/800) it used before, since this is the first screen a signed-out visitor focuses on, not a dense in-app view.
 - **Stat card:** flex-1, one of three asymmetric corner sets, pastel fill (cream/lavender/mint-pale), a 36×36 saturated icon chip, card-float shadow. **A StatCard counts; it does not name.** A metric fits in half a phone width, a household name does not — Réglages opened on a StatCard pair and rendered "Le foyer de F…" on every phone.
   - **A card that counts a set of things opens that set.** All three dashboard metrics take `onPress` and spring like a `NavCard`: "Cette semaine" and "Dates dépassées" open the garde-manger already filtered to what they counted, "À racheter" opens the liste de courses. A number that names a group of products and then refuses to show them is a dead end wearing a summary's clothes. `onPress` stays optional so a card that genuinely leads nowhere stays inert instead of springing under the finger and doing nothing.
   - **Every level of a pressable card carries the stretch.** Wrapping the card in a `Pressable` + `Animated.View` moved it two levels off the row, and `flex:1` on the wrappers alone let the row equalise *them* while the pastel fills kept their own content heights — three cards ending at three different baselines on web, where "Dates dépassées" wraps to two lines and the others don't. Both wrappers carry `flex:1` **and** `alignSelf:'stretch'`, and the row states `alignItems="stretch"` rather than relying on the default.
