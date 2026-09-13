@@ -15,6 +15,7 @@ export function toDomain(row: ProductModel): Product {
     receiptId: row.receiptId,
     name: row.name,
     quantity: quantity.value,
+    initialQuantity: row.initialQuantity,
     location: location.value,
     expiresAt: row.expiresAt?.toJSDate() ?? null,
     openedAt: row.openedAt?.toJSDate() ?? null,
