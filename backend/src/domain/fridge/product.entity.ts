@@ -1,12 +1,17 @@
 import { AggregateRoot } from '#domain/shared/aggregate-root'
-import type { Quantity } from './quantity.vo.js'
+import { Quantity } from './quantity.vo.js'
 import type { Location } from './location.vo.js'
+import { Result } from '#domain/shared/result'
+import type { Result as ResultType } from '#domain/shared/result'
+import type { ValidationError } from '#domain/shared/validation-error'
 
 interface ProductProps {
   householdId: string
   receiptId: string | null
   name: string
   quantity: Quantity
+  /** The largest quantity this product is known to have had — what `price` pays for (ADR-0012). */
+  initialQuantity: number
   location: Location
   expiresAt: Date | null
   openedAt: Date | null
@@ -51,6 +56,15 @@ export interface UpdateProductProps {
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
+export interface TakeOut {
+  /** The product still in the garde-manger, or `null` when the whole stock left. */
+  remaining: Product | null
+  /** The part that left — the quantity an outcome records. */
+  taken: Quantity
+  /** `price` prorated to `taken` over `initialQuantity`, to the cent. */
+  price: number | null
+}
+
 /**
  * `updatedAt` is carried for DTO purposes only — `update()` stamps it from a
  * caller-supplied `Date` (the use-case passes `Clock.now()`) so the response
@@ -72,6 +86,7 @@ export class Product extends AggregateRoot<string> {
       receiptId: params.receiptId ?? null,
       name: params.name,
       quantity: params.quantity,
+      initialQuantity: params.quantity.amount,
       location: params.location,
       expiresAt: params.expiresAt ?? null,
       openedAt: params.openedAt ?? null,
@@ -103,6 +118,10 @@ export class Product extends AggregateRoot<string> {
 
   get quantity(): Quantity {
     return this.props.quantity
+  }
+
+  get initialQuantity(): number {
+    return this.props.initialQuantity
   }
 
   get location(): Location {
@@ -151,7 +170,41 @@ export class Product extends AggregateRoot<string> {
    * spread does not treat an explicit `undefined` as "absent").
    */
   update(patch: UpdateProductProps, updatedAt: Date): void {
-    this.props = { ...this.props, ...patch, updatedAt }
+    const initialQuantity = Math.max(this.props.initialQuantity, patch.quantity?.amount ?? 0)
+    this.props = { ...this.props, ...patch, initialQuantity, updatedAt }
+  }
+
+  /**
+   * Some or all of the stock leaves the garde-manger.
+   *
+   * The whole stock returns `remaining: null` and leaves this instance as it
+   * was — the repository deletes the row. Part of it decrements in place.
+   * Either way the caller gets the part that left and what it was worth, which
+   * is everything an outcome needs that the product will no longer say.
+   */
+  takeOut(amount: number, at: Date): ResultType<TakeOut, ValidationError> {
+    const current = this.props.quantity
+    if (!Number.isInteger(amount) || amount <= 0 || amount > current.amount) {
+      return Result.err({
+        field: 'quantity',
+        message: `La quantité sortie doit être un entier entre 1 et ${current.amount}.`,
+      })
+    }
+
+    const taken = Quantity.create(amount, current.unit)
+    if (!taken.ok) return taken
+
+    const price =
+      this.props.price === null
+        ? null
+        : Math.round(((this.props.price * amount) / this.props.initialQuantity) * 100) / 100
+
+    if (amount === current.amount) return Result.ok({ remaining: null, taken: taken.value, price })
+
+    const left = Quantity.create(current.amount - amount, current.unit)
+    if (!left.ok) return left
+    this.props = { ...this.props, quantity: left.value, updatedAt: at }
+    return Result.ok({ remaining: this, taken: taken.value, price })
   }
 
   isExpiringSoon(withinDays: number, now: Date): boolean {
