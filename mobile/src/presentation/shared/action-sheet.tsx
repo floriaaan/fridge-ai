@@ -75,6 +75,7 @@ export function ActionSheet({
   options,
   title,
   description,
+  children,
 }: {
   visible: boolean
   onClose: () => void
@@ -82,6 +83,8 @@ export function ActionSheet({
   /** Names what the sheet is deciding — required reading before a destructive row. */
   title?: string
   description?: string
+  /** Rendered between the title and the options — for a choice the options alone can't carry. */
+  children?: React.ReactNode
 }) {
   const palette = useSoftPalette()
   if (!visible) return null
@@ -122,6 +125,7 @@ export function ActionSheet({
                 ) : null}
               </YStack>
             ) : null}
+            {children}
             {options.map((option) => (
               <ActionSheetRow key={option.testID} option={option} palette={palette} />
             ))}
