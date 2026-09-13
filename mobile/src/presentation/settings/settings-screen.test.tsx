@@ -8,6 +8,15 @@ import { SettingsScreen } from './settings-screen.js'
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() }, useFocusEffect: jest.fn() }))
 
+// Only the debug menu's "Réinitialiser l'onboarding" row touches the
+// keychain (via `resetWelcomeSeen`) — nothing else on this screen does, so
+// no other test here depended on this mock existing before it did.
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(async () => null),
+  setItemAsync: jest.fn(async () => undefined),
+  deleteItemAsync: jest.fn(async () => undefined),
+}))
+
 async function renderAuthenticated(connector = new FakeFridgeConnector()) {
   // Signed out by default (see fake-fridge-connector.ts) — the account
   // card needs a real session to show a real name/email.
@@ -142,8 +151,11 @@ test('a foyer that could not be read is unavailable, not absent', async () => {
 // account-scoped one, so it lives on the Foyer page next to invite/members
 // rather than on Réglages.
 
-test('the dev debug section triggers a network toast on tap', async () => {
+test('the debug menu triggers a network toast on tap', async () => {
   await renderAuthenticated()
+
+  await waitFor(() => expect(screen.getByTestId('debug-menu-open')).toBeTruthy())
+  fireEvent.press(screen.getByTestId('debug-menu-open'))
 
   await waitFor(() => expect(screen.getByTestId('debug-toast-network-error')).toBeTruthy())
   await fireEvent.press(screen.getByTestId('debug-toast-network-error'))
@@ -154,11 +166,30 @@ test('the dev debug section triggers a network toast on tap', async () => {
   // outside the full app, never crash the screen it's on.
 })
 
-test('the dev debug section triggers a hint via the same HintBubble every real action uses', async () => {
+test('the debug menu triggers a hint via the same HintBubble every real action uses', async () => {
   await renderAuthenticated()
 
+  fireEvent.press(screen.getByTestId('debug-menu-open'))
   await waitFor(() => expect(screen.getByTestId('debug-hint-success')).toBeTruthy())
   await fireEvent.press(screen.getByTestId('debug-hint-success'))
 
   await waitFor(() => expect(screen.getByText('Ajouté au frigo. (debug)')).toBeTruthy())
+})
+
+test('the debug menu’s "Réinitialiser l’onboarding" signs out, clears the welcome flag, and previews it immediately', async () => {
+  const SecureStore = jest.requireMock('expo-secure-store')
+  const connector = new FakeFridgeConnector()
+  await renderAuthenticated(connector)
+
+  fireEvent.press(screen.getByTestId('debug-menu-open'))
+  await waitFor(() => expect(screen.getByTestId('debug-reset-onboarding')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('debug-reset-onboarding'))
+
+  // Signs out first: `/welcome` finishes onto `/(auth)/sign-up`, which
+  // redirects straight back to the tabs whenever a session exists — this
+  // button previews the onboarding flow, and a still-signed-in preview
+  // never reaches it.
+  await waitFor(async () => expect(await connector.getSession()).toBeNull())
+  await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('fridge-ai.welcome.seen'))
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/welcome'))
 })

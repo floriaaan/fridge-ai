@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
@@ -35,7 +35,10 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
   const [unit, setUnit] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const appliedEditPrefillRef = useRef(false)
+  // A state flag, not a ref: `editUnavailable` below reads it during render
+  // to tell "hasn't loaded yet" from "loaded fine, then a later background
+  // refetch failed" — a ref read there would silently miss re-renders.
+  const [hasAppliedEditPrefill, setHasAppliedEditPrefill] = useState(false)
   const editItemId = props.mode === 'edit' ? props.itemId : undefined
 
   // Guarded one-time prefill from already-fetched cache — intentional, not the
@@ -45,19 +48,28 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (props.mode !== 'edit' || !itemsQuery.data) return
-    if (appliedEditPrefillRef.current) return
+    if (hasAppliedEditPrefill) return
     const existing = itemsQuery.data.find((i) => i.id === editItemId)
     if (!existing) return
-    appliedEditPrefillRef.current = true
+    setHasAppliedEditPrefill(true)
     setName(existing.name)
     setAmount(String(existing.quantity.amount))
     setUnit(existing.quantity.unit)
-  }, [props.mode, editItemId, itemsQuery.data])
+  }, [props.mode, editItemId, itemsQuery.data, hasAppliedEditPrefill])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const createItem = useCreateShoppingItemMutation()
   const updateItem = useUpdateShoppingItemMutation()
   const pending = createItem.isPending || updateItem.isPending
+
+  // Edit mode has no dedicated fetch (see the comment on `itemsQuery` above),
+  // so a failed or not-yet-arrived list read used to render as a silently
+  // blank form: nothing said the fields hadn't loaded, and a mistaken save
+  // would have surfaced only as "La quantité doit être un entier..." — a
+  // quantity-validation error with nothing to do with the real cause.
+  const editNotFound =
+    props.mode === 'edit' && !itemsQuery.isPending && !itemsQuery.isError && !itemsQuery.data?.some((i) => i.id === editItemId)
+  const editUnavailable = props.mode === 'edit' && !hasAppliedEditPrefill && (itemsQuery.isError || editNotFound)
 
   async function handleSubmit() {
     setError(null)
@@ -111,6 +123,25 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
           pill, with the keyboard free to cover the pill. */}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <YStack marginTop="$2">
+        {editUnavailable ? (
+          <FormCard palette={palette} gap="$3">
+            <Text fontSize={13} fontWeight="700" color={palette.ink}>
+              {editNotFound ? "Cet article n'existe plus." : 'Article introuvable pour le moment.'}
+            </Text>
+            <Text fontSize={12} fontWeight="500" color={palette.inkSecondary}>
+              {editNotFound
+                ? 'Il a peut-être été supprimé ailleurs sur le foyer.'
+                : 'Impossible de charger sa fiche — vérifie ta connexion.'}
+            </Text>
+            {itemsQuery.isError ? (
+              <AuthButton
+                testID="shopping-item-form-retry"
+                label="Réessayer"
+                onPress={() => itemsQuery.refetch()}
+              />
+            ) : null}
+          </FormCard>
+        ) : (
         <FormCard palette={palette} gap="$3">
           <FormField
             testID="shopping-item-form-name"
@@ -171,6 +202,7 @@ export function ShoppingItemFormScreen(props: ShoppingItemFormMode & { onSuccess
             onPress={handleSubmit}
           />
         </FormCard>
+        )}
       </YStack>
       </KeyboardAvoidingView>
     </AppShell>

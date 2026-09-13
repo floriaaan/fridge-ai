@@ -269,6 +269,30 @@ export function HomeAssistantScreen() {
         />
       }
     >
+      {link.isError ? (
+        // A failed `link` fetch used to look exactly like "never configured":
+        // `hasHydrated` never flips, `step` stays on its initial 'connect'
+        // value, and an already-linked foyer sees a blank setup form inviting
+        // them to re-enter a URL and token that are already stored. Nothing
+        // below distinguishes "not set up" from "couldn't check" without this.
+        <YStack marginBottom="$4" gap="$2" backgroundColor={palette.expiredBg} padding="$4" borderRadius={18}>
+          <Text fontSize={13} fontWeight="700" color={palette.expiredText}>
+            État de la connexion indisponible
+          </Text>
+          <Text fontSize={12} fontWeight="500" color={palette.expiredText} lineHeight={17}>
+            Impossible de vérifier si Home Assistant est déjà lié à ce foyer. Réessaie avant de reconfigurer.
+          </Text>
+          <PillButton
+            testID="ha-retry-link"
+            label="Réessayer"
+            accessibilityLabel="Réessayer de charger l'état de la connexion Home Assistant"
+            onPress={() => link.refetch()}
+            palette={palette}
+            tone="quiet"
+          />
+        </YStack>
+      ) : null}
+
       {step === 'connect' ? (
         <FormCard palette={palette}>
           <AuthField

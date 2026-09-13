@@ -46,6 +46,7 @@ import { PulseDots } from '../shared/pulse-dots.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { Chip } from '../shared/chip.js'
+import { PillButton } from '../shared/pill-button.js'
 import { FormField } from '../fridge/form-field.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
@@ -231,6 +232,28 @@ export function RecipeGenerateScreen() {
           contentContainerStyle={{ ...shellContentStyle({ ...layout, hasMobileNav: false }), paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
+
+          {productsQuery.isError ? (
+            // A failed fetch here used to render identically to "no products
+            // near expiry" (empty `cookingFrom`) on the one screen whose whole
+            // pitch is cooking from what the garde-manger already has.
+            <YStack marginBottom="$4" gap="$2" backgroundColor={palette.cream} padding="$4" borderRadius={18}>
+              <Text fontSize={13} fontWeight="700" color={palette.ink}>
+                Garde-manger indisponible
+              </Text>
+              <Text fontSize={12} fontWeight="500" color={palette.inkSecondary} lineHeight={17}>
+                On ne peut pas dire ce que tu as sous la main pour l’instant — la génération partira sans « Ce soir ».
+              </Text>
+              <PillButton
+                testID="recipe-generate-retry-products"
+                label="Réessayer"
+                accessibilityLabel="Réessayer de charger le garde-manger"
+                onPress={() => productsQuery.refetch()}
+                palette={palette}
+                tone="quiet"
+              />
+            </YStack>
+          ) : null}
 
           <CookingFrom
             products={cookingFrom}

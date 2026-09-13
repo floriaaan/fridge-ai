@@ -24,14 +24,14 @@ Self-hosted (Docker Compose, auth via instance PocketID perso de l'utilisateur +
 - Multi-device par foyer : plusieurs membres, chacun sur son téléphone, données partagées en temps quasi-réel.
 - Auth : PocketID SSO (OIDC, provider "pocketid") + email/password, méthodes découvertes dynamiquement par le front (pas de liste hardcodée).
 - Un seul foyer par utilisateur en v1 (pas de multi-foyer/switch). Un seul owner par foyer ; le quitter en tant qu'owner supprime le foyer (cascade) ; un member peut quitter librement.
-- Backend AdonisJS/Postgres complet et livré pour identity/household, fridge/receipt/settings, shopping-list/recipe (phases 1-3). Le mobile n'a livré que l'identity (auth + gate session) ; les écrans produit/frigo/recette/liste restent à construire.
+- Backend AdonisJS/Postgres complet et livré pour identity/household, fridge/receipt/settings, shopping-list/recipe (phases 1-3). Le mobile a livré identity, onboarding, frigo (liste/ajout/scan code-barres/édition), scan de ticket, liste de courses et recette IA, réglages, Home Assistant, dashboard — surface produit complète end-to-end ; polish et durcissement en cours.
 
 ## Capabilities and Constraints
 
 - Stack : Expo (expo-router) + TanStack Query + Tamagui + better-auth (`@better-auth/expo`), monorepo pnpm avec `backend/`.
 - Aucun appel direct du mobile vers un service externe (OpenFoodFacts, providers IA) — tout transite par le backend.
 - Code-barres + lookup OpenFoodFacts en prefill à la création d'un produit.
-- Nice-to-have post-MVP anticipé mais non construit : fridge-scan (photo du frigo entier), statistiques (gaspillage/catégories), intégration Home Assistant.
+- Intégration Home Assistant livrée (todo-entity-picker inclus). Nice-to-have post-MVP toujours non construit : fridge-scan (photo du frigo entier, scan actuel = code-barres unitaire), statistiques (gaspillage/catégories).
 - Explicitement hors scope v1 : multi-foyer, permissions fines au-delà owner/member, transfert de propriété de foyer, partage de recettes inter-foyers.
 
 ## Brand Commitments
