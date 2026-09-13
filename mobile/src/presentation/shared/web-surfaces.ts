@@ -24,7 +24,7 @@ export function installWebSurfaces(accent: string, ink: string): void {
   const doc = typeof document === 'undefined' ? null : document
   if (!doc) return
 
-  const ID = 'fridge-ai-web-surfaces'
+  const ID = 'garde-manger-web-surfaces'
   const existing = doc.getElementById(ID)
   const style = existing instanceof HTMLStyleElement ? existing : doc.createElement('style')
   style.id = ID

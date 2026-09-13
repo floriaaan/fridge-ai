@@ -8,7 +8,7 @@ command -v tmux >/dev/null || { echo "tmux not found — install it first." >&2;
 
 cd "$(dirname "$0")/.."
 
-SESSION=fridge-ai-dev
+SESSION=garde-manger-dev
 EXPECTED_PANES=5
 
 if tmux has-session -t "$SESSION" 2>/dev/null; then

@@ -1,8 +1,8 @@
 version: '3'
 
 vars:
-  BACKEND: fridge-ai-backend
-  MOBILE: fridge-ai-mobile
+  BACKEND: garde-manger-backend
+  MOBILE: garde-manger-mobile
   # -f is explicit below, which turns off Compose's own compose.yaml +
   # compose.override.yaml auto-lookup — so re-add the override by hand
   # whenever it's there (cf. compose.override.yml.example).

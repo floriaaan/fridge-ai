@@ -10,13 +10,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-fridge_ai}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fridge_ai}
-      POSTGRES_DB: ${POSTGRES_DB:-fridge_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-garde_manger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-garde_manger}
+      POSTGRES_DB: ${POSTGRES_DB:-garde_manger}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-fridge_ai} -d ${POSTGRES_DB:-fridge_ai}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-garde_manger} -d ${POSTGRES_DB:-garde_manger}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -43,9 +43,9 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-fridge_ai}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-fridge_ai}
-      DB_DATABASE: ${POSTGRES_DB:-fridge_ai}
+      DB_USER: ${POSTGRES_USER:-garde_manger}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-garde_manger}
+      DB_DATABASE: ${POSTGRES_DB:-garde_manger}
       CORS_ORIGIN: ${CORS_ORIGIN:-}
       POCKETID_ISSUER_URL: ${POCKETID_ISSUER_URL:-}
       POCKETID_CLIENT_ID: ${POCKETID_CLIENT_ID:-}
@@ -56,7 +56,7 @@ services:
       # and the store absent, stopped or broken.
       OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
-      OTEL_SERVICE_NAME: fridge-ai-backend
+      OTEL_SERVICE_NAME: garde-manger-backend
       OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
       OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-1.0}
       APP_VERSION: ${APP_VERSION:-0.0.0}
@@ -115,7 +115,7 @@ services:
     environment:
       # Change these. They are defaulted so `task up` works out of the box on
       # a loopback-bound port, not because they are safe on a routable one.
-      ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_ROOT_EMAIL:-admin@fridge.local}
+      ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_ROOT_EMAIL:-admin@garde-manger.local}
       ZO_ROOT_USER_PASSWORD: ${OPENOBSERVE_ROOT_PASSWORD:-Complexpass#123}
       ZO_DATA_DIR: /data
       # Retention. Disk is the scarce resource in a homelab, not CPU.

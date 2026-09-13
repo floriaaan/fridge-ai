@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-08-27T00:00:00Z",
-  "title": "Design System: Fridge AI",
+  "title": "Design System: Garde-manger",
   "extensions": {
     "shadows": [
       { "name": "card-float", "value": "shadowColor:#0F2B1D; offset:0,10; opacity:0.1; radius:18-20", "purpose": "Stat cards and list containers that should feel lightly lifted off the ground." },
@@ -69,7 +69,7 @@
   ],
   "narrative": {
     "northStar": "The Sunlit Pantry",
-    "overview": "Fridge AI reads as a fitness-app-bright kitchen dashboard: a near-white mint-to-white ground that feels like morning light through a window, one warm-mocha hero surface anchoring the eye like the one wooden shelf in an otherwise bright pantry, and lime accents standing in for fresh produce — the one saturated color the system spends on doing (progress, primary actions), never on decorating. The system went through two corrections to get here: the original hero card was near-black forest green (\"too corporate,\" per feedback) and was warmed into mocha with an ember glow; the desktop layout surround was originally that same dark mocha (\"too much brown\") and was pulled all the way down to a near-white warm gray so the white content card would still read as the lighter of the two.",
+    "overview": "Garde-manger reads as a fitness-app-bright kitchen dashboard: a near-white mint-to-white ground that feels like morning light through a window, one warm-mocha hero surface anchoring the eye like the one wooden shelf in an otherwise bright pantry, and lime accents standing in for fresh produce — the one saturated color the system spends on doing (progress, primary actions), never on decorating. The system went through two corrections to get here: the original hero card was near-black forest green (\"too corporate,\" per feedback) and was warmed into mocha with an ember glow; the desktop layout surround was originally that same dark mocha (\"too much brown\") and was pulled all the way down to a near-white warm gray so the white content card would still read as the lighter of the two.",
     "keyCharacteristics": [
       "Near-white mint blob ground on mobile; near-white warm-gray surround with an inset white content card on tablet/desktop.",
       "Exactly one dark, rich surface per screen carries the high-contrast hero role.",

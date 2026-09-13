@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Fridge AI",
-    "slug": "fridge-ai-mobile",
+    "name": "Garde-manger",
+    "slug": "garde-manger-mobile",
     "version": "1.0.0",
     
     "icon": "./assets/images/icon.png",
-    "scheme": "fridgeai",
+    "scheme": "gardemanger",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
@@ -32,21 +32,21 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#E9F6D8",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/mascot.png",
+          "imageWidth": 180
         }
       ],
       "expo-web-browser",
       [
         "expo-camera",
         {
-          "cameraPermission": "Fridge AI a besoin de la caméra pour scanner le code-barres d'un produit."
+          "cameraPermission": "Garde-manger a besoin de la caméra pour scanner le code-barres d'un produit."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Fridge AI a besoin d'accéder à tes photos pour importer un ticket de caisse."
+          "photosPermission": "Garde-manger a besoin d'accéder à tes photos pour importer un ticket de caisse."
         }
       ]
     ],

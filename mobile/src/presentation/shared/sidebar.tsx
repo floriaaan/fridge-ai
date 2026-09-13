@@ -11,7 +11,7 @@ import { pointerCursor, useHoverPress } from './hover.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { ChefHatIcon, HomeIcon, PackageIcon, ScanLineIcon, SettingsIcon, ShoppingCartIcon } from '../dashboard/dashboard-icons.js'
 
-const carrotIllustration = require('../../../assets/illustrations/carrot-3d.png')
+const mascotIllustration = require('../../../assets/mascot.png')
 
 export type SidebarSection = 'accueil' | 'frigo' | 'recettes' | 'courses'
 
@@ -93,9 +93,9 @@ export function Sidebar({
     // panel's outer corners for free.
     <YStack width={220} alignSelf="stretch" padding="$4" gap="$5" backgroundColor={palette.layoutSurface}>
       <XStack alignItems="center" gap="$2">
-        <Image source={carrotIllustration} style={{ width: 28, height: 28 }} resizeMode="contain" accessibilityLabel="" />
+        <Image source={mascotIllustration} style={{ width: 28, height: 28 }} resizeMode="contain" accessibilityLabel="" />
         <Text fontSize={14} fontWeight="800" letterSpacing={1} color={palette.ink}>
-          FRIDGE AI
+          GARDE-MANGER
         </Text>
       </XStack>
 

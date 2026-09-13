@@ -1,7 +1,7 @@
 /**
  * The code that arrived before the account did.
  *
- * Someone taps a `fridgeai://join?code=…` link on a phone where nobody is
+ * Someone taps a `gardemanger://join?code=…` link on a phone where nobody is
  * signed in. The route they land on cannot use the code — there is no account
  * to attach a foyer to — and the redirect chain that sends them to sign-up
  * would drop a route parameter along the way. So the code waits here, and the
@@ -16,7 +16,7 @@
 import { clearSetting, readSetting, writeSetting } from '../shared/app-storage.js'
 import { normalizeInviteCode, isCompleteInviteCode } from '../../domain/identity/invite-code.js'
 
-const KEY = 'fridge-ai.pending-invite-code'
+const KEY = 'garde-manger.pending-invite-code'
 
 export async function rememberInviteCode(code: string): Promise<void> {
   const normalized = normalizeInviteCode(code)

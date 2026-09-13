@@ -4,7 +4,7 @@
  * There is no universal link and there will not be one: the instance is
  * self-hosted (PRODUCT.md), so there is no domain this app could claim on the
  * App Store or in an `assetlinks.json`. The share therefore carries two
- * things — the `fridgeai://join?code=…` link for a phone that already has the
+ * things — the `gardemanger://join?code=…` link for a phone that already has the
  * app, and the eight characters in plain text for every phone that does not.
  * A share message that only carried the link would be useless to exactly the
  * person it is meant for: someone who has not installed anything yet.
@@ -12,7 +12,7 @@
 import * as Linking from 'expo-linking'
 import { INVITE_CODE_LENGTH, countCodeCharacters, normalizeInviteCode } from '../../domain/identity/invite-code.js'
 
-/** `fridgeai://join?code=K4Q2M7XP` on a device; a localhost/origin URL on web. */
+/** `gardemanger://join?code=K4Q2M7XP` on a device; a localhost/origin URL on web. */
 export function buildJoinLink(inviteCode: string): string {
   return Linking.createURL('join', { queryParams: { code: normalizeInviteCode(inviteCode) } })
 }
@@ -20,7 +20,7 @@ export function buildJoinLink(inviteCode: string): string {
 export function buildShareMessage(householdName: string, inviteCode: string): string {
   const code = normalizeInviteCode(inviteCode)
   return [
-    `Rejoins « ${householdName} » sur Fridge AI.`,
+    `Rejoins « ${householdName} » sur Garde-manger.`,
     `Code : ${code}`,
     buildJoinLink(code),
   ].join('\n')

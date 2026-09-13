@@ -21,13 +21,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: fridge_ai
-          POSTGRES_PASSWORD: fridge_ai
-          POSTGRES_DB: fridge_ai_test
+          POSTGRES_USER: garde_manger
+          POSTGRES_PASSWORD: garde_manger
+          POSTGRES_DB: garde_manger_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U fridge_ai -d fridge_ai_test"
+          --health-cmd "pg_isready -U garde_manger -d garde_manger_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -47,9 +47,9 @@ jobs:
       NETWORK_URL: http://localhost:3333
       DB_HOST: localhost
       DB_PORT: 5432
-      DB_USER: fridge_ai
-      DB_PASSWORD: fridge_ai
-      DB_DATABASE: fridge_ai_test
+      DB_USER: garde_manger
+      DB_PASSWORD: garde_manger
+      DB_DATABASE: garde_manger_test
       GEMINI_API_KEY: ci-test-key-not-real
 
     steps:

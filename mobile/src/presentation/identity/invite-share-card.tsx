@@ -9,7 +9,7 @@
  *
  * The share message deliberately carries the code *and* the link. There is no
  * universal link and cannot be one — the instance is self-hosted, so no domain
- * belongs to this app — which means the `fridgeai://` link only works on a
+ * belongs to this app — which means the `gardemanger://` link only works on a
  * phone that already installed it. The person being invited is precisely the
  * person who has not, so the eight characters go in the message as text.
  */

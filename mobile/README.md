@@ -1,6 +1,6 @@
-# fridge-ai mobile
+# garde-manger mobile
 
-Expo (SDK 57) app for fridge-ai, built with expo-router and TanStack Query.
+Expo (SDK 57) app for garde-manger, built with expo-router and TanStack Query.
 
 ## Setup
 

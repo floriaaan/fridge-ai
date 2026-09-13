@@ -116,13 +116,13 @@ components:
     hitSlop: "6px 6px"
 ---
 
-# Design System: Fridge AI
+# Design System: Garde-manger
 
 ## Overview
 
 **Creative North Star: "The Sunlit Pantry"**
 
-Fridge AI reads as a fitness-app-bright kitchen dashboard: a near-white mint-to-white ground that feels like morning light through a window, one warm-mocha hero surface anchoring the eye like the one wooden shelf in an otherwise bright pantry, and lime accents standing in for fresh produce — the one saturated color the system spends on doing (progress, primary actions), never on decorating. The system went through two corrections to get here: the original hero card was near-black forest green ("too corporate," per feedback) and was warmed into mocha with an ember glow; the desktop layout surround was originally that same dark mocha ("too much brown") and was pulled all the way down to a near-white warm gray so the white content card would still read as the lighter of the two. Both corrections are now load-bearing invariants, not just history — see the Named Rules below.
+Garde-manger reads as a fitness-app-bright kitchen dashboard: a near-white mint-to-white ground that feels like morning light through a window, one warm-mocha hero surface anchoring the eye like the one wooden shelf in an otherwise bright pantry, and lime accents standing in for fresh produce — the one saturated color the system spends on doing (progress, primary actions), never on decorating. The system went through two corrections to get here: the original hero card was near-black forest green ("too corporate," per feedback) and was warmed into mocha with an ember glow; the desktop layout surround was originally that same dark mocha ("too much brown") and was pulled all the way down to a near-white warm gray so the white content card would still read as the lighter of the two. Both corrections are now load-bearing invariants, not just history — see the Named Rules below.
 
 Status (fresh/soon/expired) is always icon **and** color **and** word — a `StatusChip`/`StatusIcon` pairing carried over from an earlier direction specifically because it survives grayscale and color-blindness, and the team kept it on purpose when the rest of that direction was discarded.
 

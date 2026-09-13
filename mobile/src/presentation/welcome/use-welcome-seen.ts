@@ -18,7 +18,7 @@
 import { useEffect, useState } from 'react'
 import { clearSetting, readSetting, writeSetting } from '../shared/app-storage.js'
 
-const KEY = 'fridge-ai.welcome.seen'
+const KEY = 'garde-manger.welcome.seen'
 
 export async function markWelcomeSeen(): Promise<void> {
   await writeSetting(KEY, '1')

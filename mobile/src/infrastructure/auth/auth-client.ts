@@ -6,9 +6,9 @@ export const authClient = createAuthClient({
   baseURL: process.env.EXPO_PUBLIC_API_URL,
   plugins: [
     expoClient({
-      scheme: 'fridgeai',
+      scheme: 'gardemanger',
       storage: SecureStore,
-      storagePrefix: 'fridgeai',
+      storagePrefix: 'gardemanger',
     }),
   ],
 })
