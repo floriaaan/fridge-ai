@@ -16,6 +16,14 @@ export interface ActionSheetOption {
   onPress: () => void
   /** Irreversible: the row carries the status-expired colors and names the consequence. */
   destructive?: boolean
+  /**
+   * A correction, not a real option — same size and weight as every other
+   * row (DESIGN.md: hierarchy is never colour alone), but the label takes
+   * `inkSecondary` rather than `ink`, the same treatment "Annuler" already
+   * carries below. A distinct icon-chip tint on its own left the label
+   * reading exactly as loud as "Consommé"/"Jeté".
+   */
+  quiet?: boolean
 }
 
 /** One option — styled as its own card-button, matching settings' "Historique des tickets" row. */
@@ -47,7 +55,12 @@ function ActionSheetRow({ option, palette }: { option: ActionSheetOption; palett
           <YStack width={36} height={36} borderRadius={12} backgroundColor={option.tint} alignItems="center" justifyContent="center">
             {option.icon(palette.onDark)}
           </YStack>
-          <Text fontSize={14} fontWeight="700" color={option.destructive ? palette.expiredText : palette.ink} flex={1}>
+          <Text
+            fontSize={14}
+            fontWeight="700"
+            color={option.destructive ? palette.expiredText : option.quiet ? palette.inkSecondary : palette.ink}
+            flex={1}
+          >
             {option.label}
           </Text>
           <ChevronRightIcon size={18} color={palette.inkSecondary} />

@@ -99,6 +99,7 @@ export function ProductExitSheet({
             label: plural ? 'Supprimer — erreurs de saisie' : 'Supprimer — erreur de saisie',
             icon: (color) => <PencilIcon size={18} color={color} />,
             tint: palette.inkSecondary,
+            quiet: true,
             onPress: onCorrection,
           },
         ]}
@@ -149,7 +150,12 @@ export function ProductExitSheet({
               <StepButton
                 testID="product-exit-amount-decrease"
                 label="−"
-                accessibilityLabel="Un de moins"
+                // The count on the resulting label, not just "Un de moins":
+                // `accessibilityLiveRegion` is Android-only in RN, so VoiceOver
+                // on iOS never re-announces the `Text` between these buttons —
+                // the label a screen reader focuses next has to carry the
+                // number itself.
+                accessibilityLabel={`Un de moins, ${amount - 1} ${single.quantity.unit} restant${amount - 1 > 1 ? 's' : ''}`}
                 disabled={amount <= 1}
                 onPress={() => setAmount(Math.max(1, amount - 1))}
               />
@@ -167,7 +173,7 @@ export function ProductExitSheet({
               <StepButton
                 testID="product-exit-amount-increase"
                 label="+"
-                accessibilityLabel="Un de plus"
+                accessibilityLabel={`Un de plus, ${amount + 1} ${single.quantity.unit} restant${amount + 1 > 1 ? 's' : ''}`}
                 disabled={amount >= stock}
                 onPress={() => setAmount(Math.min(stock, amount + 1))}
               />
