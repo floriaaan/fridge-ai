@@ -1,6 +1,6 @@
 # Sortie des produits (consommé / jeté) — Design
 
-**Statut :** brouillon, à valider (2026-09-13)
+**Statut :** implémenté (2026-09-13)
 
 ## Contexte
 

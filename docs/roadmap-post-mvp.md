@@ -18,7 +18,7 @@ suit le cycle habituel spec → plan → implémentation (`docs/superpowers/`).
 
 ---
 
-## 1. Tracer la sortie des produits (consommé / jeté) — **en cours**
+## 1. Tracer la sortie des produits (consommé / jeté) — **implémenté (2026-09-13)**
 
 Branche : `feature/waste-stats`.
 
@@ -32,11 +32,17 @@ a été mangé ou jeté. ADR-0010 avait volontairement reporté ces colonnes à 
 et journalisée avec un instantané du produit (nom, catégorie, quantité, prix,
 péremption). `cook-recipe` qualifie automatiquement en « consommé ».
 
+Le journal (`product_outcome`, ADR-0012) écrit et se lit déjà de bout en bout :
+`POST /api/products/:id/outcomes`, `CookRecipe` qui qualifie automatiquement en
+« consommé », et côté mobile la sheet Consommé/Jeté/Erreur de saisie sur le détail
+produit et la sélection multiple.
+
 **Ensuite :** écran de statistiques (€ et nombre de produits jetés, catégories les plus
 gaspillées, évolution par période, part sauvée par les recettes) — une fois quelques
 semaines de données réelles accumulées.
 
 Spec détaillée : `docs/superpowers/specs/2026-09-13-product-outcome-design.md`.
+Plan d'implémentation : `docs/superpowers/plans/2026-09-13-product-outcome.md`.
 
 ---
 
