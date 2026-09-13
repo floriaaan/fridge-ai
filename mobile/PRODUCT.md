@@ -12,7 +12,7 @@ Membres d'un foyer partagé (couple, colocataires, famille) qui gèrent ensemble
 
 ## Product Purpose
 
-Fridge AI est une app de gestion de frigo partagé : suivi des produits (stock, localisation frigo/congélateur/garde-manger, péremption), import de tickets de caisse par photo (extraction IA multi-produits), génération de recettes par IA à partir des produits proches de la péremption, et liste de courses. Succès = le foyer sait ce qu'il a, jette moins, et retrouve plus vite quoi cuisiner.
+Garde-manger est une app de gestion de frigo partagé : suivi des produits (stock, localisation frigo/congélateur/garde-manger, péremption), import de tickets de caisse par photo (extraction IA multi-produits), génération de recettes par IA à partir des produits proches de la péremption, et liste de courses. Succès = le foyer sait ce qu'il a, jette moins, et retrouve plus vite quoi cuisiner.
 
 ## Positioning
 
@@ -36,7 +36,7 @@ Self-hosted (Docker Compose, auth via instance PocketID perso de l'utilisateur +
 
 ## Brand Commitments
 
-Nom produit : "Fridge AI" (`app.json`). Aucune autre contrainte de marque figée — couleurs actuelles (#208AEF, #E6F4FE) sont un défaut de scaffold Expo, librement remplaçables.
+Nom produit : "Garde-manger" (`app.json`). Aucune autre contrainte de marque figée — couleurs actuelles (#208AEF, #E6F4FE) sont un défaut de scaffold Expo, librement remplaçables.
 
 ## Evidence on Hand
 

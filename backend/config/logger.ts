@@ -8,7 +8,7 @@ const loggerConfig = defineConfig({
   loggers: {
     app: {
       enabled: true,
-      name: 'fridge-ai-backend',
+      name: 'garde-manger-backend',
       level: env.get('LOG_LEVEL'),
       destination: !app.inProduction ? await syncDestination() : undefined,
       transport: {

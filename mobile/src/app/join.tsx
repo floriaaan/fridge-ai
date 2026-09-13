@@ -5,7 +5,7 @@ import { rememberInviteCode } from '../presentation/onboarding/pending-invite.js
 import { useSessionQuery } from '../application/identity/session.query.js'
 
 /**
- * `fridgeai://join?code=K4Q2M7XP` lands here.
+ * `gardemanger://join?code=K4Q2M7XP` lands here.
  *
  * The route owns one decision and then gets out of the way: is there an
  * account yet? With one, the code rides straight into the threshold as a

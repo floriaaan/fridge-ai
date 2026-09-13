@@ -10,7 +10,7 @@
  *
  * The cascade is the surface's one authored motion. A code almost never
  * arrives one character at a time — it is pasted out of a message, scanned off
- * a QR, or carried in by a `fridgeai://join` link — and eight characters
+ * a QR, or carried in by a `gardemanger://join` link — and eight characters
  * appearing simultaneously reads as a field that was pre-filled by the system,
  * which is exactly the moment a user stops checking whether it is the right
  * code. Landing them left to right, one cell every 45ms, is the code arriving

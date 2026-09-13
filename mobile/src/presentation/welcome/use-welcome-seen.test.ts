@@ -33,5 +33,5 @@ test('useHasSeenWelcome() resolves true once markWelcomeSeen() has written the f
   const { result } = await renderHook(() => useHasSeenWelcome())
   await waitFor(() => expect(result.current).toBe(true))
 
-  expect(SecureStore.setItemAsync).toHaveBeenCalledWith('fridge-ai.welcome.seen', '1')
+  expect(SecureStore.setItemAsync).toHaveBeenCalledWith('garde-manger.welcome.seen', '1')
 })

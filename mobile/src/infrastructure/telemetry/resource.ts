@@ -33,7 +33,7 @@ export function intAttribute(key: string, value: number): OtlpAttribute {
 export function buildResource(): { attributes: OtlpAttribute[] } {
   return {
     attributes: [
-      stringAttribute('service.name', 'fridge-ai-mobile'),
+      stringAttribute('service.name', 'garde-manger-mobile'),
       stringAttribute('service.version', Constants.expoConfig?.version ?? '0.0.0'),
       stringAttribute(
         'deployment.environment.name',
@@ -42,7 +42,7 @@ export function buildResource(): { attributes: OtlpAttribute[] } {
       stringAttribute('os.name', Platform.OS),
       stringAttribute('os.version', String(Platform.Version)),
       stringAttribute('app.session.id', SESSION_ID),
-      stringAttribute('telemetry.sdk.name', 'fridge-ai-mobile-otlp'),
+      stringAttribute('telemetry.sdk.name', 'garde-manger-mobile-otlp'),
       stringAttribute('telemetry.sdk.language', 'webjs'),
     ],
   }

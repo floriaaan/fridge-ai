@@ -9,7 +9,7 @@ function tracePayload(spanAttributes: { key: string; value: unknown }[]) {
       {
         resource: {
           attributes: [
-            { key: 'service.name', value: { stringValue: 'fridge-ai-mobile' } },
+            { key: 'service.name', value: { stringValue: 'garde-manger-mobile' } },
             { key: 'device.model.identifier', value: { stringValue: 'iPhone16,2' } },
           ],
         },

@@ -123,9 +123,9 @@ import type { Product } from '../../domain/fridge/product.js'
 // locally rather than fetched from a CDN at runtime (this app makes no
 // direct client→external-service calls by design — see PRODUCT.md).
 // Attribution: assets/illustrations/NOTICE.md.
-const carrotIllustration = require('../../../assets/illustrations/carrot-3d.png') as ImageSourcePropType
 const potOfFoodIllustration = require('../../../assets/illustrations/pot-of-food-3d.png') as ImageSourcePropType
 const shoppingCartIllustration = require('../../../assets/illustrations/shopping-cart-3d.png') as ImageSourcePropType
+const mascotIllustration = require('../../../assets/mascot.png') as ImageSourcePropType
 
 /** Rows shown in the "À consommer en premier" preview before "Voir tout" takes over. */
 const PREVIEW_COUNT = 4
@@ -288,15 +288,25 @@ export function HouseholdDashboard({
         scrollOffset.current = offset
       }}
       // The greeting is this screen's header, so it is pinned like every other
-      // screen's — the carrot is its glyph and Réglages its trailing action. It
+      // screen's — the mascot is its glyph and Réglages its trailing action. It
       // used to scroll away, which meant the one surface that names the foyer
       // stopped naming it as soon as you moved.
       header={
             <XStack justifyContent="space-between" alignItems="center">
               <XStack alignItems="center" gap="$2.5" flex={1}>
+                {/* 44, not the carrot glyph's old 40 — the mascot is a full
+                    character (face, arms, a held leaf), not a simple icon
+                    shape, and needs a few more pixels than a flat glyph to
+                    read at this size. Not 56: this screen is a dense
+                    in-app view, so its text stays on the `title` scale
+                    (20/800) DESIGN.md reserves `display` (24/800) away
+                    from — sizing the glyph past what that text stack
+                    actually measures just re-opens the vertical-centering
+                    gap the previous pass tried to close by growing the
+                    text past its own scale instead. */}
                 <Image
-                  source={carrotIllustration}
-                  style={{ width: 40, height: 40 }}
+                  source={mascotIllustration}
+                  style={{ width: 44, height: 44 }}
                   resizeMode="contain"
                   accessibilityLabel=""
                 />
@@ -318,7 +328,16 @@ export function HouseholdDashboard({
                   style={[{ flex: 1 }, pointerCursor]}
                 >
                   <YStack flex={1}>
-                    <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
+                    {/* `body` (14/500) over `title` (20/800) — DESIGN.md's own
+                        in-app scale, not bumped: this screen is a dense view,
+                        the one place DESIGN.md keeps `display` (24/800) away
+                        from ("this is the first screen a signed-out visitor
+                        focuses on, not a dense in-app view" — the reasoning
+                        for the auth card's own use of `display`). Growing
+                        this past `title` to chase the mascot's size was the
+                        wrong axis to move; the glyph is sized to this text,
+                        not the other way round. */}
+                    <Text fontSize={14} fontWeight="500" color={palette.inkSecondary}>
                       Salut, {userName || 'toi'}
                     </Text>
                     <XStack alignItems="center" gap="$2" marginTop="$1">

@@ -73,7 +73,7 @@ changer après coup demande de le changer aussi dans l'UI.
 curl -s http://localhost:3333/api/auth/methods > /dev/null
 ```
 
-Dans OpenObserve → *Traces*, filtrer sur `service_name = 'fridge-ai-backend'`. La trace
+Dans OpenObserve → *Traces*, filtrer sur `service_name = 'garde-manger-backend'`. La trace
 contient le span HTTP serveur et les spans `pg` de la requête. `/health` n'apparaît
 jamais : il est filtré côté SDK *et* côté Collector.
 
@@ -92,7 +92,7 @@ Node (`nodejs_eventloop_delay_*`, heap, GC).
 
 Lancer l'app avec `EXPO_PUBLIC_TELEMETRY_ENABLED=true`, ouvrir un écran qui charge des
 données, attendre 15 s (ou mettre l'app en arrière-plan, ce qui force un flush).
-Dans *Traces*, filtrer `service_name = 'fridge-ai-mobile'`, ouvrir une trace : elle
+Dans *Traces*, filtrer `service_name = 'garde-manger-mobile'`, ouvrir une trace : elle
 contient le span client du téléphone **et**, sous lui, le span serveur, les spans
 PostgreSQL et les appels sortants. Un seul `trace_id` du haut en bas.
 

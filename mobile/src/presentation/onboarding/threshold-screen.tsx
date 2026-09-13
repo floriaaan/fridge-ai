@@ -48,7 +48,7 @@ import type { Household } from '../../domain/identity/household.js'
 export interface ThresholdScreenProps {
   /** Greeted by name, so the screen belongs to the account that just landed on it. */
   userName: string
-  /** A code carried in by `fridgeai://join?code=…`, already validated by the route. */
+  /** A code carried in by `gardemanger://join?code=…`, already validated by the route. */
   prefillCode?: string | null
   /** The gate re-reads `['household']` and moves us on; the screen never navigates itself. */
   onEnteredHousehold: () => void
@@ -197,7 +197,7 @@ export function ThresholdScreen({
           {userName ? `Bienvenue, ${userName}.` : 'Bienvenue.'}
         </Text>
         <Text fontSize={14} fontWeight="500" color={palette.inkSecondary}>
-          Fridge AI tient un seul garde-manger, partagé par tout le monde qui vit ici. Commence par
+          Garde-manger tient un seul garde-manger, partagé par tout le monde qui vit ici. Commence par
           dire lequel est le tien.
         </Text>
       </YStack>

@@ -1,4 +1,4 @@
-# Bruno collection — Fridge AI backend
+# Bruno collection — Garde-manger backend
 
 Open this folder (`backend/bruno/`) in the [Bruno](https://www.usebruno.com/) app, or
 run it headless with `bru run --env local` (Bruno CLI, `npm i -g @usebruno/cli`).

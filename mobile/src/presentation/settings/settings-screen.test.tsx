@@ -190,6 +190,6 @@ test('the debug menu’s "Réinitialiser l’onboarding" signs out, clears the w
   // button previews the onboarding flow, and a still-signed-in preview
   // never reaches it.
   await waitFor(async () => expect(await connector.getSession()).toBeNull())
-  await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('fridge-ai.welcome.seen'))
+  await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('garde-manger.welcome.seen'))
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/welcome'))
 })

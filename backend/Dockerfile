@@ -8,23 +8,23 @@ WORKDIR /app
 FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY backend/package.json ./backend/package.json
-RUN pnpm install --frozen-lockfile --filter fridge-ai-backend...
+RUN pnpm install --frozen-lockfile --filter garde-manger-backend...
 
 FROM deps AS build
 COPY backend ./backend
-RUN pnpm --filter fridge-ai-backend run build
+RUN pnpm --filter garde-manger-backend run build
 
 FROM base AS production
 ENV NODE_ENV=production
-RUN addgroup -S fridgeai && adduser -S fridgeai -G fridgeai
+RUN addgroup -S gardemanger && adduser -S gardemanger -G gardemanger
 WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/build ./backend/build
 COPY --from=build /app/backend/package.json ./backend/package.json
 COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh && chown -R fridgeai:fridgeai /app
-USER fridgeai
+RUN chmod +x ./docker-entrypoint.sh && chown -R gardemanger:gardemanger /app
+USER gardemanger
 WORKDIR /app/backend/build
 EXPOSE 3333
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

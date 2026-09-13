@@ -211,7 +211,7 @@ export function sanitizeOtlpPayload(
         .filter((item): item is Record<string, unknown> => item !== null)
 
       if (sanitizedItems.length > 0) {
-        sanitizedScopes.push({ scope: { name: 'fridge-ai-mobile' }, [itemKey]: sanitizedItems })
+        sanitizedScopes.push({ scope: { name: 'garde-manger-mobile' }, [itemKey]: sanitizedItems })
       }
     }
 

@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { LocalFilesystemStorage } from '#infrastructure/storage/local-filesystem-storage'
 
 test.group('LocalFilesystemStorage', (group) => {
-  const root = join(tmpdir(), `fridge-ai-storage-test-${randomUUID()}`)
+  const root = join(tmpdir(), `garde-manger-storage-test-${randomUUID()}`)
   group.teardown(() => rm(root, { recursive: true, force: true }))
 
   test('save() then read() round-trips the buffer and content type', async ({ assert }) => {

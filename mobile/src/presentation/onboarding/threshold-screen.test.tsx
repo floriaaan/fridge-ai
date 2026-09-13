@@ -18,7 +18,7 @@ jest.mock('expo-clipboard', () => ({
   setStringAsync: jest.fn(async () => true),
 }))
 
-jest.mock('expo-linking', () => ({ createURL: (path: string) => `fridgeai://${path}` }))
+jest.mock('expo-linking', () => ({ createURL: (path: string) => `gardemanger://${path}` }))
 
 // The keychain has no implementation under jest, and entering a foyer writes
 // to it (arming the dashboard's tour). Left unmocked, that write stays pending

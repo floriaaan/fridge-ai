@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { clearSetting, readSetting, writeSetting } from '../shared/app-storage.js'
 
-const KEY = 'fridge-ai.first-run-tour.armed'
+const KEY = 'garde-manger.first-run-tour.armed'
 
 /**
  * Awaited by the threshold before it navigates: the dashboard reads this key
