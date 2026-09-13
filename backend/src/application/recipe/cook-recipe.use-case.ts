@@ -6,6 +6,8 @@ import type { Clock } from '#domain/shared/clock.interface'
 import { Result } from '#domain/shared/result'
 import type { Result as ResultType } from '#domain/shared/result'
 import type { Recipe } from '#domain/recipe/recipe.aggregate'
+import { ProductOutcome } from '#domain/fridge/product-outcome.entity'
+import { OutcomeKind } from '#domain/fridge/outcome-kind.vo'
 
 export interface CookRecipeInput {
   householdId: string
@@ -39,7 +41,10 @@ export type CookRecipeError = 'recipe_not_found'
  * A product is only consumed when it belongs to the same household. A recipe
  * id from one foyer must never reach into another's fridge, and an id that is
  * simply stale (someone else finished the spinach first) is skipped rather
- * than failing the whole meal — the cook already happened.
+ * than failing the whole meal — the cook already happened. Each consumed
+ * product is recorded as a `consumed` outcome (ADR-0012), not a bare
+ * deletion — the one number the waste statistics will want to put next to
+ * what was thrown away.
  */
 export class CookRecipe implements UseCase<CookRecipeInput, ResultType<Recipe, CookRecipeError>> {
   constructor(
@@ -57,7 +62,24 @@ export class CookRecipe implements UseCase<CookRecipeInput, ResultType<Recipe, C
     for (const productId of new Set(input.productIds)) {
       const product = await this.products.findById(productId)
       if (!product || product.householdId !== input.householdId) continue
-      await this.products.delete(product.id)
+
+      // The meal used the product up: the whole stock leaves, written down as
+      // eaten and linked to the dish that saved it.
+      const at = this.clock.now()
+      const takeOut = product.takeOut(product.quantity.amount, at)
+      if (!takeOut.ok) continue
+      await this.products.recordOutcome(
+        ProductOutcome.fromProduct(product, {
+          id: this.idGenerator.next(),
+          kind: OutcomeKind.consumed(),
+          discardReason: null,
+          recordedBy: input.userId,
+          recipeId: recipe.id,
+          takeOut: takeOut.value,
+          at,
+        }),
+        takeOut.value.remaining,
+      )
       consumed += 1
     }
 
