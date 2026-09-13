@@ -19,6 +19,7 @@ import type { ApiError } from '../../domain/shared/api-error.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
 import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../../domain/fridge/product.js'
+import type { ProductOutcome, RecordProductOutcomeInput, RecordedProductOutcome } from '../../domain/fridge/product-outcome.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ProductLookupResult } from '../../domain/fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
@@ -75,6 +76,9 @@ export class FakeFridgeConnector implements FridgeConnector {
   private shoppingItems: ShoppingItem[] = fakeShoppingItems.map((item) => ({ ...item }))
   private products: Product[] = fakeProducts.map((p) => ({ ...p }))
   private nextProductId = 1
+  /** Every outcome recorded, oldest first — read by tests, never by screens. */
+  readonly outcomes: ProductOutcome[] = []
+  private nextOutcomeId = 1
   private nextShoppingItemId = 1
   private receipts: Receipt[] = fakeReceipts.map((r) => ({ ...r }))
   private nextReceiptId = 1
@@ -429,6 +433,56 @@ export class FakeFridgeConnector implements FridgeConnector {
     if (index === -1) return Result.err({ type: 'product_not_found', message: 'Produit introuvable.' })
     this.products.splice(index, 1)
     return Result.ok(undefined)
+  }
+
+  async recordProductOutcome(
+    productId: string,
+    input: RecordProductOutcomeInput,
+  ): Promise<Result<RecordedProductOutcome, ApiError>> {
+    const index = this.products.findIndex((p) => p.id === productId)
+    if (index === -1) return Result.err({ type: 'product_not_found', message: 'Produit introuvable.' })
+    const product = this.products[index]
+    const amount = input.amount ?? product.quantity.amount
+    if (!Number.isInteger(amount) || amount < 1 || amount > product.quantity.amount) {
+      return Result.err({
+        type: 'validation_failed',
+        message: `La quantité sortie doit être un entier entre 1 et ${product.quantity.amount}.`,
+      })
+    }
+
+    const outcome: ProductOutcome = {
+      id: `fake-outcome-${this.nextOutcomeId++}`,
+      productId,
+      recordedBy: this.session?.user.id ?? fakeSession.user.id,
+      recipeId: null,
+      kind: input.kind,
+      discardReason: input.discardReason ?? null,
+      productName: product.name,
+      category: product.category,
+      categories: product.categories,
+      location: product.location,
+      quantity: { amount, unit: product.quantity.unit },
+      // The fake has no initial quantity to prorate against; the current stock is close enough for a demo.
+      price:
+        product.price === null
+          ? null
+          : Math.round((product.price * amount * 100) / product.quantity.amount) / 100,
+      expiresAt: product.expiresAt,
+      occurredAt: new Date().toISOString(),
+    }
+    this.outcomes.push(outcome)
+
+    if (amount === product.quantity.amount) {
+      this.products.splice(index, 1)
+      return Result.ok({ product: null, outcome })
+    }
+    const remaining: Product = {
+      ...product,
+      quantity: { ...product.quantity, amount: product.quantity.amount - amount },
+      updatedAt: new Date().toISOString(),
+    }
+    this.products.splice(index, 1, remaining)
+    return Result.ok({ product: remaining, outcome })
   }
 
   async getExpiringSoonProducts(days = 3): Promise<Product[]> {

@@ -142,6 +142,37 @@ test('deleteProduct() removes the product', async () => {
   expect(await connector.getProduct(first.id)).toBeNull()
 })
 
+test('recordProductOutcome() of one unit decrements the product and logs the outcome', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.recordProductOutcome('fake-product-4', { kind: 'consumed', amount: 1 })
+
+  expect(result.ok).toBe(true)
+  if (result.ok) expect(result.value.product?.quantity.amount).toBe(3)
+  expect((await connector.getProduct('fake-product-4'))?.quantity.amount).toBe(3)
+  expect(connector.outcomes).toHaveLength(1)
+  expect(connector.outcomes[0]).toMatchObject({ kind: 'consumed', quantity: { amount: 1 } })
+})
+
+test('recordProductOutcome() without an amount removes the product', async () => {
+  const connector = new FakeFridgeConnector()
+  const result = await connector.recordProductOutcome('fake-product-6', {
+    kind: 'discarded',
+    discardReason: 'expired',
+  })
+
+  expect(result.ok).toBe(true)
+  if (result.ok) expect(result.value.product).toBeNull()
+  expect(await connector.getProduct('fake-product-6')).toBeNull()
+  expect(connector.outcomes[0]).toMatchObject({ discardReason: 'expired', quantity: { amount: 4 } })
+})
+
+test('recordProductOutcome() refuses an unknown product and more than the stock', async () => {
+  const connector = new FakeFridgeConnector()
+  expect((await connector.recordProductOutcome('nope', { kind: 'consumed' })).ok).toBe(false)
+  expect((await connector.recordProductOutcome('fake-product-4', { kind: 'consumed', amount: 5 })).ok).toBe(false)
+  expect(connector.outcomes).toHaveLength(0)
+})
+
 test('lookupProductByBarcode() returns the fixture result for a known barcode', async () => {
   const connector = new FakeFridgeConnector()
   const result = await connector.lookupProductByBarcode('3017620422003')
