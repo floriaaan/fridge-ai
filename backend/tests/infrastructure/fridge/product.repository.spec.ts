@@ -33,7 +33,12 @@ async function createHousehold(id: string, ownerId: string) {
 function buildProduct(
   id: string,
   householdId: string,
-  overrides: Partial<{ location: string; expiresAt: Date | null; amount: number; price: number | null }> = {},
+  overrides: Partial<{
+    location: string
+    expiresAt: Date | null
+    amount: number
+    price: number | null
+  }> = {},
 ) {
   const quantity = Quantity.create(overrides.amount ?? 1, 'L')
   const location = Location.create(overrides.location ?? 'fridge')
@@ -139,7 +144,9 @@ test.group('LucidProductRepository', (group) => {
     assert.equal(found?.initialQuantity, 6)
   })
 
-  test('recordOutcome() of the whole stock deletes the product and writes the log row', async ({ assert }) => {
+  test('recordOutcome() of the whole stock deletes the product and writes the log row', async ({
+    assert,
+  }) => {
     await createUser('u_6', 'owner6@example.com')
     await createHousehold('h_6', 'u_6')
     const repository = new LucidProductRepository()
@@ -158,7 +165,9 @@ test.group('LucidProductRepository', (group) => {
     assert.equal(rows[0].product_name, 'Lait')
   })
 
-  test('recordOutcome() of part of the stock decrements the product and writes the log row', async ({ assert }) => {
+  test('recordOutcome() of part of the stock decrements the product and writes the log row', async ({
+    assert,
+  }) => {
     await createUser('u_7', 'owner7@example.com')
     await createHousehold('h_7', 'u_7')
     const repository = new LucidProductRepository()
@@ -175,7 +184,9 @@ test.group('LucidProductRepository', (group) => {
     assert.equal(Number(rows[0].price), 1)
   })
 
-  test('recordOutcome() leaves the stock untouched when the log row cannot be written', async ({ assert }) => {
+  test('recordOutcome() leaves the stock untouched when the log row cannot be written', async ({
+    assert,
+  }) => {
     await createUser('u_8', 'owner8@example.com')
     await createHousehold('h_8', 'u_8')
     const repository = new LucidProductRepository()

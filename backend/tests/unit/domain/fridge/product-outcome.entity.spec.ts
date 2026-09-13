@@ -27,7 +27,9 @@ function buildYaourts() {
 }
 
 test.group('ProductOutcome', () => {
-  test('fromProduct() snapshots the product and records the part taken, not the stock left', ({ assert }) => {
+  test('fromProduct() snapshots the product and records the part taken, not the stock left', ({
+    assert,
+  }) => {
     const product = buildYaourts()
     const takeOut = product.takeOut(2, AT)
     const reason = DiscardReason.create('expired')

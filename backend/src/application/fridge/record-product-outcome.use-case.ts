@@ -48,7 +48,8 @@ export class RecordProductOutcome implements UseCase<
     input: RecordProductOutcomeInput,
   ): Promise<ResultType<RecordedProductOutcome, RecordProductOutcomeError>> {
     const product = await this.products.findById(input.productId)
-    if (!product || product.householdId !== input.householdId) return Result.err('product_not_found')
+    if (!product || product.householdId !== input.householdId)
+      return Result.err('product_not_found')
 
     const kind = OutcomeKind.create(input.kind)
     if (!kind.ok) return kind

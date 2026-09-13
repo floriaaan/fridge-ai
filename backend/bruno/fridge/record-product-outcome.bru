@@ -1,0 +1,23 @@
+meta {
+  name: Record product outcome
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/products/{{productId}}/outcomes
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+    "kind": "discarded",
+    "amount": 2,
+    "discardReason": "spoiled"
+  }
+}

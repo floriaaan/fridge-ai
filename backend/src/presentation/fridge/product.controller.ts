@@ -8,8 +8,10 @@ import {
   listProductsValidator,
   expiringSoonValidator,
   lookupProductValidator,
+  recordProductOutcomeValidator,
 } from './product.validator.js'
 import { toProductDto } from './product.dto.js'
+import { toProductOutcomeDto } from './product-outcome.dto.js'
 import { CreateProduct } from '#application/fridge/create-product.use-case'
 import { UpdateProduct } from '#application/fridge/update-product.use-case'
 import { DeleteProduct } from '#application/fridge/delete-product.use-case'
@@ -17,6 +19,7 @@ import { GetProduct } from '#application/fridge/get-product.use-case'
 import { ListProducts } from '#application/fridge/list-products.use-case'
 import { GetExpiringSoonProducts } from '#application/fridge/get-expiring-soon-products.use-case'
 import { LookupProduct } from '#application/fridge/lookup-product.use-case'
+import { RecordProductOutcome } from '#application/fridge/record-product-outcome.use-case'
 
 export default class ProductController {
   async index(ctx: HttpContext) {
@@ -142,6 +145,39 @@ export default class ProductController {
         return result
       },
       { isError: (r) => !r.ok },
+    )
+  }
+
+  async recordOutcome(ctx: HttpContext) {
+    const user = requireAuthenticatedUser(ctx)
+    return traceAction(
+      ctx,
+      'fridge',
+      RecordProductOutcome,
+      async () => {
+        const payload = await ctx.request.validateUsing(recordProductOutcomeValidator)
+        const products = await ctx.containerResolver.make('fridge.products')
+        const idGenerator = await ctx.containerResolver.make('shared.idGenerator')
+        const clock = await ctx.containerResolver.make('shared.clock')
+
+        const result = await new RecordProductOutcome(products, idGenerator, clock).execute({
+          householdId: ctx.household.id,
+          userId: user.id,
+          productId: ctx.params.id,
+          ...payload,
+        })
+        if (!result.ok) {
+          const { status, body } = serializeError(result.error)
+          ctx.response.status(status).json(body)
+          return result
+        }
+        ctx.response.json({
+          product: result.value.product ? toProductDto(result.value.product) : null,
+          outcome: toProductOutcomeDto(result.value.outcome),
+        })
+        return result
+      },
+      { action: 'fridge.record_product_outcome', isError: (r) => !r.ok },
     )
   }
 

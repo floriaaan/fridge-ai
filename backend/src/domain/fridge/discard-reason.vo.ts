@@ -18,7 +18,10 @@ export class DiscardReason extends ValueObject<DiscardReasonProps> {
 
   static create(raw: string): Result<DiscardReason, ValidationError> {
     if (!VALID_REASONS.includes(raw as DiscardReasonValue)) {
-      return Result.err({ field: 'discardReason', message: `"${raw}" n'est pas une raison valide.` })
+      return Result.err({
+        field: 'discardReason',
+        message: `"${raw}" n'est pas une raison valide.`,
+      })
     }
     return Result.ok(new DiscardReason({ value: raw as DiscardReasonValue }))
   }

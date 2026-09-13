@@ -18,6 +18,7 @@ router
     router.get('/products/:id', [ProductController, 'show'])
     router.patch('/products/:id', [ProductController, 'update'])
     router.delete('/products/:id', [ProductController, 'destroy'])
+    router.post('/products/:id/outcomes', [ProductController, 'recordOutcome'])
     router.get('/products/:id/image', [ProductController, 'image'])
   })
   .prefix('/api')

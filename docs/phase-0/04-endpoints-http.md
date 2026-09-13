@@ -127,6 +127,28 @@ Query params optionnels, combinables.
 
 `PATCH` : mêmes champs que `POST`, tous optionnels. `404` hors du foyer du caller.
 
+### `POST /api/products/:id/outcomes`
+
+Sortie d'un produit du garde-manger, totale ou partielle (ADR-0012).
+
+```jsonc
+// requête
+{ "kind": "discarded", "amount": 2, "discardReason": "spoiled" }
+```
+
+`kind` : `consumed` | `discarded`. `amount` : entier ≥ 1, défaut = toute la quantité
+restante. `discardReason` : `expired` | `spoiled` | `disliked` | `other`, optionnel,
+refusé avec `consumed`.
+
+`200 { "product": ProductDto | null, "outcome": ProductOutcomeDto }` — `product` vaut
+`null` quand toute la quantité est sortie. `404 product_not_found` (absent ou autre
+foyer) ; `400 validation_failed` (quantité au-delà du stock, raison sur un produit
+consommé) ; `422 validation_failed` (champ hors de l'énumération, décimale sur
+`amount` — même échec de validateur que partout ailleurs dans l'API).
+
+`DELETE /api/products/:id` reste la correction d'une erreur de saisie et n'écrit
+aucune sortie.
+
 ### `GET /api/products/expiring-soon?days=3`
 
 Par défaut `days=3`. `200 { "products": [...] }` (même DTO).

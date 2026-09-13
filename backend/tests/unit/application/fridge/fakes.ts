@@ -35,7 +35,12 @@ export class FakeProductRepository implements ProductRepository {
 }
 
 export function buildProduct(
-  overrides: Partial<{ id: string; householdId: string; amount: number; price: number | null }> = {},
+  overrides: Partial<{
+    id: string
+    householdId: string
+    amount: number
+    price: number | null
+  }> = {},
 ): Product {
   const quantity = Quantity.create(overrides.amount ?? 6, 'unités')
   const location = Location.create('fridge')

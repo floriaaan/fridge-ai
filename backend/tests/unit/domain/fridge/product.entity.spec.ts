@@ -73,7 +73,9 @@ test.group('Product', () => {
     assert.equal(buildProduct(null, { amount: 6 }).initialQuantity, 6)
   })
 
-  test('update() raises initialQuantity when a correction goes above it, never lowers it', ({ assert }) => {
+  test('update() raises initialQuantity when a correction goes above it, never lowers it', ({
+    assert,
+  }) => {
     const product = buildProduct(null, { amount: 6 })
     const up = Quantity.create(8, 'L')
     const down = Quantity.create(2, 'L')
@@ -86,7 +88,9 @@ test.group('Product', () => {
     assert.equal(product.initialQuantity, 8)
   })
 
-  test('takeOut() of part of the stock decrements the product and prorates the price', ({ assert }) => {
+  test('takeOut() of part of the stock decrements the product and prorates the price', ({
+    assert,
+  }) => {
     const product = buildProduct(null, { amount: 6, price: 3 })
     const result = product.takeOut(2, AT)
 
@@ -101,7 +105,9 @@ test.group('Product', () => {
     assert.equal(result.value.price, 1)
   })
 
-  test('takeOut() of the whole stock leaves nothing and does not touch the product', ({ assert }) => {
+  test('takeOut() of the whole stock leaves nothing and does not touch the product', ({
+    assert,
+  }) => {
     const product = buildProduct(null, { amount: 6, price: 3 })
     product.takeOut(2, AT)
     const result = product.takeOut(4, AT)
