@@ -16,16 +16,16 @@ jest.mock('expo-router', () => ({
  useFocusEffect: jest.fn(),
 }))
 
-function renderWithProviders(children: ReactNode) {
+async function renderWithProviders(children: ReactNode, connector = new FakeFridgeConnector()) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const connector = new FakeFridgeConnector()
-  return render(
+  await render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <ConnectorProvider connector={connector}>{children}</ConnectorProvider>
       </QueryClientProvider>
     </ThemeProvider>,
   )
+  return { connector, queryClient }
 }
 
 test('renders the product name, quantity, and category', async () => {
@@ -36,43 +36,73 @@ test('renders the product name, quantity, and category', async () => {
   expect(screen.getByText('Produits laitiers')).toBeTruthy()
 })
 
-test('pressing delete then confirm removes the product', async () => {
-  await renderWithProviders(<FridgeDetailScreen productId="fake-product-1" />)
-  await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
+test('eating one of several logs one unit and keeps the product on screen', async () => {
+  const { connector } = await renderWithProviders(<FridgeDetailScreen productId="fake-product-4" />)
+  await waitFor(() => expect(screen.getByText('Yaourts nature')).toBeTruthy())
 
-  await fireEvent.press(screen.getByTestId('fridge-detail-delete'))
-  await fireEvent.press(screen.getByTestId('fridge-detail-delete-confirm'))
+  await fireEvent.press(screen.getByTestId('fridge-detail-consume'))
 
-  await waitFor(() => expect(screen.getByTestId('fridge-detail-deleted')).toBeTruthy())
+  await waitFor(() => expect(connector.outcomes).toHaveLength(1))
+  expect(connector.outcomes[0]).toMatchObject({ kind: 'consumed', quantity: { amount: 1 } })
+  expect(screen.queryByTestId('fridge-detail-gone')).toBeNull()
 })
 
-test('a failed delete shows an inline error and does not navigate away or invalidate queries', async () => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+test('finishing the last unit needs no confirmation and leaves the screen', async () => {
+  const { connector } = await renderWithProviders(<FridgeDetailScreen productId="fake-product-1" />)
+  await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
+
+  await fireEvent.press(screen.getByTestId('fridge-detail-consume'))
+
+  await waitFor(() => expect(screen.getByTestId('fridge-detail-gone')).toBeTruthy())
+  expect(screen.getByText('Produit terminé')).toBeTruthy()
+  expect(connector.outcomes[0]).toMatchObject({ kind: 'consumed', quantity: { amount: 1 } })
+})
+
+test('thrown away past its date: reason pre-picked, part of the stock, the rest stays', async () => {
+  const { connector } = await renderWithProviders(<FridgeDetailScreen productId="fake-product-6" />)
+  await waitFor(() => expect(screen.getByText('Jambon blanc')).toBeTruthy())
+
+  await fireEvent.press(screen.getByTestId('fridge-detail-remove'))
+  await waitFor(() => expect(screen.getByTestId('product-exit-discarded')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('product-exit-discarded'))
+  await waitFor(() => expect(screen.getByTestId('product-exit-amount-decrease')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('product-exit-amount-decrease'))
+  await fireEvent.press(screen.getByTestId('product-exit-discard-confirm'))
+
+  await waitFor(() => expect(connector.outcomes).toHaveLength(1))
+  expect(connector.outcomes[0]).toMatchObject({ kind: 'discarded', discardReason: 'expired', quantity: { amount: 3 } })
+  expect(screen.queryByTestId('fridge-detail-gone')).toBeNull()
+})
+
+test('a data-entry mistake deletes without logging anything', async () => {
   const connector = new FakeFridgeConnector()
-  const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
-  jest.spyOn(connector, 'deleteProduct').mockResolvedValue({
+  const deleteSpy = jest.spyOn(connector, 'deleteProduct')
+  await renderWithProviders(<FridgeDetailScreen productId="fake-product-1" />, connector)
+  await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
+
+  await fireEvent.press(screen.getByTestId('fridge-detail-remove'))
+  await waitFor(() => expect(screen.getByTestId('product-exit-correction')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('product-exit-correction'))
+
+  await waitFor(() => expect(screen.getByText('Produit supprimé')).toBeTruthy())
+  expect(deleteSpy).toHaveBeenCalledWith('fake-product-1')
+  expect(connector.outcomes).toHaveLength(0)
+})
+
+test('a failed exit shows an inline error, stays on screen, and invalidates nothing', async () => {
+  const connector = new FakeFridgeConnector()
+  jest.spyOn(connector, 'recordProductOutcome').mockResolvedValue({
     ok: false,
     error: { type: 'product_not_found', message: 'Produit introuvable.' },
   })
-
-  await render(
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <ConnectorProvider connector={connector}>
-          <FridgeDetailScreen productId="fake-product-1" />
-        </ConnectorProvider>
-      </QueryClientProvider>
-    </ThemeProvider>,
-  )
-
+  const { queryClient } = await renderWithProviders(<FridgeDetailScreen productId="fake-product-1" />, connector)
+  const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
   await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
   invalidateSpy.mockClear()
 
-  await fireEvent.press(screen.getByTestId('fridge-detail-delete'))
-  await fireEvent.press(screen.getByTestId('fridge-detail-delete-confirm'))
+  await fireEvent.press(screen.getByTestId('fridge-detail-consume'))
 
-  await waitFor(() => expect(screen.getByTestId('fridge-detail-delete-error')).toBeTruthy())
-  expect(screen.getByText('Produit introuvable.')).toBeTruthy()
-  expect(screen.queryByTestId('fridge-detail-deleted')).toBeNull()
+  await waitFor(() => expect(screen.getByTestId('fridge-detail-action-error')).toBeTruthy())
+  expect(screen.queryByTestId('fridge-detail-gone')).toBeNull()
   expect(invalidateSpy).not.toHaveBeenCalled()
 })

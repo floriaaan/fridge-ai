@@ -42,16 +42,15 @@ function fakeProductExpiringIn(days: number | null): Product {
   }
 }
 
-function renderWithProviders(children: ReactNode) {
+function renderWithProviders(children: ReactNode, connector = new FakeFridgeConnector()) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const connector = new FakeFridgeConnector()
   return render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <ConnectorProvider connector={connector}>{children}</ConnectorProvider>
       </QueryClientProvider>
     </ThemeProvider>,
-  )
+  ).then(() => connector)
 }
 
 test('renders the fixture products by name, on the shelf each one lives on', async () => {
@@ -231,6 +230,47 @@ test('a long press opens a selection, and several products leave in one confirma
 
   // One sheet, naming the consequence once, for both products.
   await waitFor(() => expect(screen.getByText('Retirer 2 produits ?')).toBeTruthy())
+})
+
+test('several products thrown away at once: one reason for all, each logged whole', async () => {
+  const connector = await renderWithProviders(<FridgeListScreen />)
+  await waitFor(() => expect(screen.getByText('Jambon blanc')).toBeTruthy())
+
+  await fireEvent(screen.getByTestId('fridge-product-fake-product-6'), 'longPress')
+  await fireEvent.press(screen.getByTestId('fridge-product-fake-product-4'))
+  await fireEvent.press(screen.getByTestId('fridge-selection-remove'))
+
+  await waitFor(() => expect(screen.getByTestId('product-exit-discarded')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('product-exit-discarded'))
+  await waitFor(() => expect(screen.getByTestId('product-exit-reason-spoiled')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('product-exit-reason-spoiled'))
+  await fireEvent.press(screen.getByTestId('product-exit-discard-confirm'))
+
+  await waitFor(() => expect(connector.outcomes).toHaveLength(2))
+  expect(connector.outcomes.map((o) => [o.productId, o.discardReason, o.quantity.amount])).toEqual([
+    ['fake-product-6', 'spoiled', 4],
+    ['fake-product-4', 'spoiled', 4],
+  ])
+  await waitFor(() => expect(screen.getByText(/^4 produits/)).toBeTruthy(), { timeout: 3000 })
+})
+
+test('several data-entry mistakes are deleted, not logged', async () => {
+  const connector = await renderWithProviders(<FridgeListScreen />)
+  await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
+
+  await fireEvent(screen.getByTestId('fridge-product-fake-product-1'), 'longPress')
+  await fireEvent.press(screen.getByTestId('fridge-selection-remove'))
+  await waitFor(() => expect(screen.getByTestId('product-exit-correction')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('product-exit-correction'))
+  await waitFor(() => expect(screen.queryByTestId('product-exit-correction')).toBeNull())
+
+  // The connector, not the DOM: the virtualized list's own cell rendering
+  // under the test renderer doesn't reliably reflect a data change on an
+  // already-mounted row (the same quirk `--forceExit` works around), so the
+  // connector is the reliable witness that a data-entry mistake deletes and
+  // logs nothing.
+  await waitFor(async () => expect(await connector.getProduct('fake-product-1')).toBeNull())
+  expect(connector.outcomes).toHaveLength(0)
 })
 
 test('leaving the selection puts the list back to opening products', async () => {
