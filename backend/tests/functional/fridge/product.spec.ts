@@ -249,6 +249,59 @@ test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
     assert.lengthOf(rows, 0)
   })
 
+  test('outcomes/stats: totals + buckets for the requested window', async ({ client, assert }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-stats@example.com')
+    const productId = await createYaourts(client, cookie)
+
+    await client
+      .post(`/api/products/${productId}/outcomes`)
+      .headers({ cookie })
+      .json({ kind: 'discarded', discardReason: 'spoiled' })
+
+    const response = await client.get('/api/products/outcomes/stats?days=30').headers({ cookie })
+    response.assertStatus(200)
+    const { stats } = response.body()
+    assert.equal(stats.discarded.count, 1)
+    assert.equal(stats.discarded.value, 3)
+    assert.equal(stats.consumed.count, 0)
+    assert.equal(stats.recipeSharePercent, 0)
+    assert.lengthOf(stats.buckets, 6)
+    assert.equal(
+      stats.buckets.reduce(
+        (sum: number, b: { discardedCount: number }) => sum + b.discardedCount,
+        0,
+      ),
+      1,
+    )
+  })
+
+  test('outcomes/stats: without days, defaults to "since the first outcome"', async ({
+    client,
+    assert,
+  }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-stats-all@example.com')
+
+    const noOutcomesYet = await client.get('/api/products/outcomes/stats').headers({ cookie })
+    noOutcomesYet.assertStatus(200)
+    assert.equal(noOutcomesYet.body().stats.discarded.count, 0)
+
+    const productId = await createYaourts(client, cookie)
+    await client
+      .post(`/api/products/${productId}/outcomes`)
+      .headers({ cookie })
+      .json({ kind: 'consumed' })
+
+    const response = await client.get('/api/products/outcomes/stats').headers({ cookie })
+    response.assertStatus(200)
+    assert.equal(response.body().stats.consumed.count, 1)
+  })
+
+  test('outcomes/stats: an invalid days value is 422', async ({ client }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-stats-invalid@example.com')
+    const response = await client.get('/api/products/outcomes/stats?days=-1').headers({ cookie })
+    response.assertStatus(422)
+  })
+
   test('all product routes require a household', async ({ client }) => {
     const signUp = await client.post('/api/auth/sign-up/email').json({
       email: 'fridge-no-household@example.com',

@@ -52,6 +52,10 @@ export const lookupProductValidator = vine.compile(
   vine.object({ barcode: vine.string().trim().minLength(1) }),
 )
 
+export const productOutcomeStatsValidator = vine.compile(
+  vine.object({ days: vine.number().withoutDecimals().positive().optional() }),
+)
+
 export const recordProductOutcomeValidator = vine.compile(
   vine.object({
     kind: vine.enum(['consumed', 'discarded'] as const),

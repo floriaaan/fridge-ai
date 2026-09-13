@@ -9,9 +9,11 @@ import {
   expiringSoonValidator,
   lookupProductValidator,
   recordProductOutcomeValidator,
+  productOutcomeStatsValidator,
 } from './product.validator.js'
 import { toProductDto } from './product.dto.js'
 import { toProductOutcomeDto } from './product-outcome.dto.js'
+import { toProductOutcomeStatsDto } from './product-outcome-stats.dto.js'
 import { CreateProduct } from '#application/fridge/create-product.use-case'
 import { UpdateProduct } from '#application/fridge/update-product.use-case'
 import { DeleteProduct } from '#application/fridge/delete-product.use-case'
@@ -20,6 +22,7 @@ import { ListProducts } from '#application/fridge/list-products.use-case'
 import { GetExpiringSoonProducts } from '#application/fridge/get-expiring-soon-products.use-case'
 import { LookupProduct } from '#application/fridge/lookup-product.use-case'
 import { RecordProductOutcome } from '#application/fridge/record-product-outcome.use-case'
+import { GetProductOutcomeStats } from '#application/fridge/get-product-outcome-stats.use-case'
 
 export default class ProductController {
   async index(ctx: HttpContext) {
@@ -179,6 +182,21 @@ export default class ProductController {
       },
       { action: 'fridge.record_product_outcome', isError: (r) => !r.ok },
     )
+  }
+
+  async outcomeStats(ctx: HttpContext) {
+    requireAuthenticatedUser(ctx)
+    return traceAction(ctx, 'fridge', GetProductOutcomeStats, async () => {
+      const { days } = await ctx.request.validateUsing(productOutcomeStatsValidator)
+      const stats = await ctx.containerResolver.make('fridge.outcomeStats')
+      const clock = await ctx.containerResolver.make('shared.clock')
+
+      const result = await new GetProductOutcomeStats(stats, clock).execute({
+        householdId: ctx.household.id,
+        days,
+      })
+      ctx.response.json({ stats: toProductOutcomeStatsDto(result) })
+    })
   }
 
   async expiringSoon(ctx: HttpContext) {

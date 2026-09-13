@@ -146,6 +146,25 @@ foyer) ; `400 validation_failed` (quantité au-delà du stock, raison sur un pro
 consommé) ; `422 validation_failed` (champ hors de l'énumération, décimale sur
 `amount` — même échec de validateur que partout ailleurs dans l'API).
 
+### `GET /api/products/outcomes/stats?days=30`
+
+Statistiques de gaspillage sur une fenêtre (`docs/superpowers/specs/2026-09-14-waste-stats-design.md`).
+`days` optionnel : absent = depuis la toute première sortie du foyer.
+
+```jsonc
+// 200
+{ "stats": {
+  "from": "2026-08-15T00:00:00.000Z", "to": "2026-09-14T00:00:00.000Z",
+  "discarded": { "count": 4, "value": 12.5 },
+  "consumed": { "count": 9, "value": 31 },
+  "recipeSharePercent": 33,
+  // toujours 6 éléments, du plus ancien au plus récent
+  "buckets": [ { "from": "...", "to": "...", "discardedCount": 1, "consumedCount": 2 }, ... ]
+} }
+```
+
+`422 validation_failed` si `days` n'est pas un entier positif.
+
 `DELETE /api/products/:id` reste la correction d'une erreur de saisie et n'écrit
 aucune sortie.
 

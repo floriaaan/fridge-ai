@@ -15,6 +15,7 @@ router
     router.post('/products', [ProductController, 'store'])
     router.get('/products/expiring-soon', [ProductController, 'expiringSoon'])
     router.get('/products/lookup', [ProductController, 'lookup'])
+    router.get('/products/outcomes/stats', [ProductController, 'outcomeStats'])
     router.get('/products/:id', [ProductController, 'show'])
     router.patch('/products/:id', [ProductController, 'update'])
     router.delete('/products/:id', [ProductController, 'destroy'])
