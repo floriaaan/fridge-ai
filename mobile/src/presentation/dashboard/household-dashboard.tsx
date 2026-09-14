@@ -84,6 +84,7 @@ import {
   PackageIcon,
   SettingsIcon,
   ShoppingCartIcon,
+  TrendingUpIcon,
   TriangleAlertIcon,
 } from './dashboard-icons.js'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
@@ -138,6 +139,7 @@ export interface HouseholdDashboardProps {
   onOpenFridge: (window?: ExpiryWindow) => void
   onOpenProduct: (productId: string) => void
   onAddProduct: () => void
+  onOpenStats: () => void
   onOpenSettings: () => void
   onOpenReceipts: () => void
   onOpenHousehold: () => void
@@ -150,6 +152,7 @@ export function HouseholdDashboard({
   onOpenFridge,
   onOpenProduct,
   onAddProduct,
+  onOpenStats,
   onOpenSettings,
   onOpenReceipts,
   onOpenHousehold,
@@ -233,6 +236,7 @@ export function HouseholdDashboard({
     () => receiptsQuery.refetch(),
   )
   const seeAllHover = useHoverPress()
+  const statsHover = useHoverPress()
   const settingsHover = useHoverPress()
   // The FAB opens the same two-choice sheet on every tab — see scan-sheet.tsx.
   const { openScanSheet, scanSheet } = useScanSheet()
@@ -349,6 +353,33 @@ export function HouseholdDashboard({
                   </YStack>
                 </Pressable>
               </XStack>
+              <XStack alignItems="center" gap="$2">
+              {/* Same 44pt icon-button shape as Réglages, placed just before
+                  it — the waste-stats screen's only entry point. */}
+              <Pressable
+                onPress={onOpenStats}
+                testID="open-stats"
+                onHoverIn={statsHover.onHoverIn}
+                onHoverOut={statsHover.onHoverOut}
+                onPressIn={statsHover.onPressIn}
+                onPressOut={statsHover.onPressOut}
+                accessibilityRole="button"
+                accessibilityLabel="Statistiques"
+                style={pointerCursor}
+              >
+                <Animated.View style={{ transform: [{ scale: statsHover.scale }] }}>
+                  <YStack
+                    width={44}
+                    height={44}
+                    borderRadius={999}
+                    backgroundColor={palette.cream}
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <TrendingUpIcon size={19} color={palette.ink} />
+                  </YStack>
+                </Animated.View>
+              </Pressable>
               {/* Was an 11px grey text link — the app's only route to Réglages,
                   and invisible next to a 40px illustration. Now a real 44pt
                   icon button (the Sidebar carries its own entry on desktop). */}
@@ -376,6 +407,7 @@ export function HouseholdDashboard({
                   </YStack>
                 </Animated.View>
               </Pressable>
+              </XStack>
             </XStack>
       }
     >

@@ -18,6 +18,7 @@ export default function HomeScreen() {
       }
       onOpenProduct={(productId) => router.navigate({ pathname: '/(tabs)/fridge/[id]', params: { id: productId } })}
       onAddProduct={() => router.navigate('/(tabs)/fridge/new')}
+      onOpenStats={() => router.push('/stats')}
       onOpenSettings={() => router.push('/settings')}
       onOpenReceipts={() => router.push('/receipts')}
       onOpenHousehold={() => router.push('/household')}
