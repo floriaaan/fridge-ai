@@ -7,6 +7,7 @@ import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } f
 import type { Recipe } from '../recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../fridge/product.js'
 import type { RecordProductOutcomeInput, RecordedProductOutcome } from '../fridge/product-outcome.js'
+import type { ProductOutcomeStats } from '../fridge/product-outcome-stats.js'
 import type { LocationValue } from '../fridge/location.js'
 import type { ProductLookupResult } from '../fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../receipt/receipt-draft.js'
@@ -68,6 +69,12 @@ export interface FridgeConnector {
     productId: string,
     input: RecordProductOutcomeInput,
   ): Promise<Result<RecordedProductOutcome, ApiError>>
+  /**
+   * Waste stats over a window (docs/superpowers/specs/2026-09-14-waste-stats-design.md).
+   * `days` omitted = since the foyer's very first outcome. No `Result`
+   * wrapper — a pure read, like `getProducts`.
+   */
+  getProductOutcomeStats(days?: number): Promise<ProductOutcomeStats>
   getExpiringSoonProducts(days?: number): Promise<Product[]>
   lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null>
   scanReceipt(imageUri: string): Promise<Result<ReceiptDraft, ApiError>>

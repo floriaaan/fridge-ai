@@ -5,6 +5,7 @@ import { normalizeInviteCode } from '../../domain/identity/invite-code.js'
 import { fakeShoppingItems } from './fixtures/shopping-item.fixture.js'
 import { fakeRecipes } from './fixtures/recipe.fixture.js'
 import { fakeProducts } from './fixtures/product.fixture.js'
+import { fakeProductOutcomes } from './fixtures/product-outcome.fixture.js'
 import { fakeProductLookup } from './fixtures/product-lookup.fixture.js'
 import { fakeReceiptDraft } from './fixtures/receipt-draft.fixture.js'
 import { fakeReceipts } from './fixtures/receipt.fixture.js'
@@ -20,6 +21,7 @@ import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } f
 import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../../domain/fridge/product.js'
 import type { ProductOutcome, RecordProductOutcomeInput, RecordedProductOutcome } from '../../domain/fridge/product-outcome.js'
+import type { ProductOutcomeStats, OutcomeBucket } from '../../domain/fridge/product-outcome-stats.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ProductLookupResult } from '../../domain/fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
@@ -40,6 +42,46 @@ import type { HaLink, HaTodoEntity, SaveHaConnectionInput, BindHaListInput } fro
  * constant: nothing in production reads it.
  */
 const DEFAULT_AI_LATENCY_MS = 2200
+
+/** Matches `GetProductOutcomeStats.BUCKET_COUNT` server-side. */
+const STATS_BUCKET_COUNT = 6
+
+function sumPrices(outcomes: ProductOutcome[]): number {
+  const total = outcomes.reduce((sum, outcome) => sum + (outcome.price ?? 0), 0)
+  return Math.round(total * 100) / 100
+}
+
+/**
+ * `bucketCount` equal-width slices of `[fromMs, toMs]`, oldest first — the
+ * same fixed-count bucketing `width_bucket()` does server-side. A zero-width
+ * window (no outcomes yet) skips the assignment loop and returns six empty
+ * buckets, same as the backend's own edge case.
+ */
+function bucketOutcomes(
+  outcomes: ProductOutcome[],
+  fromMs: number,
+  toMs: number,
+  bucketCount: number,
+): OutcomeBucket[] {
+  const buckets: OutcomeBucket[] = Array.from({ length: bucketCount }, (_, i) => ({
+    from: new Date(fromMs + ((toMs - fromMs) * i) / bucketCount).toISOString(),
+    to: new Date(fromMs + ((toMs - fromMs) * (i + 1)) / bucketCount).toISOString(),
+    discardedCount: 0,
+    consumedCount: 0,
+  }))
+  if (toMs <= fromMs) return buckets
+
+  const width = (toMs - fromMs) / bucketCount
+  for (const outcome of outcomes) {
+    const t = new Date(outcome.occurredAt).getTime()
+    const index = Math.min(Math.floor((t - fromMs) / width), bucketCount - 1)
+    const bucket = buckets[index]
+    if (!bucket) continue
+    if (outcome.kind === 'discarded') bucket.discardedCount += 1
+    else bucket.consumedCount += 1
+  }
+  return buckets
+}
 
 /** In-memory only, resets on every reload — UI iteration without a running backend. */
 export class FakeFridgeConnector implements FridgeConnector {
@@ -76,8 +118,13 @@ export class FakeFridgeConnector implements FridgeConnector {
   private shoppingItems: ShoppingItem[] = fakeShoppingItems.map((item) => ({ ...item }))
   private products: Product[] = fakeProducts.map((p) => ({ ...p }))
   private nextProductId = 1
-  /** Every outcome recorded, oldest first — read by tests, never by screens. */
-  readonly outcomes: ProductOutcome[] = []
+  /**
+   * Every outcome recorded, oldest first — read by tests and by
+   * `getProductOutcomeStats()`. Starts seeded with a handful of demo
+   * entries (`fakeProductOutcomes`) so `StatsScreen` isn't empty in dev;
+   * `recordProductOutcome()` appends real ones on top.
+   */
+  readonly outcomes: ProductOutcome[] = fakeProductOutcomes.map((o) => ({ ...o }))
   private nextOutcomeId = 1
   private nextShoppingItemId = 1
   private receipts: Receipt[] = fakeReceipts.map((r) => ({ ...r }))
@@ -483,6 +530,40 @@ export class FakeFridgeConnector implements FridgeConnector {
     }
     this.products.splice(index, 1, remaining)
     return Result.ok({ product: remaining, outcome })
+  }
+
+  /**
+   * Mirrors `GetProductOutcomeStats`/`LucidProductOutcomeStatsAdapter`
+   * server-side: totals + a fixed 6-bucket breakdown over `[from, to]`. No
+   * SQL here, just the same arithmetic over the in-memory `outcomes` array.
+   */
+  async getProductOutcomeStats(days?: number): Promise<ProductOutcomeStats> {
+    const toMs = Date.now()
+    const fromMs = days ? toMs - days * 24 * 60 * 60 * 1000 : this.earliestOutcomeMs() ?? toMs
+
+    const inWindow = this.outcomes.filter((outcome) => {
+      const t = new Date(outcome.occurredAt).getTime()
+      return t >= fromMs && t <= toMs
+    })
+    const discarded = inWindow.filter((o) => o.kind === 'discarded')
+    const consumed = inWindow.filter((o) => o.kind === 'consumed')
+    const consumedFromRecipe = consumed.filter((o) => o.recipeId !== null).length
+
+    return {
+      from: new Date(fromMs).toISOString(),
+      to: new Date(toMs).toISOString(),
+      discarded: { count: discarded.length, value: sumPrices(discarded) },
+      consumed: { count: consumed.length, value: sumPrices(consumed) },
+      recipeSharePercent: consumed.length === 0 ? 0 : Math.round((consumedFromRecipe / consumed.length) * 100),
+      buckets: bucketOutcomes(inWindow, fromMs, toMs, STATS_BUCKET_COUNT),
+    }
+  }
+
+  private earliestOutcomeMs(): number | null {
+    return this.outcomes.reduce<number | null>((earliest, outcome) => {
+      const t = new Date(outcome.occurredAt).getTime()
+      return earliest === null || t < earliest ? t : earliest
+    }, null)
   }
 
   async getExpiringSoonProducts(days = 3): Promise<Product[]> {
