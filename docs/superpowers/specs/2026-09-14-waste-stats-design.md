@@ -1,6 +1,6 @@
 # Statistiques de gaspillage — Design
 
-**Statut :** approuvé (2026-09-14)
+**Statut :** implémenté (2026-09-14)
 
 ## Contexte
 

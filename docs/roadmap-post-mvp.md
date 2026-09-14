@@ -37,11 +37,14 @@ Le journal (`product_outcome`, ADR-0012) écrit et se lit déjà de bout en bout
 « consommé », et côté mobile la sheet Consommé/Jeté/Erreur de saisie sur le détail
 produit et la sélection multiple.
 
-**Ensuite :** écran de statistiques (€ et nombre de produits jetés, catégories les plus
-gaspillées, évolution par période, part sauvée par les recettes) — une fois quelques
-semaines de données réelles accumulées.
+**Écran de statistiques — implémenté (2026-09-14) :** € et nombre de produits jetés
+sur une période (7j/30j/tout), évolution jeté vs consommé par semaine, part des repas
+cuisinés à partir d'une recette. Le classement par catégorie reste explicitement hors
+scope de cette v1 (voir la spec dédiée).
 
-Spec détaillée : `docs/superpowers/specs/2026-09-13-product-outcome-design.md`.
+Spec détaillée : `docs/superpowers/specs/2026-09-13-product-outcome-design.md`
+(journal) et `docs/superpowers/specs/2026-09-14-waste-stats-design.md` (écran de
+statistiques).
 Plan d'implémentation : `docs/superpowers/plans/2026-09-13-product-outcome.md`.
 
 ---
