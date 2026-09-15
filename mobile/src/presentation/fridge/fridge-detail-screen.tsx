@@ -1,6 +1,6 @@
 /*
- * One product, and the two things a foyer member does with it: finish it,
- * or correct it.
+ * One product, and the two things a foyer member does with it: say what
+ * became of it, or correct a mistake.
  *
  * Three fixes from a usability critique live here. The delete confirmation
  * used to render *at the same screen position* as the trigger, so a second
@@ -10,6 +10,10 @@
  * DESIGN.md's own "every status is icon + color + word" invariant on the
  * one screen where expiry is the subject. And finishing the milk could
  * only be expressed as deletion, through the edit form.
+ *
+ * Finishing a product is now an outcome recorded for the foyer's
+ * statistics (ADR-0012), and removing it before it's finished asks what
+ * became of it instead of assuming a mistake.
  */
 import { useState } from 'react'
 import { router } from 'expo-router'
@@ -19,20 +23,29 @@ import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { Skeleton, SkeletonGroup, SkeletonRow } from '../shared/skeleton.js'
-import { ActionSheet } from '../shared/action-sheet.js'
+import { ProductExitSheet } from './product-exit-sheet.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { goBack } from '../shared/navigation.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { StatusChip } from '../dashboard/status-chip.js'
-import { CircleCheckIcon, PackageIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { CircleCheckIcon, PackageIcon } from '../dashboard/dashboard-icons.js'
 import { daysUntilExpiry, expiryLabel, statusOf } from '../dashboard/product-status.js'
 import { useProductQuery } from '../../application/fridge/product.query.js'
 import { useDeleteProductMutation } from '../../application/fridge/delete-product.mutation.js'
-import { useUpdateProductMutation } from '../../application/fridge/update-product.mutation.js'
+import { useRecordProductOutcomeMutation } from '../../application/fridge/record-product-outcome.mutation.js'
+import type { DiscardReason, RecordProductOutcomeInput } from '../../domain/fridge/product-outcome.js'
 
 const LOCATION_LABEL = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' } as const
+
+type Gone = 'consumed' | 'discarded' | 'deleted'
+
+const GONE_COPY: Record<Gone, string> = {
+  consumed: 'Produit terminé',
+  discarded: 'Produit jeté',
+  deleted: 'Produit supprimé',
+}
 
 export function FridgeDetailScreen({ productId }: { productId: string }) {
   const palette = useSoftPalette()
@@ -40,38 +53,49 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
   const product = useProductQuery(productId)
   const refresh = usePullToRefresh(() => product.refetch())
   const deleteProduct = useDeleteProductMutation()
-  const updateProduct = useUpdateProductMutation()
+  const recordOutcome = useRecordProductOutcomeMutation()
   const [hint, showHint] = useHint()
-  const [confirming, setConfirming] = useState(false)
-  const [deleted, setDeleted] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [exiting, setExiting] = useState(false)
+  const [gone, setGone] = useState<Gone | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  async function handleDelete() {
-    setConfirming(false)
-    setDeleteError(null)
-    const result = await deleteProduct.mutateAsync(productId)
-    if (!result.ok) {
-      setDeleteError(result.error.message)
-      return
-    }
+  function leave(reason: Gone) {
     queryClient.invalidateQueries({ queryKey: ['products'] })
-    setDeleted(true)
+    setGone(reason)
     router.back()
   }
 
-  async function handleConsumeOne(amount: number, unit: string) {
-    setDeleteError(null)
-    const result = await updateProduct.mutateAsync({
-      productId,
-      patch: { quantity: { amount: amount - 1, unit } },
-    })
+  async function record(input: RecordProductOutcomeInput) {
+    setExiting(false)
+    setActionError(null)
+    const result = await recordOutcome.mutateAsync({ productId, input })
     if (!result.ok) {
-      setDeleteError(result.error.message)
+      setActionError(result.error.message)
+      return
+    }
+    const remaining = result.value.product
+    if (remaining === null) {
+      leave(input.kind)
       return
     }
     queryClient.invalidateQueries({ queryKey: ['products'] })
     queryClient.invalidateQueries({ queryKey: ['product', productId] })
-    showHint(`Il en reste ${amount - 1} ${unit}`)
+    showHint(`Il en reste ${remaining.quantity.amount} ${remaining.quantity.unit}`)
+  }
+
+  async function handleCorrection() {
+    setExiting(false)
+    setActionError(null)
+    const result = await deleteProduct.mutateAsync(productId)
+    if (!result.ok) {
+      setActionError(result.error.message)
+      return
+    }
+    leave('deleted')
+  }
+
+  function handleDiscarded({ discardReason, amount }: { discardReason: DiscardReason | null; amount: number | null }) {
+    return record({ kind: 'discarded', discardReason, ...(amount === null ? {} : { amount }) })
   }
 
   const header = (
@@ -84,15 +108,15 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
     />
   )
 
-  // The post-delete frame used to be a naked `<Text>` outside AppShell — no
+  // The post-exit frame used to be a naked `<Text>` outside AppShell — no
   // background, no safe area, no way back — reachable on web where the pop
   // may not unmount the screen.
-  if (deleted) {
+  if (gone) {
     return (
       <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
         <YStack alignItems="center" gap="$2" marginTop="$8">
-          <Text testID="fridge-detail-deleted" fontSize={15} fontWeight="700" color={palette.ink}>
-            Produit supprimé
+          <Text testID="fridge-detail-gone" fontSize={15} fontWeight="700" color={palette.ink}>
+            {GONE_COPY[gone]}
           </Text>
           <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
             Il a disparu du garde-manger de tout le foyer.
@@ -165,9 +189,9 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
             testID="fridge-detail-consume"
             label={lastUnit ? 'J’ai fini ce produit' : 'J’en ai consommé un'}
             pendingLabel="Mise à jour..."
-            pending={updateProduct.isPending}
+            pending={recordOutcome.isPending}
             icon={<CircleCheckIcon size={16} color={palette.accentLimeText} />}
-            onPress={() => (lastUnit ? setConfirming(true) : handleConsumeOne(p.quantity.amount, p.quantity.unit))}
+            onPress={() => record({ kind: 'consumed', amount: 1 })}
           />
 
           <AuthButton
@@ -178,41 +202,33 @@ export function FridgeDetailScreen({ productId }: { productId: string }) {
           />
 
           <AuthButton
-            testID="fridge-detail-delete"
+            testID="fridge-detail-remove"
             label="Retirer du garde-manger"
             variant="secondary"
-            onPress={() => setConfirming(true)}
+            onPress={() => setExiting(true)}
           />
 
-          {deleteError ? (
+          {actionError ? (
             <Text
-              testID="fridge-detail-delete-error"
+              testID="fridge-detail-action-error"
               fontSize={13}
               fontWeight="600"
               color={palette.expiredText}
               accessibilityLiveRegion="polite"
             >
-              {deleteError}
+              {actionError}
             </Text>
           ) : null}
         </YStack>
       </YStack>
     </AppShell>
-    <ActionSheet
-      visible={confirming}
-      onClose={() => setConfirming(false)}
-      title={`Retirer « ${p.name} » ?`}
-      description="C’est définitif, et le produit disparaît aussi du garde-manger des autres membres du foyer."
-      options={[
-        {
-          testID: 'fridge-detail-delete-confirm',
-          label: 'Retirer du garde-manger',
-          icon: (color) => <XIcon size={18} color={color} />,
-          tint: palette.expired,
-          destructive: true,
-          onPress: handleDelete,
-        },
-      ]}
+    <ProductExitSheet
+      visible={exiting}
+      products={[p]}
+      onClose={() => setExiting(false)}
+      onConsumed={() => record({ kind: 'consumed' })}
+      onDiscarded={handleDiscarded}
+      onCorrection={handleCorrection}
     />
     </>
   )

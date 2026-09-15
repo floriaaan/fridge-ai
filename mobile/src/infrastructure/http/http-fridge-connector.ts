@@ -12,6 +12,8 @@ import type { ApiError } from '../../domain/shared/api-error.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
 import type { Recipe } from '../../domain/recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../../domain/fridge/product.js'
+import type { RecordProductOutcomeInput, RecordedProductOutcome } from '../../domain/fridge/product-outcome.js'
+import type { ProductOutcomeStats } from '../../domain/fridge/product-outcome-stats.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ProductLookupResult } from '../../domain/fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
@@ -329,6 +331,27 @@ export class HttpFridgeConnector implements FridgeConnector {
       { action: 'fridge.delete_product', attributes: { 'entity.id': productId } },
     )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
+  }
+
+  async recordProductOutcome(
+    productId: string,
+    input: RecordProductOutcomeInput,
+  ): Promise<Result<RecordedProductOutcome, ApiError>> {
+    const result = await apiFetch<RecordedProductOutcome>(
+      `/api/products/${productId}/outcomes`,
+      { method: 'POST', body: JSON.stringify(input) },
+      { action: 'fridge.record_product_outcome', attributes: { 'entity.id': productId } },
+    )
+    return result.ok ? Result.ok(result.value) : Result.err(result.error)
+  }
+
+  async getProductOutcomeStats(days?: number): Promise<ProductOutcomeStats> {
+    const qs = days ? `?days=${days}` : ''
+    const result = await apiFetch<{ stats: ProductOutcomeStats }>(`/api/products/outcomes/stats${qs}`, undefined, {
+      action: 'fridge.get_product_outcome_stats',
+    })
+    if (!result.ok) throw new Error(result.error.message)
+    return result.value.stats
   }
 
   async getExpiringSoonProducts(days?: number): Promise<Product[]> {

@@ -11,7 +11,7 @@ import { pullToRefreshControl, usePullToRefresh } from '../shared/pull-to-refres
 import { SkeletonList } from '../shared/skeleton.js'
 import { useScanSheet } from '../shared/scan-sheet.js'
 import { PillButton } from '../shared/pill-button.js'
-import { ActionSheet } from '../shared/action-sheet.js'
+import { ProductExitSheet } from './product-exit-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
@@ -27,7 +27,6 @@ import {
 import type { ExpiryWindow } from '../dashboard/product-status.js'
 import {
   ArchiveIcon,
-  BanIcon,
   CircleXIcon,
   LayersIcon,
   PlusIcon,
@@ -41,9 +40,11 @@ import { FridgeCabinet, ShelfHeader, ShelfRail } from './fridge-cabinet.js'
 import { FormField } from './form-field.js'
 import { useProductsQuery } from '../../application/fridge/products.query.js'
 import { useDeleteProductMutation } from '../../application/fridge/delete-product.mutation.js'
+import { useRecordProductOutcomeMutation } from '../../application/fridge/record-product-outcome.mutation.js'
 import { LOCATIONS } from '../../domain/fridge/location.js'
 import type { LocationValue } from '../../domain/fridge/location.js'
 import type { Product } from '../../domain/fridge/product.js'
+import type { DiscardReason } from '../../domain/fridge/product-outcome.js'
 
 const FILTER_LABELS: Record<LocationValue, string> = { fridge: 'Frigo', freezer: 'Congélateur', pantry: 'Placard' }
 
@@ -366,9 +367,10 @@ export function FridgeListScreen({
   const products = useProductsQuery(locationFilter ? { location: locationFilter } : undefined)
   const { openScanSheet, scanSheet } = useScanSheet()
   const deleteProduct = useDeleteProductMutation()
+  const recordOutcome = useRecordProductOutcomeMutation()
   const [hint, showHint] = useHint()
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([])
-  const [confirmingRemoval, setConfirmingRemoval] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const selecting = selectedIds.length > 0
   const nav = { kind: 'tab' as const, tab: 'frigo' as const, onScan: openScanSheet }
   const { isWide, hasMobileNav } = useAppShellLayout(nav)
@@ -407,16 +409,27 @@ export function FridgeListScreen({
     )
   }
 
-  async function handleRemoveSelected() {
+  type Exit = { kind: 'consumed' } | { kind: 'discarded'; discardReason: DiscardReason | null } | { kind: 'correction' }
+
+  async function handleExitSelected(exit: Exit) {
     const ids = selectedIds
-    setConfirmingRemoval(false)
+    setExiting(false)
     setSelectedIds([])
     // Sequential, not `Promise.all`: the connector talks to one household's
     // API, and a partial failure has to name how far it got rather than
     // scatter N simultaneous errors.
     const failures: string[] = []
     for (const id of ids) {
-      const result = await deleteProduct.mutateAsync(id)
+      const result =
+        exit.kind === 'correction'
+          ? await deleteProduct.mutateAsync(id)
+          : await recordOutcome.mutateAsync({
+              productId: id,
+              input:
+                exit.kind === 'discarded'
+                  ? { kind: 'discarded', discardReason: exit.discardReason }
+                  : { kind: 'consumed' },
+            })
       if (!result.ok) failures.push(id)
     }
     await products.refetch()
@@ -424,6 +437,8 @@ export function FridgeListScreen({
       showHint(`${failures.length} produit${failures.length > 1 ? 's n’ont' : ' n’a'} pas pu être retiré${failures.length > 1 ? 's' : ''}.`)
     }
   }
+
+  const selectedProducts = (products.data ?? []).filter((product) => selectedIds.includes(product.id))
 
   return (
     <>
@@ -439,7 +454,7 @@ export function FridgeListScreen({
             <SelectionBar
               count={selectedIds.length}
               onCancel={() => setSelectedIds([])}
-              onRemove={() => setConfirmingRemoval(true)}
+              onRemove={() => setExiting(true)}
               palette={palette}
             />
           ) : (
@@ -525,21 +540,13 @@ export function FridgeListScreen({
           </FridgeCabinet>
         </YStack>
       </AppShell>
-      <ActionSheet
-        visible={confirmingRemoval}
-        title={`Retirer ${selectedIds.length} produit${selectedIds.length > 1 ? 's' : ''} ?`}
-        description="C’est définitif, et ils disparaissent aussi du garde-manger des autres membres du foyer."
-        options={[
-          {
-            testID: 'fridge-selection-confirm',
-            label: `Retirer ${selectedIds.length} produit${selectedIds.length > 1 ? 's' : ''}`,
-            icon: (color) => <BanIcon size={18} color={color} />,
-            tint: palette.expiredBg,
-            destructive: true,
-            onPress: handleRemoveSelected,
-          },
-        ]}
-        onClose={() => setConfirmingRemoval(false)}
+      <ProductExitSheet
+        visible={exiting}
+        products={selectedProducts}
+        onClose={() => setExiting(false)}
+        onConsumed={() => handleExitSelected({ kind: 'consumed' })}
+        onDiscarded={({ discardReason }) => handleExitSelected({ kind: 'discarded', discardReason })}
+        onCorrection={() => handleExitSelected({ kind: 'correction' })}
       />
       {scanSheet}
     </>

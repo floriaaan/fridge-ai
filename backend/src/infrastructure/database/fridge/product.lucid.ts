@@ -20,6 +20,9 @@ export default class ProductModel extends BaseModel {
   @column()
   declare quantity: number
 
+  @column({ columnName: 'initial_quantity' })
+  declare initialQuantity: number
+
   @column()
   declare unit: string
 

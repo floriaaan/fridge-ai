@@ -10,6 +10,12 @@ export interface DeleteProductInput {
 
 export type DeleteProductError = 'product_not_found'
 
+/**
+ * A data-entry correction — a duplicate scan, a receipt line that was not
+ * food. Deliberately records no outcome: counting mistakes as waste would make
+ * every statistic wrong. A product that was eaten or thrown away goes through
+ * `RecordProductOutcome` instead (ADR-0012).
+ */
 export class DeleteProduct implements UseCase<
   DeleteProductInput,
   ResultType<void, DeleteProductError>

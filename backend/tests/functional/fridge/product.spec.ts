@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import db from '@adonisjs/lucid/services/db'
 
 async function signUpWithHousehold(client: import('@japa/api-client').ApiClient, email: string) {
   const signUp = await client
@@ -125,6 +126,180 @@ test.group('fridge: product CRUD, expiring-soon, lookup, image', () => {
 
     const response = await client.get(`/api/products/${productId}/image`).headers({ cookie })
     response.assertStatus(404)
+  })
+
+  async function createYaourts(client: import('@japa/api-client').ApiClient, cookie: string) {
+    const create = await client
+      .post('/api/products')
+      .headers({ cookie })
+      .json({
+        name: 'Yaourts nature',
+        quantity: { amount: 6, unit: 'unités' },
+        location: 'fridge',
+        category: 'Produits laitiers',
+        price: 3,
+      })
+    create.assertStatus(201)
+    return create.body().product.id as string
+  }
+
+  test('outcomes: one eaten, then the rest thrown away', async ({ client, assert }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-flow@example.com')
+    const productId = await createYaourts(client, cookie)
+
+    const one = await client
+      .post(`/api/products/${productId}/outcomes`)
+      .headers({ cookie })
+      .json({ kind: 'consumed', amount: 1 })
+    one.assertStatus(200)
+    one.assertBodyContains({
+      product: { id: productId, quantity: { amount: 5 } },
+      outcome: { kind: 'consumed', quantity: { amount: 1 }, price: 0.5, discardReason: null },
+    })
+
+    const rest = await client
+      .post(`/api/products/${productId}/outcomes`)
+      .headers({ cookie })
+      .json({ kind: 'discarded', discardReason: 'spoiled' })
+    rest.assertStatus(200)
+    assert.isNull(rest.body().product)
+    rest.assertBodyContains({
+      outcome: { kind: 'discarded', quantity: { amount: 5 }, discardReason: 'spoiled' },
+    })
+
+    const gone = await client.get(`/api/products/${productId}`).headers({ cookie })
+    gone.assertStatus(404)
+
+    const rows = await db.from('product_outcome').where('product_id', productId).orderBy('amount')
+    assert.deepEqual(
+      rows.map((row) => [row.kind, row.amount]),
+      [
+        ['consumed', 1],
+        ['discarded', 5],
+      ],
+    )
+  })
+
+  test('outcomes: another household product is a 404 and stays put', async ({ client }) => {
+    const cookieA = await signUpWithHousehold(client, 'outcome-owner@example.com')
+    const cookieB = await signUpWithHousehold(client, 'outcome-intruder@example.com')
+    const productId = await createYaourts(client, cookieA)
+
+    const response = await client
+      .post(`/api/products/${productId}/outcomes`)
+      .headers({ cookie: cookieB })
+      .json({ kind: 'discarded' })
+    response.assertStatus(404)
+
+    const still = await client.get(`/api/products/${productId}`).headers({ cookie: cookieA })
+    still.assertBodyContains({ product: { quantity: { amount: 6 } } })
+  })
+
+  test('outcomes: a domain-level rejection is 400 and changes nothing', async ({ client }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-invalid@example.com')
+    const productId = await createYaourts(client, cookie)
+
+    // Both pass the request validator on their own — the amount and the
+    // reason/kind combination are only wrong once the use-case checks them.
+    for (const body of [
+      { kind: 'consumed', amount: 7 },
+      { kind: 'consumed', discardReason: 'expired' },
+    ]) {
+      const response = await client
+        .post(`/api/products/${productId}/outcomes`)
+        .headers({ cookie })
+        .json(body)
+      response.assertStatus(400)
+    }
+
+    const still = await client.get(`/api/products/${productId}`).headers({ cookie })
+    still.assertBodyContains({ product: { quantity: { amount: 6 } } })
+  })
+
+  test('outcomes: a malformed request is 422, same as every other validator in this app', async ({
+    client,
+  }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-malformed@example.com')
+    const productId = await createYaourts(client, cookie)
+
+    for (const body of [
+      { kind: 'deleted' },
+      { kind: 'discarded', discardReason: 'moldy' },
+      { kind: 'consumed', amount: 1.5 },
+    ]) {
+      const response = await client
+        .post(`/api/products/${productId}/outcomes`)
+        .headers({ cookie })
+        .json(body)
+      response.assertStatus(422)
+    }
+
+    const still = await client.get(`/api/products/${productId}`).headers({ cookie })
+    still.assertBodyContains({ product: { quantity: { amount: 6 } } })
+  })
+
+  test('DELETE is a correction and writes no outcome', async ({ client, assert }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-delete@example.com')
+    const productId = await createYaourts(client, cookie)
+
+    const destroy = await client.delete(`/api/products/${productId}`).headers({ cookie })
+    destroy.assertStatus(204)
+
+    const rows = await db.from('product_outcome').where('product_id', productId)
+    assert.lengthOf(rows, 0)
+  })
+
+  test('outcomes/stats: totals + buckets for the requested window', async ({ client, assert }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-stats@example.com')
+    const productId = await createYaourts(client, cookie)
+
+    await client
+      .post(`/api/products/${productId}/outcomes`)
+      .headers({ cookie })
+      .json({ kind: 'discarded', discardReason: 'spoiled' })
+
+    const response = await client.get('/api/products/outcomes/stats?days=30').headers({ cookie })
+    response.assertStatus(200)
+    const { stats } = response.body()
+    assert.equal(stats.discarded.count, 1)
+    assert.equal(stats.discarded.value, 3)
+    assert.equal(stats.consumed.count, 0)
+    assert.equal(stats.recipeSharePercent, 0)
+    assert.lengthOf(stats.buckets, 6)
+    assert.equal(
+      stats.buckets.reduce(
+        (sum: number, b: { discardedCount: number }) => sum + b.discardedCount,
+        0,
+      ),
+      1,
+    )
+  })
+
+  test('outcomes/stats: without days, defaults to "since the first outcome"', async ({
+    client,
+    assert,
+  }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-stats-all@example.com')
+
+    const noOutcomesYet = await client.get('/api/products/outcomes/stats').headers({ cookie })
+    noOutcomesYet.assertStatus(200)
+    assert.equal(noOutcomesYet.body().stats.discarded.count, 0)
+
+    const productId = await createYaourts(client, cookie)
+    await client
+      .post(`/api/products/${productId}/outcomes`)
+      .headers({ cookie })
+      .json({ kind: 'consumed' })
+
+    const response = await client.get('/api/products/outcomes/stats').headers({ cookie })
+    response.assertStatus(200)
+    assert.equal(response.body().stats.consumed.count, 1)
+  })
+
+  test('outcomes/stats: an invalid days value is 422', async ({ client }) => {
+    const cookie = await signUpWithHousehold(client, 'outcome-stats-invalid@example.com')
+    const response = await client.get('/api/products/outcomes/stats?days=-1').headers({ cookie })
+    response.assertStatus(422)
   })
 
   test('all product routes require a household', async ({ client }) => {

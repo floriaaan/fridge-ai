@@ -127,6 +127,47 @@ Query params optionnels, combinables.
 
 `PATCH` : mêmes champs que `POST`, tous optionnels. `404` hors du foyer du caller.
 
+### `POST /api/products/:id/outcomes`
+
+Sortie d'un produit du garde-manger, totale ou partielle (ADR-0012).
+
+```jsonc
+// requête
+{ "kind": "discarded", "amount": 2, "discardReason": "spoiled" }
+```
+
+`kind` : `consumed` | `discarded`. `amount` : entier ≥ 1, défaut = toute la quantité
+restante. `discardReason` : `expired` | `spoiled` | `disliked` | `other`, optionnel,
+refusé avec `consumed`.
+
+`200 { "product": ProductDto | null, "outcome": ProductOutcomeDto }` — `product` vaut
+`null` quand toute la quantité est sortie. `404 product_not_found` (absent ou autre
+foyer) ; `400 validation_failed` (quantité au-delà du stock, raison sur un produit
+consommé) ; `422 validation_failed` (champ hors de l'énumération, décimale sur
+`amount` — même échec de validateur que partout ailleurs dans l'API).
+
+### `GET /api/products/outcomes/stats?days=30`
+
+Statistiques de gaspillage sur une fenêtre (`docs/superpowers/specs/2026-09-14-waste-stats-design.md`).
+`days` optionnel : absent = depuis la toute première sortie du foyer.
+
+```jsonc
+// 200
+{ "stats": {
+  "from": "2026-08-15T00:00:00.000Z", "to": "2026-09-14T00:00:00.000Z",
+  "discarded": { "count": 4, "value": 12.5 },
+  "consumed": { "count": 9, "value": 31 },
+  "recipeSharePercent": 33,
+  // toujours 6 éléments, du plus ancien au plus récent
+  "buckets": [ { "from": "...", "to": "...", "discardedCount": 1, "consumedCount": 2 }, ... ]
+} }
+```
+
+`422 validation_failed` si `days` n'est pas un entier positif.
+
+`DELETE /api/products/:id` reste la correction d'une erreur de saisie et n'écrit
+aucune sortie.
+
 ### `GET /api/products/expiring-soon?days=3`
 
 Par défaut `days=3`. `200 { "products": [...] }` (même DTO).
