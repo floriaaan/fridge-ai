@@ -8,6 +8,7 @@ import { fakeProducts } from './fixtures/product.fixture.js'
 import { fakeProductOutcomes } from './fixtures/product-outcome.fixture.js'
 import { fakeProductLookup } from './fixtures/product-lookup.fixture.js'
 import { fakeReceiptDraft } from './fixtures/receipt-draft.fixture.js'
+import { fakeFridgeScanDraft } from './fixtures/fridge-scan-draft.fixture.js'
 import { fakeReceipts } from './fixtures/receipt.fixture.js'
 import { fakeAiSettings } from './fixtures/ai-settings.fixture.js'
 import { fakeUnconfiguredHaLink } from './fixtures/ha-link.fixture.js'
@@ -26,6 +27,7 @@ import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ProductLookupResult } from '../../domain/fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
 import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.js'
+import type { FridgeScanDraft, ImportProductsItemInput } from '../../domain/fridge/fridge-scan-draft.js'
 import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
 import type { HaLink, HaTodoEntity, SaveHaConnectionInput, BindHaListInput } from '../../domain/home-assistant/ha-link.js'
 
@@ -129,6 +131,8 @@ export class FakeFridgeConnector implements FridgeConnector {
   private nextShoppingItemId = 1
   private receipts: Receipt[] = fakeReceipts.map((r) => ({ ...r }))
   private nextReceiptId = 1
+  /** Counts `fail`-marked URIs seen so far — every third one actually fails. */
+  private fridgeScanFailAttempts = 0
   /**
    * A copy, not the module fixture: `deleteRecipe` mutates this list, and a
    * fake that spliced the shared array would delete the recipe for every other
@@ -576,6 +580,43 @@ export class FakeFridgeConnector implements FridgeConnector {
 
   async scanReceipt(_imageUri: string): Promise<Result<ReceiptDraft, ApiError>> {
     return Result.ok({ ...fakeReceiptDraft, items: fakeReceiptDraft.items.map((item) => ({ ...item })) })
+  }
+
+  /** ponytail: `fail` in the URI fails one attempt in three, to exercise `useFridgeScan`'s partial-failure path without a backend. */
+  async scanFridgePhoto(imageUri: string): Promise<Result<FridgeScanDraft, ApiError>> {
+    await this.pretendToThink()
+    if (imageUri.includes('fail')) {
+      this.fridgeScanFailAttempts += 1
+      if (this.fridgeScanFailAttempts % 3 === 0) {
+        return Result.err({ type: 'extraction_failed', message: "L'analyse de cette photo a échoué." })
+      }
+    }
+    return Result.ok({ items: fakeFridgeScanDraft.items.map((item) => ({ ...item })) })
+  }
+
+  async importProducts(items: ImportProductsItemInput[]): Promise<Result<{ products: Product[] }, ApiError>> {
+    const now = new Date().toISOString()
+    const products: Product[] = items.map((item) => {
+      const product: Product = {
+        id: `fake-product-from-scan-${this.nextProductId++}`,
+        name: item.name,
+        quantity: { amount: item.quantity, unit: item.unit },
+        location: item.location,
+        category: item.category ?? 'Non catégorisé',
+        expiresAt: item.expiresAt ?? null,
+        openedAt: null,
+        categories: null,
+        openfoodfactId: null,
+        receiptId: null,
+        price: null,
+        imageKey: null,
+        createdAt: now,
+        updatedAt: now,
+      }
+      this.products.push(product)
+      return product
+    })
+    return Result.ok({ products })
   }
 
   async importReceipt(input: ImportReceiptInput): Promise<Result<{ receipt: Receipt; products: Product[] }, ApiError>> {

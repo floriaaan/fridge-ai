@@ -7,7 +7,7 @@ import { PillButton } from '../shared/pill-button.js'
 import { pullToRefreshControl, usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { SkeletonList } from '../shared/skeleton.js'
 import { goBack } from '../shared/navigation.js'
-import { goToReceiptScan } from '../shared/scan-sheet.js'
+import { goToScan } from '../shared/scan-sheet.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { ReceiptIcon } from '../dashboard/dashboard-icons.js'
@@ -108,8 +108,8 @@ export function ReceiptsListScreen() {
               </Text>
               <PillButton
                 testID="receipts-empty-scan"
-                label="Scanner un ticket"
-                onPress={goToReceiptScan}
+                label="Scanner"
+                onPress={goToScan}
                 palette={palette}
               />
             </YStack>

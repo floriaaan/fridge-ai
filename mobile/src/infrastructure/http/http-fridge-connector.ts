@@ -18,6 +18,7 @@ import type { LocationValue } from '../../domain/fridge/location.js'
 import type { ProductLookupResult } from '../../domain/fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../../domain/receipt/receipt-draft.js'
 import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.js'
+import type { FridgeScanDraft, ImportProductsItemInput } from '../../domain/fridge/fridge-scan-draft.js'
 import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
 import type {
   HaLink,
@@ -56,6 +57,36 @@ function toSession(
 function reportFailure(operation: string, error: unknown): void {
   if (__DEV__) console.warn(`[${operation}]`, error)
   telemetry.recordError(`${operation} failed`, { error, attributes: { 'app.operation': operation } })
+}
+
+/**
+ * Shared by `scanReceipt` and `scanFridgePhoto` — same `file://`/`blob:`
+ * URI-to-`FormData`-part dance either way, see the comment this used to
+ * carry alone in `scanReceipt` below.
+ */
+async function appendImagePart(formData: FormData, imageUri: string, filename: string): Promise<void> {
+  // The old RN `{ uri, name, type }` shim is dead: since Expo SDK 53,
+  // `expo/fetch` replaces both `fetch` and `FormData.prototype.append`
+  // globally (native included, not just web — see
+  // `expo/src/winter/runtime.native.ts` and `FormData.ts`), and its
+  // WinterCG-style `FormData` only accepts a string or a real
+  // Blob/File-like part with a `.bytes()`/Blob interface. Appending the
+  // shim object now throws "Unsupported FormDataPart implementation" —
+  // silently, with the request never leaving the device, no matter the
+  // platform.
+  if (Platform.OS === 'web') {
+    // `imageUri` here is a `blob:`/`data:` URL the picker/camera already
+    // produced in-memory — re-fetching it just hands back the same bytes
+    // as a real Blob. `expo-file-system`'s `File` (below) is native-only.
+    const blob = await (await fetch(imageUri)).blob()
+    formData.append('image', blob, filename)
+  } else {
+    // `File` implements the `Blob` interface, so it's exactly the kind of
+    // part `expo/fetch`'s `FormData` expects — reading a local `file://`
+    // URI into a real Blob without a manual `fetch`+`.blob()` round-trip,
+    // which isn't guaranteed to work against `file://` on the new fetch.
+    formData.append('image', new File(imageUri), filename)
+  }
 }
 
 export class HttpFridgeConnector implements FridgeConnector {
@@ -381,32 +412,29 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async scanReceipt(imageUri: string): Promise<Result<ReceiptDraft, ApiError>> {
     const formData = new FormData()
-    // The old RN `{ uri, name, type }` shim is dead: since Expo SDK 53,
-    // `expo/fetch` replaces both `fetch` and `FormData.prototype.append`
-    // globally (native included, not just web — see
-    // `expo/src/winter/runtime.native.ts` and `FormData.ts`), and its
-    // WinterCG-style `FormData` only accepts a string or a real
-    // Blob/File-like part with a `.bytes()`/Blob interface. Appending the
-    // shim object now throws "Unsupported FormDataPart implementation" —
-    // silently, with the request never leaving the device, no matter the
-    // platform.
-    if (Platform.OS === 'web') {
-      // `imageUri` here is a `blob:`/`data:` URL the picker/camera already
-      // produced in-memory — re-fetching it just hands back the same bytes
-      // as a real Blob. `expo-file-system`'s `File` (below) is native-only.
-      const blob = await (await fetch(imageUri)).blob()
-      formData.append('image', blob, 'receipt.jpg')
-    } else {
-      // `File` implements the `Blob` interface, so it's exactly the kind of
-      // part `expo/fetch`'s `FormData` expects — reading a local `file://`
-      // URI into a real Blob without a manual `fetch`+`.blob()` round-trip,
-      // which isn't guaranteed to work against `file://` on the new fetch.
-      formData.append('image', new File(imageUri), 'receipt.jpg')
-    }
+    await appendImagePart(formData, imageUri, 'receipt.jpg')
     const result = await apiFetchMultipart<{ draft: ReceiptDraft }>('/api/receipts/scan', formData, {
       action: 'receipt.scan',
     })
     return result.ok ? Result.ok(result.value.draft) : Result.err(result.error)
+  }
+
+  async scanFridgePhoto(imageUri: string): Promise<Result<FridgeScanDraft, ApiError>> {
+    const formData = new FormData()
+    await appendImagePart(formData, imageUri, 'fridge.jpg')
+    const result = await apiFetchMultipart<{ draft: FridgeScanDraft }>('/api/products/scan', formData, {
+      action: 'fridge.scan',
+    })
+    return result.ok ? Result.ok(result.value.draft) : Result.err(result.error)
+  }
+
+  async importProducts(items: ImportProductsItemInput[]): Promise<Result<{ products: Product[] }, ApiError>> {
+    const result = await apiFetch<{ products: Product[] }>(
+      '/api/products/import',
+      { method: 'POST', body: JSON.stringify({ items }) },
+      { action: 'fridge.import' },
+    )
+    return result.ok ? Result.ok(result.value) : Result.err(result.error)
   }
 
   async importReceipt(input: ImportReceiptInput): Promise<Result<{ receipt: Receipt; products: Product[] }, ApiError>> {

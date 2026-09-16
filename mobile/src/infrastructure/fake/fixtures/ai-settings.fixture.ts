@@ -4,4 +4,5 @@ export const fakeAiSettings: AiSettings = {
   activeProvider: 'gemini',
   source: 'environment',
   availableProviders: ['gemini', 'openai'],
+  models: { vision: 'gemini-2.5-flash', text: 'gemini-2.5-flash' },
 }

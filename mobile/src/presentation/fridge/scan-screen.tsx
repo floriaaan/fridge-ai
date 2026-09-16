@@ -13,11 +13,16 @@
 import { Animated, Pressable } from 'react-native'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
+import { router } from 'expo-router'
 import { goToProductScan, goToReceiptScan } from '../shared/scan-sheet.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ReceiptIcon, ScanLineIcon } from '../dashboard/dashboard-icons.js'
+import { CameraIcon, ReceiptIcon, ScanLineIcon } from '../dashboard/dashboard-icons.js'
+
+function goToFridgeScan() {
+  router.navigate('/fridge-scan/scan')
+}
 
 export function ScanScreen() {
   const palette = useSoftPalette()
@@ -35,12 +40,22 @@ export function ScanScreen() {
 
       <YStack gap="$3" marginTop="$6">
         <ScanChoice
+          testID="scan-screen-fridge"
+          title="Mon frigo"
+          subtitle="Photographie ton frigo, l’IA en extrait tous les produits."
+          icon={<CameraIcon size={22} color={palette.onDark} />}
+          tint={palette.navCardWarm}
+          corner="a"
+          onPress={goToFridgeScan}
+          palette={palette}
+        />
+        <ScanChoice
           testID="scan-screen-product"
           title="Un produit"
           subtitle="Le code-barres remplit le nom et la catégorie."
           icon={<ScanLineIcon size={22} color={palette.onDark} />}
           tint={palette.navCardTeal}
-          corner="a"
+          corner="mid"
           onPress={goToProductScan}
           palette={palette}
         />
@@ -74,7 +89,7 @@ function ScanChoice({
   subtitle: string
   icon: React.ReactNode
   tint: string
-  corner: 'a' | 'b'
+  corner: 'a' | 'b' | 'mid'
   onPress: () => void
   palette: SoftPalette
 }) {
@@ -82,7 +97,9 @@ function ScanChoice({
   const radii =
     corner === 'a'
       ? { borderTopLeftRadius: 28, borderTopRightRadius: 16, borderBottomRightRadius: 28, borderBottomLeftRadius: 16 }
-      : { borderTopLeftRadius: 16, borderTopRightRadius: 28, borderBottomRightRadius: 16, borderBottomLeftRadius: 28 }
+      : corner === 'b'
+        ? { borderTopLeftRadius: 16, borderTopRightRadius: 28, borderBottomRightRadius: 16, borderBottomLeftRadius: 28 }
+        : { borderTopLeftRadius: 18, borderTopRightRadius: 18, borderBottomRightRadius: 18, borderBottomLeftRadius: 18 }
 
   return (
     <Pressable

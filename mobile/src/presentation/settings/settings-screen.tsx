@@ -322,6 +322,11 @@ export function SettingsScreen() {
                   {providerError}
                 </Text>
               ) : null}
+              {settings.data?.models.vision ? (
+                <Text testID="settings-ai-models" fontSize={12} fontWeight="600" color={palette.lavenderText}>
+                  Vision : {settings.data.models.vision} · Texte : {settings.data.models.text}
+                </Text>
+              ) : null}
             </YStack>
           }
         />

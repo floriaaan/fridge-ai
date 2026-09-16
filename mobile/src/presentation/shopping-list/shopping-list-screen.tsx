@@ -66,7 +66,7 @@ import { EmptyStateLottie } from '../shared/empty-state-lottie.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
-import { useScanSheet } from '../shared/scan-sheet.js'
+import { goToScan } from '../shared/scan-sheet.js'
 import { PillButton } from '../shared/pill-button.js'
 import { pointerCursor } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
@@ -92,7 +92,6 @@ export function ShoppingListScreen() {
   // backend. Caught by noticing the fake connector's own mutation style,
   // not by anything failing visibly in this session.
   const [hint, showHint] = useHint()
-  const { openScanSheet, scanSheet } = useScanSheet()
   const [sheetItem, setSheetItem] = useState<ShoppingItem | null>(null)
   // Optimistic: the checkbox flips now, and rolls back with a hint if the
   // server refuses. `onSettled` re-syncs either way.
@@ -149,7 +148,7 @@ export function ShoppingListScreen() {
 
   return (
     <>
-    <AppShell nav={{ kind: 'tab', tab: 'courses', onScan: openScanSheet }} hint={hint} refresh={refresh}
+    <AppShell nav={{ kind: 'tab', tab: 'courses', onScan: goToScan }} hint={hint} refresh={refresh}
       header={
         <ScreenHeader
           palette={palette}
@@ -310,7 +309,6 @@ export function ShoppingListScreen() {
         </YStack>
       ) : null}
     </AppShell>
-    {scanSheet}
     <ActionSheet
       visible={sheetItem !== null}
       onClose={() => setSheetItem(null)}

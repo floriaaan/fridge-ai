@@ -92,7 +92,7 @@ import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress, useReduceMotion } from '../shared/hover.js'
 import { AppShell } from '../shared/app-shell.js'
 import { usePullToRefresh } from '../shared/pull-to-refresh.js'
-import { goToReceiptScan, useScanSheet } from '../shared/scan-sheet.js'
+import { goToScan } from '../shared/scan-sheet.js'
 import { StatusChip } from './status-chip.js'
 import { StatCard } from './stat-card.js'
 import { HeroWarmGlow } from './hero-warm-glow.js'
@@ -240,8 +240,6 @@ export function HouseholdDashboard({
   )
   const seeAllHover = useHoverPress()
   const settingsHover = useHoverPress()
-  // The FAB opens the same two-choice sheet on every tab — see scan-sheet.tsx.
-  const { openScanSheet, scanSheet } = useScanSheet()
 
   /**
    * The first-run tour runs over this screen rather than in front of it, so it
@@ -287,7 +285,7 @@ export function HouseholdDashboard({
   return (
     <TourAnchorProvider>
     <AppShell
-      nav={{ kind: 'tab', tab: 'accueil', onScan: openScanSheet }}
+      nav={{ kind: 'tab', tab: 'accueil', onScan: goToScan }}
       refresh={refresh}
       scrollRef={scrollRef}
       onScrollOffset={(offset) => {
@@ -572,11 +570,11 @@ export function HouseholdDashboard({
               {empty ? (
                 <YStack padding="$3" gap="$3">
                   <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
-                    Rien dans le garde-manger pour l’instant.
+                    Ajoute un produit, photographie ton frigo ou scanne un ticket pour démarrer.
                   </Text>
                   <XStack gap="$2" flexWrap="wrap">
                     <PillButton label="Ajouter un produit" onPress={onAddProduct} testID="dashboard-empty-add" palette={palette} />
-                    <PillButton label="Scanner un ticket" onPress={goToReceiptScan} testID="dashboard-empty-scan" tone="quiet" palette={palette} />
+                    <PillButton label="Scanner" onPress={goToScan} testID="dashboard-empty-scan" tone="quiet" palette={palette} />
                   </XStack>
                 </YStack>
               ) : null}
@@ -667,12 +665,11 @@ export function HouseholdDashboard({
         both AppShell's job now — see app-shell.tsx. Keeping them here,
         duplicated per screen, is exactly what left the FAB and persistent
         nav working on this screen only. */}
-    {scanSheet}
     {tour.show ? (
       <FirstRunTour
         scrollRef={scrollRef}
         scrollOffset={scrollOffset}
-        onScanReceipt={goToReceiptScan}
+        onScan={goToScan}
         onFinish={tour.dismiss}
       />
     ) : null}
