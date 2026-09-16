@@ -141,7 +141,7 @@ Tasks go through [Task](https://taskfile.dev):
 ```bash
 task setup   # dependencies + copy the .env files
 task dev     # Postgres in Docker + API locally (HMR)
-task dev:mobile
+task mobile:dev
 task check   # lint, typecheck, tests, layer boundaries
 ```
 

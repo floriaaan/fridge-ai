@@ -22,7 +22,7 @@ Copy `mobile/.env.example` to `mobile/.env` and adjust as needed:
 ## Running
 
 ```bash
-task dev:mobile
+task mobile:dev
 # or, from mobile/
 pnpm run start
 ```
@@ -42,4 +42,4 @@ pnpm run test
 pnpm run boundaries
 ```
 
-Or from the repo root: `task lint:mobile`, `task typecheck:mobile`, `task test:mobile`, `task boundaries:mobile` (or `task check` for the whole repo).
+Or from the repo root: `task mobile:lint`, `task mobile:typecheck`, `task mobile:test`, `task mobile:boundaries` (or `task check` for the whole repo).

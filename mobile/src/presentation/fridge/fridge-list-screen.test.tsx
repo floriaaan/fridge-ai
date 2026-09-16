@@ -6,6 +6,7 @@ import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-conne
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { FridgeListScreen, isExpired, isExpiringSoon } from './fridge-list-screen.js'
 import type { Product } from '../../domain/fridge/product.js'
+import { fakeProductOutcomes } from '../../infrastructure/fake/fixtures/product-outcome.fixture.js'
 
 // `AppShell` registers its scan action through expo-router's `useFocusEffect`,
 // which needs a real navigation container. These screen tests render the shell
@@ -125,8 +126,8 @@ test('opened on the "dates dépassées" window, the cabinet holds only what a pa
   try {
     await renderWithProviders(<FridgeListScreen expiryWindow="expired" />)
 
-    await waitFor(() => expect(screen.getByText('Lait demi-écrémé')).toBeTruthy())
-    expect(screen.queryByText('Épinards surgelés')).toBeNull()
+    await waitFor(() => expect(screen.getByText('Jambon blanc')).toBeTruthy())
+    expect(screen.queryByText('Petits pois surgelés')).toBeNull()
     expect(screen.queryByText('Riz basmati')).toBeNull()
   } finally {
     jest.useRealTimers()
@@ -246,8 +247,8 @@ test('several products thrown away at once: one reason for all, each logged whol
   await fireEvent.press(screen.getByTestId('product-exit-reason-spoiled'))
   await fireEvent.press(screen.getByTestId('product-exit-discard-confirm'))
 
-  await waitFor(() => expect(connector.outcomes).toHaveLength(2))
-  expect(connector.outcomes.map((o) => [o.productId, o.discardReason, o.quantity.amount])).toEqual([
+  await waitFor(() => expect(connector.outcomes).toHaveLength(fakeProductOutcomes.length + 2))
+  expect(connector.outcomes.slice(-2).map((o) => [o.productId, o.discardReason, o.quantity.amount])).toEqual([
     ['fake-product-6', 'spoiled', 4],
     ['fake-product-4', 'spoiled', 4],
   ])
@@ -270,7 +271,7 @@ test('several data-entry mistakes are deleted, not logged', async () => {
   // connector is the reliable witness that a data-entry mistake deletes and
   // logs nothing.
   await waitFor(async () => expect(await connector.getProduct('fake-product-1')).toBeNull())
-  expect(connector.outcomes).toHaveLength(0)
+  expect(connector.outcomes).toHaveLength(fakeProductOutcomes.length)
 })
 
 test('leaving the selection puts the list back to opening products', async () => {

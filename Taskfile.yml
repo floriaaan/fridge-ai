@@ -33,17 +33,22 @@ tasks:
     desc: Run the backend dev server locally (HMR), Postgres in Docker.
     deps: [dev:db]
     cmds:
-      - task: dev:back
+      - task: backend:dev
 
   dev:db:
     desc: Start only the Postgres container.
     cmds:
       # --wait: block until the healthcheck passes, not just until the
-      # container starts — dev:back connects right after this returns and
+      # container starts — backend:dev connects right after this returns and
       # Postgres isn't ready to accept connections the instant it starts.
       - "{{.COMPOSE}} up -d --wait db"
 
-  dev:back:
+  dev:tmux:
+    desc: Open a tmux session with the full dev stack (backend, mobile, otel logs) plus a claude pane and a scratch bash pane.
+    cmds:
+      - dev/tmux-dev.sh
+
+  backend:dev:
     desc: Run the backend dev server locally (HMR).
     dir: backend
     cmds:
@@ -55,117 +60,127 @@ tasks:
       - ../dev/kill-port.sh "${PORT:-3333}"
       - pnpm run dev
 
-  dev:tmux:
-    desc: Open a tmux session with the full dev stack (backend, mobile, otel logs) plus a claude pane and a scratch bash pane.
-    cmds:
-      - dev/tmux-dev.sh
-
-  db:migrate:
+  backend:migrate:
     desc: Run pending database migrations.
     dir: backend
     cmds:
       - node ace migration:run
 
-  db:rollback:
+  backend:rollback:
     desc: Roll back the last migration batch.
     dir: backend
     cmds:
       - node ace migration:rollback
 
-  db:reset:
+  backend:reset:
     desc: Drop and re-migrate the database.
     dir: backend
     cmds:
       - node ace migration:fresh
 
-  test:
+  backend:test:
     desc: Run backend tests (Japa).
     dir: backend
     cmds:
       - pnpm run test
 
-  lint:
+  backend:lint:
     desc: Lint the backend.
     cmds:
       - pnpm --filter {{.BACKEND}} run lint
 
-  format:
+  backend:format:
     desc: Format the backend.
     cmds:
       - pnpm --filter {{.BACKEND}} run format
 
-  typecheck:
+  backend:typecheck:
     desc: Type-check the backend.
     cmds:
       - pnpm --filter {{.BACKEND}} run typecheck
 
-  boundaries:
+  backend:boundaries:
     desc: Enforce the domain/application/infrastructure/presentation dependency rule.
     cmds:
       - pnpm --filter {{.BACKEND}} run boundaries
 
-  dev:mobile:
+  backend:check:
+    desc: Lint, typecheck, tests, boundaries — backend only.
+    cmds:
+      - task: backend:lint
+      - task: backend:typecheck
+      - task: backend:test
+      - task: backend:boundaries
+
+  mobile:dev:
     desc: Run the Expo dev server.
     dir: mobile
     cmds:
       - pnpm run start
 
-  lint:mobile:
+  mobile:lint:
     desc: Lint the mobile app.
     cmds:
       - pnpm --filter {{.MOBILE}} run lint
 
-  typecheck:mobile:
+  mobile:typecheck:
     desc: Typecheck the mobile app.
     cmds:
       - pnpm --filter {{.MOBILE}} run typecheck
 
-  test:mobile:
+  mobile:test:
     desc: Run mobile tests (Jest).
     dir: mobile
     cmds:
       - pnpm run test
 
-  boundaries:mobile:
+  mobile:boundaries:
     desc: Lint the mobile app's dependency boundaries.
     cmds:
       - pnpm --filter {{.MOBILE}} run boundaries
 
-  dev:landing:
+  mobile:check:
+    desc: Lint, typecheck, tests, boundaries — mobile only.
+    cmds:
+      - task: mobile:lint
+      - task: mobile:typecheck
+      - task: mobile:test
+      - task: mobile:boundaries
+
+  landing:dev:
     desc: Run the landing site dev server (http://localhost:3000).
     dir: landing
     cmds:
       - pnpm run dev
 
-  typecheck:landing:
+  landing:typecheck:
     desc: Typecheck the landing site.
     cmds:
       - pnpm --filter {{.LANDING}} run typecheck
 
-  test:landing:
+  landing:test:
     desc: Run landing tests (Vitest).
     cmds:
       - pnpm --filter {{.LANDING}} run test
 
-  boundaries:landing:
+  landing:boundaries:
     desc: Lint the landing site's dependency boundaries.
     cmds:
       - pnpm --filter {{.LANDING}} run boundaries
 
+  landing:check:
+    desc: Typecheck, tests, boundaries — landing only (no lint script yet).
+    cmds:
+      - task: landing:typecheck
+      - task: landing:test
+      - task: landing:boundaries
+
   check:
     desc: The CI command — lint + typecheck + tests + boundary lint, every package.
     cmds:
-      - task: lint
-      - task: typecheck
-      - task: test
-      - task: boundaries
-      - task: lint:mobile
-      - task: typecheck:mobile
-      - task: test:mobile
-      - task: boundaries:mobile
-      - task: typecheck:landing
-      - task: test:landing
-      - task: boundaries:landing
+      - task: backend:check
+      - task: mobile:check
+      - task: landing:check
 
   build:
     desc: Build the backend.

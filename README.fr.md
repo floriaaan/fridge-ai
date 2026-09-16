@@ -141,7 +141,7 @@ Les tâches passent par [Task](https://taskfile.dev) :
 ```bash
 task setup   # dépendances + copie des .env
 task dev     # Postgres en Docker + API en local (HMR)
-task dev:mobile
+task mobile:dev
 task check   # lint, typecheck, tests, frontières de couches
 ```
 

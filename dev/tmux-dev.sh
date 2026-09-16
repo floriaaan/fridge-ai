@@ -45,7 +45,7 @@ tmux split-window -v -t "$SESSION:dev.2" -c "$PWD"
 
 tmux select-layout -t "$SESSION:dev" tiled
 
-tmux send-keys -t "$SESSION:dev.0" 'task dev:back' C-m
+tmux send-keys -t "$SESSION:dev.0" 'task backend:dev' C-m
 tmux send-keys -t "$SESSION:dev.1" 'task dev:mobile' C-m
 tmux send-keys -t "$SESSION:dev.2" 'task obs:logs' C-m
 tmux send-keys -t "$SESSION:dev.3" 'claude' C-m

@@ -5,6 +5,7 @@ import { ConnectorProvider } from '../../application/shared/connector-context.js
 import { FakeFridgeConnector } from '../../infrastructure/fake/fake-fridge-connector.js'
 import { ThemeProvider } from '../shared/theme-provider.js'
 import { FridgeDetailScreen } from './fridge-detail-screen.js'
+import { fakeProductOutcomes } from '../../infrastructure/fake/fixtures/product-outcome.fixture.js'
 
 // expo-router's imperative `router` is a singleton wired up by the root
 // <Slot>/<Stack> navigator. Nothing here mounts that navigator, so calling
@@ -42,8 +43,8 @@ test('eating one of several logs one unit and keeps the product on screen', asyn
 
   await fireEvent.press(screen.getByTestId('fridge-detail-consume'))
 
-  await waitFor(() => expect(connector.outcomes).toHaveLength(1))
-  expect(connector.outcomes[0]).toMatchObject({ kind: 'consumed', quantity: { amount: 1 } })
+  await waitFor(() => expect(connector.outcomes).toHaveLength(fakeProductOutcomes.length + 1))
+  expect(connector.outcomes.at(-1)).toMatchObject({ kind: 'consumed', quantity: { amount: 1 } })
   expect(screen.queryByTestId('fridge-detail-gone')).toBeNull()
 })
 
@@ -55,7 +56,7 @@ test('finishing the last unit needs no confirmation and leaves the screen', asyn
 
   await waitFor(() => expect(screen.getByTestId('fridge-detail-gone')).toBeTruthy())
   expect(screen.getByText('Produit terminé')).toBeTruthy()
-  expect(connector.outcomes[0]).toMatchObject({ kind: 'consumed', quantity: { amount: 1 } })
+  expect(connector.outcomes.at(-1)).toMatchObject({ kind: 'consumed', quantity: { amount: 1 } })
 })
 
 test('thrown away past its date: reason pre-picked, part of the stock, the rest stays', async () => {
@@ -69,8 +70,8 @@ test('thrown away past its date: reason pre-picked, part of the stock, the rest 
   await fireEvent.press(screen.getByTestId('product-exit-amount-decrease'))
   await fireEvent.press(screen.getByTestId('product-exit-discard-confirm'))
 
-  await waitFor(() => expect(connector.outcomes).toHaveLength(1))
-  expect(connector.outcomes[0]).toMatchObject({ kind: 'discarded', discardReason: 'expired', quantity: { amount: 3 } })
+  await waitFor(() => expect(connector.outcomes).toHaveLength(fakeProductOutcomes.length + 1))
+  expect(connector.outcomes.at(-1)).toMatchObject({ kind: 'discarded', discardReason: 'expired', quantity: { amount: 3 } })
   expect(screen.queryByTestId('fridge-detail-gone')).toBeNull()
 })
 
@@ -86,7 +87,7 @@ test('a data-entry mistake deletes without logging anything', async () => {
 
   await waitFor(() => expect(screen.getByText('Produit supprimé')).toBeTruthy())
   expect(deleteSpy).toHaveBeenCalledWith('fake-product-1')
-  expect(connector.outcomes).toHaveLength(0)
+  expect(connector.outcomes).toHaveLength(fakeProductOutcomes.length)
 })
 
 test('a failed exit shows an inline error, stays on screen, and invalidates nothing', async () => {

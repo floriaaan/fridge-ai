@@ -9,7 +9,7 @@ Install from the repo root (pnpm workspace), then copy the env file:
 ```bash
 pnpm install
 cp landing/.env.example landing/.env
-task dev:landing   # http://localhost:3000
+task landing:dev   # http://localhost:3000
 ```
 
 ## Environment
@@ -33,9 +33,9 @@ Inlined at build time (`VITE_*`): the visitor's browser does the fetching, so us
 ## Checks
 
 ```bash
-task typecheck:landing
-task test:landing
-task boundaries:landing
+task landing:typecheck
+task landing:test
+task landing:boundaries
 ```
 
 ## Docker
