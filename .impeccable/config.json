@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "createdAt": "2026-09-16T09:15:12.740Z",
+        "reason": "mobile/DESIGN.md: spring hover/press motion is the design system's interaction signature; same curve as the spring-press utility in landing/src/styles/app.css"
+      }
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 packages:
   - backend
   - mobile
+  - landing
 allowBuilds:
   '@embedded-postgres/darwin-arm64': true
   '@embedded-postgres/linux-x64': false
@@ -37,3 +38,6 @@ minimumReleaseAgeExclude:
   - expo@57.0.17
   - eslint-config-expo@57.0.2
   - jest-expo@57.0.5
+  - '@tanstack/query-core@5.103.0'
+  - '@tanstack/react-query@5.103.0'
+  - '@types/node@22.20.3'

@@ -3,6 +3,7 @@ version: '3'
 vars:
   BACKEND: garde-manger-backend
   MOBILE: garde-manger-mobile
+  LANDING: garde-manger-landing
   # -f is explicit below, which turns off Compose's own compose.yaml +
   # compose.override.yaml auto-lookup — so re-add the override by hand
   # whenever it's there (cf. compose.override.yml.example).
@@ -24,6 +25,8 @@ tasks:
       - cmd: cp -n backend/.env.example backend/.env
         ignore_error: true
       - cmd: cp -n mobile/.env.example mobile/.env
+        ignore_error: true
+      - cmd: cp -n landing/.env.example landing/.env
         ignore_error: true
 
   dev:
@@ -128,8 +131,29 @@ tasks:
     cmds:
       - pnpm --filter {{.MOBILE}} run boundaries
 
+  dev:landing:
+    desc: Run the landing site dev server (http://localhost:3000).
+    dir: landing
+    cmds:
+      - pnpm run dev
+
+  typecheck:landing:
+    desc: Typecheck the landing site.
+    cmds:
+      - pnpm --filter {{.LANDING}} run typecheck
+
+  test:landing:
+    desc: Run landing tests (Vitest).
+    cmds:
+      - pnpm --filter {{.LANDING}} run test
+
+  boundaries:landing:
+    desc: Lint the landing site's dependency boundaries.
+    cmds:
+      - pnpm --filter {{.LANDING}} run boundaries
+
   check:
-    desc: The CI command — lint + typecheck + tests + boundary lint, both packages.
+    desc: The CI command — lint + typecheck + tests + boundary lint, every package.
     cmds:
       - task: lint
       - task: typecheck
@@ -139,6 +163,9 @@ tasks:
       - task: typecheck:mobile
       - task: test:mobile
       - task: boundaries:mobile
+      - task: typecheck:landing
+      - task: test:landing
+      - task: boundaries:landing
 
   build:
     desc: Build the backend.

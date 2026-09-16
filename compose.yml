@@ -65,11 +65,29 @@ services:
       TELEMETRY_OTLP_ENDPOINT: ${TELEMETRY_OTLP_ENDPOINT:-http://otel-collector:4318}
       TELEMETRY_MAX_BODY_BYTES: ${TELEMETRY_MAX_BODY_BYTES:-262144}
       TELEMETRY_RATE_LIMIT_PER_MINUTE: ${TELEMETRY_RATE_LIMIT_PER_MINUTE:-60}
+      PUBLIC_STATS_ENABLED: ${PUBLIC_STATS_ENABLED:-false}
     depends_on:
       db:
         condition: service_healthy
     ports:
       - '${BACKEND_PORT:-3333}:3333'
+    networks:
+      - internal
+
+  # Marketing site (landing/). Nothing depends on it and it depends on
+  # nothing: its API/GitHub reads happen in the visitor's browser, so the
+  # URLs below are baked in at build time and must be publicly reachable.
+  landing:
+    build:
+      context: .
+      dockerfile: landing/Dockerfile
+      args:
+        VITE_CONNECTOR: ${LANDING_CONNECTOR:-http}
+        VITE_API_URL: ${LANDING_API_URL:-http://localhost:3333}
+        VITE_GITHUB_REPO: ${LANDING_GITHUB_REPO:-floriaaan/fridge-ai}
+    restart: unless-stopped
+    ports:
+      - '${LANDING_PORT:-3000}:3000'
     networks:
       - internal
 

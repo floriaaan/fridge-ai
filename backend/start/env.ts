@@ -73,4 +73,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   // almost always on a private LAN address, which the usual "block private
   // ranges" SSRF mitigation would itself block).
   HOME_ASSISTANT_ALLOWED_HOSTS: Env.schema.string.optional(),
+
+  // GET /api/public/stats (instance-wide counts for the landing page).
+  // Off by default: on a one-household instance even aggregates describe
+  // that household.
+  PUBLIC_STATS_ENABLED: Env.schema.boolean.optional(),
 })

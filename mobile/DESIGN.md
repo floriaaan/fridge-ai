@@ -186,7 +186,7 @@ The fridge screen's cabinet is a disclosed, screen-scoped material exception, th
 
 ## Typography
 
-**Body/Display Font:** System sans-serif (Tamagui `defaultConfig`'s platform stack) — **no custom typeface has been sourced yet.** The brief calls for "une seule famille sans-serif géométrique" (one geometric sans); that choice is still open. Treat any font-family value in this document as a placeholder, not a commitment.
+**Body/Display Font:** System sans-serif (Tamagui `defaultConfig`'s platform stack) — **no custom typeface has been sourced yet.** The brief calls for "une seule famille sans-serif géométrique" (one geometric sans); that choice is now **Plus Jakarta Sans** (variable, 200–800, OFL), self-hosted through `@fontsource-variable/plus-jakarta-sans` and already live on the landing site (`landing/`). Mobile still renders the system stack until it loads the same family (`expo-font`); the font-family values below stay placeholders until then.
 
 **Character:** Hierarchy is built on size and weight only — never color. A label is always small/regular/secondary-toned above; a value is always larger/bold/ink-toned below.
 
