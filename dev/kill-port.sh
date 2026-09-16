@@ -6,7 +6,7 @@
 # as a preference for the `get-port` package, not a requirement). A backend
 # left over from a killed pane/session (Ctrl+C that didn't reach the
 # underlying hot-hook worker, a closed tmux pane, a crashed shell) then
-# stays bound to 3333 forever, and the next `task dev:back` quietly starts
+# stays bound to 3333 forever, and the next `task backend:dev` quietly starts
 # on something like :55420 instead — same symptom as "serveur injoignable"
 # on the mobile debug pill, with nothing in any log to explain it.
 set -euo pipefail

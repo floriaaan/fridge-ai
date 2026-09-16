@@ -42,7 +42,7 @@ function renderDashboard(overrides: Partial<React.ComponentProps<typeof Househol
 test('names the real household, not a hardcoded one', async () => {
   renderDashboard()
 
-  await waitFor(() => expect(screen.getByText('Maison Bellevue')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText('Appartement des loulous')).toBeTruthy())
 })
 
 test('the hero counts the products actually at risk in the fridge', async () => {
@@ -208,11 +208,11 @@ test('the foyer is on the foyer\'s home screen — its members, and the way in',
   const onOpenHousehold = jest.fn()
   renderDashboard({ onOpenHousehold })
 
-  await waitFor(() => expect(screen.getByText('Maison Bellevue')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText('Appartement des loulous')).toBeTruthy())
 
   // Two fixture members: overlapping initials, next to the name, on the one
   // screen everybody opens.
-  expect(screen.getByText('DU')).toBeTruthy()
+  expect(screen.getByText('TC')).toBeTruthy()
   expect(screen.getByText('C')).toBeTruthy()
 
   fireEvent.press(screen.getByTestId('dashboard-household'))

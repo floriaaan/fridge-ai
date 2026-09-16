@@ -24,8 +24,8 @@ import './tamagui.config'
 // Notifying synchronously — React Query's own documented fix for test
 // environments — removes the leftover timer entirely, so there is nothing
 // left to bleed into the following test.
-import { notifyManager } from '@tanstack/react-query'
-notifyManager.setNotifyFunction((fn) => fn())
-notifyManager.setBatchNotifyFunction((fn) => fn())
+// import { notifyManager } from '@tanstack/react-query'
+// notifyManager.setNotifyFunction((fn) => fn())
+// notifyManager.setBatchNotifyFunction((fn) => fn())
 
 export {}

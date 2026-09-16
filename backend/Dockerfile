@@ -23,7 +23,9 @@ COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/build ./backend/build
 COPY --from=build /app/backend/package.json ./backend/package.json
 COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh && chown -R gardemanger:gardemanger /app
+# /app/data is the storage volume's mount point: created here so the volume
+# inherits the non-root owner instead of root.
+RUN chmod +x ./docker-entrypoint.sh && mkdir -p /app/data/storage && chown -R gardemanger:gardemanger /app
 USER gardemanger
 WORKDIR /app/backend/build
 EXPOSE 3333

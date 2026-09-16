@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: Lint, typecheck, tests, boundaries
+  backend-check:
+    name: Backend — lint, typecheck, tests, boundaries
     runs-on: ubuntu-latest
 
     services:
@@ -37,7 +37,8 @@ jobs:
       TZ: UTC
       PORT: 3333
       HOST: localhost
-      LOG_LEVEL: info
+      LOG_LEVEL: fatal
+      TELEMETRY_INGEST_ENABLED: false
       APP_KEY: ci-test-app-key-not-for-production-use
       ENCRYPTION_KEY: Y2ktdGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcyE=
       BETTER_AUTH_SECRET: ci-test-better-auth-secret-not-for-production-use
@@ -72,10 +73,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run migrations
-        run: task db:migrate
+        run: task backend:migrate
 
       - name: Run checks (lint + typecheck + tests + boundary lint)
-        run: task check
+        run: task backend:check
 
   mobile-check:
     name: Mobile — lint, typecheck, tests, boundaries
@@ -101,7 +102,33 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run checks (lint + typecheck + tests + boundary lint)
-        run: task lint:mobile typecheck:mobile test:mobile boundaries:mobile
+        run: task mobile:check
+
+  landing-check:
+    name: Landing — typecheck, tests, boundaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run checks (typecheck + tests + boundary lint)
+        run: task landing:check
 
   build:
     name: Build

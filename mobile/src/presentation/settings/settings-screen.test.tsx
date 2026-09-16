@@ -36,7 +36,7 @@ async function renderAuthenticated(connector = new FakeFridgeConnector()) {
 test('shows the signed-in user and the household on their own cards', async () => {
   await renderAuthenticated()
 
-  await waitFor(() => expect(screen.getByText('Demo User')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText('Thomas')).toBeTruthy())
   expect(screen.getByText('demo@example.com')).toBeTruthy()
 })
 
@@ -45,12 +45,12 @@ test('the foyer card carries the whole width, its members and the role — not a
 
   // The name, not the testID: the card renders straight away with a "—"
   // placeholder while the household query is in flight.
-  await waitFor(() => expect(screen.getByText('Maison Bellevue')).toBeTruthy())
+  await waitFor(() => expect(screen.getByText('Appartement des loulous')).toBeTruthy())
 
   expect(screen.getByText('2 membres')).toBeTruthy()
   expect(screen.getByText('Propriétaire')).toBeTruthy()
   // Initials, one per member, from the two fixture names.
-  expect(screen.getByText('DU')).toBeTruthy()
+  expect(screen.getByText('TC')).toBeTruthy()
   expect(screen.getByText('C')).toBeTruthy()
 
   fireEvent.press(screen.getByTestId('settings-household'))

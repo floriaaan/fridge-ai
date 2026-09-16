@@ -28,7 +28,7 @@ async function renderHousehold(connector = new FakeFridgeConnector()) {
 test('names the household and lists its members', async () => {
   await renderHousehold()
 
-  await waitFor(() => expect(screen.getByTestId('household-name')).toHaveTextContent('Maison Bellevue'))
+  await waitFor(() => expect(screen.getByTestId('household-name')).toHaveTextContent('Appartement des loulous'))
   expect(screen.getByTestId('household-member-fake-user-1')).toBeTruthy()
   expect(screen.getByTestId('household-member-fake-user-2')).toBeTruthy()
 })

@@ -329,6 +329,17 @@ Owner de foyer uniquement (n'importe lequel — réglage d'instance, cf.
 
 Pas d'auth. `200 { "status": "ok" }` — même contrat que le healthcheck Docker `arr`.
 
+### `GET /api/public/stats`
+
+Pas d'auth — lu par la landing (`landing/`). Opt-in par instance
+(`PUBLIC_STATS_ENABLED=true`) : désactivé, répond `404 { "error": { "type": "not_found" } }`
+comme si la route n'existait pas. Agrégats uniquement, `Cache-Control: public, max-age=300`.
+
+```jsonc
+// 200
+{ "stats": { "households": 12, "productsConsumed": 842, "recipesGenerated": 57 } }
+```
+
 ### `GET /api/products/:id/image`
 
 Même logique que `GET /api/receipts/:id/image`, pour les photos de produit (si

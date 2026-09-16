@@ -1,0 +1,140 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/plus-jakarta-sans';
+
+/*
+ * Tokens come from mobile/DESIGN.md ("The Sunlit Pantry") — change them there
+ * first. Lime = action/progress only; hero mocha = the page's one dark surface;
+ * no borders on containers; asymmetric corners on every card.
+ */
+@theme {
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-ground-mint: #e9f6d8;
+  --color-ground-white: #ffffff;
+  --color-ink: #16211a;
+  --color-ink-secondary: #6b7280;
+  --color-hero-mocha: #6b5642;
+  --color-accent-lime: #c4e538;
+  --color-accent-lime-text: #0f2b1d;
+  --color-accent-warm: #ff8a3d;
+  --color-blob-strong: #bfee7a;
+  --color-blob-soft: #eaf8d8;
+  --color-layout-surface: #eee6dc;
+  --color-cream: #fdf6e8;
+  --color-cream-text: #7a6b47;
+  --color-lavender: #efeafb;
+  --color-lavender-text: #635b85;
+  --color-mint-pale: #e1f3e6;
+  --color-mint-pale-text: #3d7a57;
+  --color-chip-orange: #ff8a3d;
+  --color-chip-violet: #8b7fd1;
+  --color-chip-teal: #2fa88a;
+  --color-soon-on-dark: #f0c46e;
+
+  /* DESIGN.md shadow vocabulary. */
+  --shadow-card-float: 0 10px 20px rgb(15 43 29 / 0.1);
+  --shadow-list-container: 0 8px 14px rgb(15 43 29 / 0.06);
+  --shadow-hero-lift: 0 16px 28px rgb(15 43 29 / 0.22);
+  --shadow-frame-lift: 0 10px 22px rgb(58 46 32 / 0.16);
+
+  /* shadcn semantic aliases, mapped onto the same palette. */
+  --color-background: var(--color-ground-white);
+  --color-foreground: var(--color-ink);
+  --color-primary: var(--color-accent-lime);
+  --color-primary-foreground: var(--color-accent-lime-text);
+  --color-secondary: var(--color-cream);
+  --color-secondary-foreground: var(--color-cream-text);
+  --color-muted: var(--color-cream);
+  --color-muted-foreground: var(--color-ink-secondary);
+  --color-accent: var(--color-mint-pale);
+  --color-accent-foreground: var(--color-mint-pale-text);
+  --color-ring: var(--color-accent-lime-text);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-wiggle: wiggle 0.5s ease-in-out;
+}
+
+/* The three named asymmetric corner sets (StatCard a/b/c) + the hero's 36/20. */
+@utility corners-a {
+  border-radius: 26px 14px 26px 14px;
+}
+@utility corners-b {
+  border-radius: 14px 26px 14px 26px;
+}
+@utility corners-c {
+  border-radius: 22px 22px 14px 14px;
+}
+@utility corners-hero {
+  border-radius: 36px 20px 36px 20px;
+}
+
+/* useHoverPress on the web: ×1.035 hover, ×0.96 press, springing back. */
+@utility spring-press {
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  &:hover {
+    transform: scale(1.035);
+  }
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    accent-color: var(--color-accent-lime);
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  *:focus-visible {
+    outline: 3px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-accent-lime);
+    color: var(--color-ink);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-12deg);
+  }
+  60% {
+    transform: rotate(10deg);
+  }
+}

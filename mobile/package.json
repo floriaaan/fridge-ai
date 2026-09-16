@@ -66,6 +66,7 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
+    "forceExit": true,
     "resolver": "./jest.worklets-resolver.js",
     "setupFiles": [
       "./jest.setup.ts"
