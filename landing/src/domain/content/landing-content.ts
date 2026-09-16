@@ -1,3 +1,5 @@
+export type Locale = 'fr' | 'en'
+
 export type IllustrationName = 'receipt' | 'pot-of-food' | 'shopping-cart' | 'carrot' | 'chart-increasing'
 
 export interface Feature {
@@ -43,7 +45,63 @@ export interface StoreLinks {
   playStore: string | null
 }
 
+/**
+ * Chrome copy: navigation, buttons, section headings and other strings that
+ * aren't editorial content but still need to change per locale.
+ */
+export interface LandingUi {
+  skipToContent: string
+  nav: { features: string; start: string; faq: string }
+  cta: { start: string; viewOnGithub: string }
+  /** sr-only heading above the feature cards. */
+  featuresHeading: string
+  /** sr-only suffix after the GitHub star count in the hero eyebrow. */
+  starsSuffix: string
+  stats: {
+    heading: string
+    subtitle: string
+    households: string
+    productsConsumed: string
+    recipesGenerated: string
+    starsOnGithub: string
+    version: string
+    license: string
+  }
+  offers: {
+    or: string
+    storesAvailable: string
+    storesFallback: string
+  }
+  faq: {
+    headingBefore: string
+    headingHighlight: string
+    headingAfter: string
+    subtitle: string
+    askYours: string
+  }
+  footer: {
+    taglineBefore: string
+    taglineHighlight: string
+    taglineAfter: string
+    navLabel: string
+    navApp: string
+    navProject: string
+    links: {
+      features: string
+      start: string
+      faq: string
+      github: string
+      selfHost: string
+      license: string
+      issues: string
+    }
+    credit: string
+    illustrationCredit: string
+  }
+}
+
 export interface LandingContent {
+  locale: Locale
   repositoryUrl: string
   hero: {
     eyebrow: string
@@ -67,4 +125,5 @@ export interface LandingContent {
   }
   faq: FaqEntry[]
   stores: StoreLinks
+  ui: LandingUi
 }

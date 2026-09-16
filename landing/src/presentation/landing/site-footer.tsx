@@ -1,4 +1,5 @@
 import { ArrowRightIcon } from 'lucide-react'
+import type { LandingContent } from '../../domain/content/landing-content.js'
 import { Button } from '../ui/button.js'
 import { GithubIcon } from '../ui/github-icon.js'
 import { illustrationSrc } from './illustration.js'
@@ -8,23 +9,24 @@ import { ScribbleUnderline } from './scribble-underline.js'
  * A closing call to action on a mint card that bookends the hero, with the
  * links, a clipped giant wordmark and the illustration credit.
  */
-export function SiteFooter({ repositoryUrl }: { repositoryUrl: string }) {
+export function SiteFooter({ content }: { content: LandingContent }) {
+  const { repositoryUrl, ui } = content
   const columns = [
     {
-      title: 'L’app',
+      title: ui.footer.navApp,
       links: [
-        { href: '#fonctionnalites', label: 'Fonctionnalités' },
-        { href: '#demarrer', label: 'Deux façons de s’y mettre' },
-        { href: '#faq', label: 'Questions fréquentes' },
+        { href: '#fonctionnalites', label: ui.footer.links.features },
+        { href: '#demarrer', label: ui.footer.links.start },
+        { href: '#faq', label: ui.footer.links.faq },
       ],
     },
     {
-      title: 'Le projet',
+      title: ui.footer.navProject,
       links: [
-        { href: repositoryUrl, label: 'GitHub' },
-        { href: '#auto-hebergement', label: 'Auto-hébergement' },
-        { href: `${repositoryUrl}/blob/main/LICENSE`, label: 'Licence MIT' },
-        { href: `${repositoryUrl}/issues`, label: 'Signaler un problème' },
+        { href: repositoryUrl, label: ui.footer.links.github },
+        { href: '#auto-hebergement', label: ui.footer.links.selfHost },
+        { href: `${repositoryUrl}/blob/main/LICENSE`, label: ui.footer.links.license },
+        { href: `${repositoryUrl}/issues`, label: ui.footer.links.issues },
       ],
     },
   ]
@@ -56,23 +58,25 @@ export function SiteFooter({ repositoryUrl }: { repositoryUrl: string }) {
         <div className="relative mx-auto grid max-w-7xl gap-14 px-6 pt-16 sm:px-10 sm:pt-20 lg:grid-cols-[1.5fr_1fr]">
           <div>
             <p className="max-w-2xl text-4xl leading-[1] font-extrabold tracking-[-0.045em] text-balance text-ink sm:text-6xl">
-              Plus rien ne se perd <ScribbleUnderline>au fond du frigo</ScribbleUnderline>.
+              {ui.footer.taglineBefore}
+              <ScribbleUnderline>{ui.footer.taglineHighlight}</ScribbleUnderline>
+              {ui.footer.taglineAfter}
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <Button asChild size="lg">
                 <a href="#demarrer">
-                  Commencer <ArrowRightIcon aria-hidden data-motion="nudge" />
+                  {ui.cta.start} <ArrowRightIcon aria-hidden data-motion="nudge" />
                 </a>
               </Button>
               <Button asChild size="lg" variant="quiet">
                 <a href={repositoryUrl}>
-                  <GithubIcon data-motion="wiggle" /> Voir sur GitHub
+                  <GithubIcon data-motion="wiggle" /> {ui.cta.viewOnGithub}
                 </a>
               </Button>
             </div>
           </div>
 
-          <nav aria-label="Pied de page" className="grid grid-cols-2 gap-8 lg:pt-3">
+          <nav aria-label={ui.footer.navLabel} className="grid grid-cols-2 gap-8 lg:pt-3">
             {columns.map((column) => (
               <div key={column.title}>
                 <p className="text-sm font-bold tracking-wide text-ink/70 uppercase">{column.title}</p>
@@ -96,9 +100,9 @@ export function SiteFooter({ repositoryUrl }: { repositoryUrl: string }) {
         <div className="relative mx-auto mt-16 flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 text-sm text-ink/80 sm:px-10">
           <p className="flex items-center gap-2.5 font-extrabold text-ink">
             <img src="/logo.png" alt="" width={28} height={28} className="size-7 rounded-[8px]" />
-            Garde-manger · open source, licence MIT
+            {ui.footer.credit}
           </p>
-          <p>Illustrations : Fluent Emoji © Microsoft, licence MIT.</p>
+          <p>{ui.footer.illustrationCredit}</p>
         </div>
 
         <p

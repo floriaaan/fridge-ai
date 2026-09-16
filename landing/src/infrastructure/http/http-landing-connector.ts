@@ -1,7 +1,8 @@
 import type { LandingConnector } from '../../domain/interfaces/landing-connector.js'
 import type { InstanceStats } from '../../domain/instance/instance-stats.js'
 import type { ProjectInfo } from '../../domain/project/project-info.js'
-import { landingContentFr } from '../content/landing-content.fr.js'
+import type { Locale } from '../../domain/content/landing-content.js'
+import { LANDING_CONTENT } from '../content/landing-content.js'
 
 export interface HttpLandingConnectorConfig {
   /** Backend base URL, without trailing slash. */
@@ -18,8 +19,8 @@ export class HttpLandingConnector implements LandingConnector {
     this.fetch = config.fetch ?? ((...args) => globalThis.fetch(...args))
   }
 
-  async getContent() {
-    return landingContentFr
+  async getContent(locale: Locale) {
+    return LANDING_CONTENT[locale]
   }
 
   async getInstanceStats(): Promise<InstanceStats | null> {

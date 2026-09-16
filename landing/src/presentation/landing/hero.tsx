@@ -25,8 +25,9 @@ const CARD_TILT = ['rotate-2', '-rotate-2', 'rotate-1', '-rotate-1']
 const CARD_CORNERS = ['a', 'c', 'b', 'a'] as const
 
 export function Hero({ content }: { content: LandingContent }) {
-  const { hero, features } = content
+  const { hero, features, ui, locale } = content
   const { data: project } = useProjectInfoQuery()
+  const numberLocale = locale === 'fr' ? 'fr-FR' : 'en-US'
 
   return (
     <section
@@ -50,8 +51,8 @@ export function Hero({ content }: { content: LandingContent }) {
           {project && (
             <span className="inline-flex items-center gap-1 text-ink-secondary">
               · <StarIcon aria-hidden className="size-3.5 fill-current" />
-              {project.stars.toLocaleString('fr-FR')}
-              <span className="sr-only">étoiles sur GitHub</span>
+              {project.stars.toLocaleString(numberLocale)}
+              <span className="sr-only">{ui.starsSuffix}</span>
             </span>
           )}
         </p>
@@ -87,19 +88,19 @@ export function Hero({ content }: { content: LandingContent }) {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <Button asChild size="lg">
             <a href="#demarrer">
-              Commencer <ArrowRightIcon aria-hidden data-motion="nudge" />
+              {ui.cta.start} <ArrowRightIcon aria-hidden data-motion="nudge" />
             </a>
           </Button>
           <Button asChild size="lg" variant="quiet">
             <a href={content.repositoryUrl}>
-              <GithubIcon data-motion="wiggle" /> Voir sur GitHub
+              <GithubIcon data-motion="wiggle" /> {ui.cta.viewOnGithub}
             </a>
           </Button>
         </div>
       </div>
 
       <div id="fonctionnalites" className="relative mx-auto mt-10 max-w-7xl scroll-mt-8 px-5 sm:mt-12 sm:px-8">
-        <h2 className="sr-only">Fonctionnalités</h2>
+        <h2 className="sr-only">{ui.featuresHeading}</h2>
         <svg
           aria-hidden
           viewBox="0 0 1440 720"

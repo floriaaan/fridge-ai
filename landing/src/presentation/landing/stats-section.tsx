@@ -1,17 +1,18 @@
 import { ChefHatIcon, HouseIcon, ScaleIcon, StarIcon, TagIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { LandingContent } from '../../domain/content/landing-content.js'
 import { useInstanceStatsQuery } from '../../application/instance/instance-stats.query.js'
 import { useProjectInfoQuery } from '../../application/project/project-info.query.js'
 import { cn } from '../ui/cn.js'
 import { CORNERS, type CornerSet } from '../ui/corners.js'
 
-const format = (value: number) => value.toLocaleString('fr-FR')
-
 /**
  * Live numbers only. A source that is disabled or failing hides its own block
  * rather than showing a guess; while loading a value is an honest "—".
  */
-export function StatsSection() {
+export function StatsSection({ content }: { content: LandingContent }) {
+  const { ui, locale } = content
+  const format = (value: number) => value.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')
   const stats = useInstanceStatsQuery()
   const project = useProjectInfoQuery()
 
@@ -21,11 +22,9 @@ export function StatsSection() {
   return (
     <section aria-labelledby="stats-title" className="mx-auto max-w-7xl px-5 py-24 sm:px-8">
       <h2 id="stats-title" className="text-center text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
-        Déjà dans les cuisines
+        {ui.stats.heading}
       </h2>
-      <p className="mx-auto mt-3 max-w-xl text-center text-ink-secondary">
-        Les chiffres de l’instance hébergée et du dépôt, en direct.
-      </p>
+      <p className="mx-auto mt-3 max-w-xl text-center text-ink-secondary">{ui.stats.subtitle}</p>
 
       {showStats && (
         <ul className="mt-12 grid gap-5 sm:grid-cols-3" aria-busy={stats.isPending}>
@@ -34,24 +33,27 @@ export function StatsSection() {
             tone="cream"
             chip="bg-chip-orange"
             icon={HouseIcon}
-            label="Foyers"
+            label={ui.stats.households}
             value={stats.data?.households}
+            format={format}
           />
           <StatCard
             corners="b"
             tone="lavender"
             chip="bg-chip-violet"
             icon={ScaleIcon}
-            label="Produits consommés"
+            label={ui.stats.productsConsumed}
             value={stats.data?.productsConsumed}
+            format={format}
           />
           <StatCard
             corners="c"
             tone="mint-pale"
             chip="bg-chip-teal"
             icon={ChefHatIcon}
-            label="Recettes proposées par l’IA"
+            label={ui.stats.recipesGenerated}
             value={stats.data?.recipesGenerated}
+            format={format}
           />
         </ul>
       )}
@@ -64,18 +66,18 @@ export function StatsSection() {
               className="spring-press inline-flex items-center gap-2 rounded-full bg-ground-white px-4 py-2 shadow-list-container"
             >
               <StarIcon aria-hidden className="size-4 fill-accent-lime stroke-accent-lime-text" />
-              {format(project.data.stars)} étoiles sur GitHub
+              {format(project.data.stars)} {ui.stats.starsOnGithub}
             </a>
           </li>
           {project.data.latestVersion && (
             <li className="inline-flex items-center gap-2 rounded-full bg-ground-white px-4 py-2 shadow-list-container">
               <TagIcon aria-hidden className="size-4 text-ink-secondary" />
-              Version {project.data.latestVersion}
+              {ui.stats.version} {project.data.latestVersion}
             </li>
           )}
           {project.data.license && (
             <li className="inline-flex items-center rounded-full bg-ground-white px-4 py-2 shadow-list-container">
-              Licence {project.data.license}
+              {ui.stats.license} {project.data.license}
             </li>
           )}
         </ul>
@@ -97,6 +99,7 @@ function StatCard({
   icon: Icon,
   label,
   value,
+  format,
 }: {
   corners: CornerSet
   tone: keyof typeof TONES
@@ -104,6 +107,7 @@ function StatCard({
   icon: LucideIcon
   label: string
   value: number | undefined
+  format: (value: number) => string
 }) {
   return (
     <li className={cn(CORNERS[corners], TONES[tone], 'p-6 shadow-card-float')}>

@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import type { ReactNode } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext, useRouterState } from '@tanstack/react-router'
 import type { LandingConnector } from '../domain/interfaces/landing-connector.js'
 import appCss from '../styles/app.css?url'
 
@@ -39,8 +39,14 @@ export const Route = createRootRouteWithContext<{
 })
 
 function RootDocument({ children }: { children: ReactNode }) {
+  // The root layout wraps every route, so the locale comes from the URL
+  // rather than from loader data (each locale is its own route: '/' is fr,
+  // '/en' is en — cf. routes/index.tsx and routes/en.tsx).
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const lang = pathname.startsWith('/en') ? 'en' : 'fr'
+
   return (
-    <html lang="fr">
+    <html lang={lang}>
       <head>
         <HeadContent />
       </head>

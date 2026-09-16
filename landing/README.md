@@ -22,8 +22,8 @@ Inlined at build time (`VITE_*`): the visitor's browser does the fetching, so us
 
 ## Content
 
-- Copy: `src/infrastructure/content/landing-content.fr.ts`, typed by `src/domain/content/landing-content.ts`.
-- Screenshots: `public/screenshots/` (598×1300 JPEG).
+- Copy: `src/infrastructure/content/landing-content.{fr,en}.ts`, typed by `src/domain/content/landing-content.ts`. `/` serves the French content, `/en` the English one — keep both in sync when editing either.
+- Screenshots: `public/screenshots/` (598×1300 JPEG). There's only one set, taken from the French app UI; the English page reuses it with translated `alt` text.
 - The self-hosting commands shown on the page mirror the root [README](../README.md#installation) — change both together.
 
 ## Layout

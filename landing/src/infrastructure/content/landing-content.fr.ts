@@ -3,6 +3,7 @@ import type { LandingContent } from '../../domain/content/landing-content.js'
 // ponytail: content is bundled with the site; move it behind the connector's
 // HTTP side once a CMS or a backend endpoint serves it.
 export const landingContentFr: LandingContent = {
+  locale: 'fr',
   repositoryUrl: 'https://github.com/floriaaan/fridge-ai',
   hero: {
     eyebrow: 'Open source · clé en main ou chez toi',
@@ -121,4 +122,52 @@ export const landingContentFr: LandingContent = {
     },
   ],
   stores: { appStore: null, playStore: null },
+  ui: {
+    skipToContent: 'Aller au contenu',
+    nav: { features: 'Fonctionnalités', start: 'Démarrer', faq: 'FAQ' },
+    cta: { start: 'Commencer', viewOnGithub: 'Voir sur GitHub' },
+    featuresHeading: 'Fonctionnalités',
+    starsSuffix: 'étoiles sur GitHub',
+    stats: {
+      heading: 'Déjà dans les cuisines',
+      subtitle: 'Les chiffres de l’instance hébergée et du dépôt, en direct.',
+      households: 'Foyers',
+      productsConsumed: 'Produits consommés',
+      recipesGenerated: 'Recettes proposées par l’IA',
+      starsOnGithub: 'étoiles sur GitHub',
+      version: 'Version',
+      license: 'Licence',
+    },
+    offers: {
+      or: 'ou',
+      storesAvailable: 'App Store et Google Play',
+      storesFallback: 'iOS et Android · bientôt sur les stores',
+    },
+    faq: {
+      headingBefore: 'Des',
+      headingHighlight: 'questions',
+      headingAfter: ' ?',
+      subtitle: 'Hébergement, IA, données : ce qu’on nous demande avant de se lancer.',
+      askYours: 'Poser la tienne',
+    },
+    footer: {
+      taglineBefore: 'Plus rien ne se perd ',
+      taglineHighlight: 'au fond du frigo',
+      taglineAfter: '.',
+      navLabel: 'Pied de page',
+      navApp: 'L’app',
+      navProject: 'Le projet',
+      links: {
+        features: 'Fonctionnalités',
+        start: 'Deux façons de s’y mettre',
+        faq: 'Questions fréquentes',
+        github: 'GitHub',
+        selfHost: 'Auto-hébergement',
+        license: 'Licence MIT',
+        issues: 'Signaler un problème',
+      },
+      credit: 'Garde-manger · open source, licence MIT',
+      illustrationCredit: 'Illustrations : Fluent Emoji © Microsoft, licence MIT.',
+    },
+  },
 }

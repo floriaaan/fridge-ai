@@ -1,27 +1,29 @@
+*English · [Français](README.fr.md)*
+
 # Garde-manger
 
-Le garde-manger partagé du foyer : inventaire, dates de péremption, liste de courses commune, tickets de caisse scannés en une photo et recettes avec ce qui reste. Open source, licence MIT.
+The household's shared pantry: inventory, expiry dates, a shared shopping list, receipts scanned in one photo, and recipes with what's left. Open source, MIT licensed.
 
-Deux façons de s’en servir :
+Two ways to use it:
 
-- **Clé en main** — hébergé pour toi, gratuit pour l’essentiel, abonnement pour l’IA. _Pas encore ouvert._
-- **Auto-hébergé** — l’API tourne chez toi, l’app ne parle qu’à ton serveur. C’est ce que décrit la suite.
+- **Hosted** — hosted for you, free for the essentials, subscription for the AI. _Not open yet._
+- **Self-hosted** — the API runs at home, the app only ever talks to your server. That's what the rest of this document covers.
 
 ## Installation
 
-Il faut une machine avec Docker (Compose v2) et `git`, sur le même réseau que les téléphones. Compte ~2 Go de RAM avec la supervision, quelques centaines de Mo sans.
+You need a machine with Docker (Compose v2) and `git`, on the same network as the phones. Budget ~2 GB of RAM with observability, a few hundred MB without.
 
-### 1. Récupérer le code et configurer
+### 1. Get the code and configure
 
 ```bash
 git clone https://github.com/floriaaan/fridge-ai.git && cd fridge-ai
 cp .env.example .env
 
-# Génère les trois secrets obligatoires (APP_KEY, BETTER_AUTH_SECRET, ENCRYPTION_KEY)
+# Generates the three required secrets (APP_KEY, BETTER_AUTH_SECRET, ENCRYPTION_KEY)
 for k in APP_KEY BETTER_AUTH_SECRET ENCRYPTION_KEY; do sed -i.bak "s|^$k=.*|$k=$(openssl rand -base64 32)|" .env; done; rm .env.bak
 ```
 
-Puis, dans `.env`, remplace l’IP de `NETWORK_URL` par celle du serveur sur ton réseau :
+Then, in `.env`, replace `NETWORK_URL`'s IP with your server's address on your network:
 
 ```bash
 ipconfig getifaddr en0          # macOS
@@ -32,28 +34,28 @@ hostname -I | awk '{print $1}'  # Linux
 NETWORK_URL=http://192.168.1.42:3333
 ```
 
-### 2. Démarrer
+### 2. Start
 
 ```bash
 docker compose up -d
 ```
 
-Le premier lancement construit l’image de l’API (1 à 2 minutes). Les migrations de la base passent toutes seules au démarrage. Vérifie :
+The first run builds the API image (1 to 2 minutes). Database migrations run automatically on startup. Check:
 
 ```bash
 curl http://localhost:3333/health
 # {"status":"ok"}
 ```
 
-Ça démarre Postgres, l’API, et la supervision (OpenTelemetry Collector + OpenObserve sur http://127.0.0.1:5080). Pour une machine modeste, sans supervision :
+This starts Postgres, the API, and observability (OpenTelemetry Collector + OpenObserve at http://127.0.0.1:5080). On a modest machine, without observability:
 
 ```bash
 docker compose up -d db backend
 ```
 
-### 3. Lancer l’app sur ton téléphone
+### 3. Run the app on your phone
 
-L’app n’est pas encore sur les stores. En attendant, elle tourne dans [Expo Go](https://expo.dev/go) (App Store / Play Store), depuis un ordinateur du même réseau avec Node.js 24+ :
+The app isn't on the stores yet. In the meantime it runs in [Expo Go](https://expo.dev/go) (App Store / Play Store), from a computer on the same network with Node.js 24+:
 
 ```bash
 corepack enable
@@ -61,7 +63,7 @@ pnpm install
 cp mobile/.env.example mobile/.env
 ```
 
-Dans `mobile/.env`, pointe l’app sur ton serveur (pas `localhost` : c’est le téléphone qui appelle) :
+In `mobile/.env`, point the app at your server (not `localhost` — it's the phone making the calls):
 
 ```dotenv
 EXPO_PUBLIC_API_URL=http://192.168.1.42:3333
@@ -71,80 +73,80 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:3333
 cd mobile && pnpm start
 ```
 
-Scanne le QR code avec l’appareil photo (iOS) ou Expo Go (Android), crée un compte, puis un foyer. Les autres membres créent leur propre compte et rejoignent le foyer avec son code d’invitation.
+Scan the QR code with the camera app (iOS) or Expo Go (Android), create an account, then a household. Other members create their own account and join the household with its invite code.
 
-> Si la connexion échoue avec une erreur d’origine, vérifie que `CORS_ORIGIN` dans `.env` contient bien `exp://` (Expo Go) — c’est la valeur par défaut.
+> If the connection fails with an origin error, check that `CORS_ORIGIN` in `.env` includes `exp://` (Expo Go) — that's the default value.
 
 ## Configuration
 
-Tout se règle dans `.env` (commenté), puis `docker compose up -d` pour appliquer.
+Everything is set in `.env` (commented), then `docker compose up -d` to apply.
 
-### IA (scan de tickets, recettes)
+### AI (receipt scanning, recipes)
 
-Sans fournisseur, tout marche sauf ces deux fonctionnalités. Renseigne au moins un fournisseur :
+Without a provider, everything works except these two features. Set at least one provider:
 
 ```dotenv
 AI_PROVIDER=gemini          # gemini | openai | ollama
 GEMINI_API_KEY=...
 OPENAI_API_KEY=...
 
-# Ou un modèle local, rien ne sort de chez toi :
-OLLAMA_BASE_URL=http://host.docker.internal:11434   # Ollama installé sur le serveur
-OLLAMA_VISION_MODEL=llava                           # doit lire les images
+# Or a local model, nothing leaves your home:
+OLLAMA_BASE_URL=http://host.docker.internal:11434   # Ollama installed on the server
+OLLAMA_VISION_MODEL=llava                           # must read images
 OLLAMA_TEXT_MODEL=llama3.1
 ```
 
-Le fournisseur actif se change ensuite à chaud depuis les réglages de l’app ([ADR 0007](docs/adr/0007-provider-ia-changeable-a-chaud.md)).
+The active provider can then be switched at runtime from the app's settings ([ADR 0007](docs/adr/0007-provider-ia-changeable-a-chaud.md)).
 
-### Connexion via PocketID (optionnel)
+### Sign-in via PocketID (optional)
 
 ```dotenv
 POCKETID_ISSUER_URL=https://auth.example.com
 POCKETID_CLIENT_ID=...
 POCKETID_CLIENT_SECRET=...
-DISABLE_PASSWORD_LOGIN=false   # true = PocketID uniquement
+DISABLE_PASSWORD_LOGIN=false   # true = PocketID only
 ```
 
-Côté PocketID, l’URL de redirection se base sur `NETWORK_URL` ([ADR 0005](docs/adr/0005-auth-methods-endpoint-decouverte.md)).
+On PocketID's side, the redirect URL is based on `NETWORK_URL` ([ADR 0005](docs/adr/0005-auth-methods-endpoint-decouverte.md)).
 
-### Supervision
+### Observability
 
-Change `OPENOBSERVE_ROOT_EMAIL`, `OPENOBSERVE_ROOT_PASSWORD` et `OTLP_STORE_AUTH` ensemble avant d’exposer quoi que ce soit. Les ports restent sur `127.0.0.1`. Détails dans [docs/observabilite.md](docs/observabilite.md).
+Change `OPENOBSERVE_ROOT_EMAIL`, `OPENOBSERVE_ROOT_PASSWORD` and `OTLP_STORE_AUTH` together before exposing anything. Ports stay on `127.0.0.1`. Details in [docs/observabilite.md](docs/observabilite.md).
 
-## Au quotidien
+## Day to day
 
 ```bash
-git pull && docker compose up -d --build   # mettre à jour (migrations incluses)
-docker compose logs -f backend             # journaux de l’API
-docker compose down                        # arrêter (les données restent)
+git pull && docker compose up -d --build   # update (migrations included)
+docker compose logs -f backend             # API logs
+docker compose down                        # stop (data stays)
 ```
 
-Les données vivent dans deux volumes Docker : `pgdata` (la base) et `storage` (photos des tickets et produits). Sauvegarde de la base :
+Data lives in two Docker volumes: `pgdata` (the database) and `storage` (receipt and product photos). Database backup:
 
 ```bash
 docker compose exec db pg_dump -U garde_manger garde_manger > garde-manger.sql
 ```
 
-## Développer
+## Developing
 
-| Dossier                | Quoi                                                     |
-| ---------------------- | -------------------------------------------------------- |
-| [`backend/`](backend)  | API AdonisJS, Postgres, better-auth                      |
-| [`mobile/`](mobile)    | App Expo (iOS / Android) — [README](mobile/README.md)    |
-| [`landing/`](landing)  | Site vitrine TanStack Start — [README](landing/README.md) |
-| [`docs/`](docs)        | Décisions d’architecture ([ADR](docs/adr)), roadmap      |
+| Folder                | What                                                       |
+| ---------------------- | ----------------------------------------------------------- |
+| [`backend/`](backend)  | AdonisJS API, Postgres, better-auth                          |
+| [`mobile/`](mobile)    | Expo app (iOS / Android) — [README](mobile/README.md)        |
+| [`landing/`](landing)  | TanStack Start marketing site — [README](landing/README.md)  |
+| [`docs/`](docs)        | Architecture decisions ([ADR](docs/adr)), roadmap             |
 
-Les tâches passent par [Task](https://taskfile.dev) :
+Tasks go through [Task](https://taskfile.dev):
 
 ```bash
-task setup   # dépendances + copie des .env
-task dev     # Postgres en Docker + API en local (HMR)
+task setup   # dependencies + copy the .env files
+task dev     # Postgres in Docker + API locally (HMR)
 task dev:mobile
-task check   # lint, typecheck, tests, frontières de couches
+task check   # lint, typecheck, tests, layer boundaries
 ```
 
-Chaque paquet suit la même organisation en couches `domain/`, `application/`, `infrastructure/`, `presentation/`.
+Each package follows the same layering: `domain/`, `application/`, `infrastructure/`, `presentation/`.
 
-## Licence
+## License
 
 [MIT](LICENSE).

@@ -1,5 +1,5 @@
 import { ArrowUpRightIcon } from 'lucide-react'
-import type { FaqEntry } from '../../domain/content/landing-content.js'
+import type { LandingContent } from '../../domain/content/landing-content.js'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion.js'
 import { Button } from '../ui/button.js'
 import { cn } from '../ui/cn.js'
@@ -14,7 +14,8 @@ const TONES = [
   { corners: CORNERS.c, surface: 'bg-mint-pale', text: 'text-mint-pale-text' },
 ] as const
 
-export function FaqSection({ faq, repositoryUrl }: { faq: FaqEntry[]; repositoryUrl: string }) {
+export function FaqSection({ content }: { content: LandingContent }) {
+  const { faq, repositoryUrl, ui } = content
   return (
     <section
       id="faq"
@@ -33,16 +34,14 @@ export function FaqSection({ faq, repositoryUrl }: { faq: FaqEntry[]; repository
           id="faq-title"
           className="text-6xl leading-[0.95] font-extrabold tracking-[-0.045em] text-ink sm:text-7xl xl:text-8xl"
         >
-          Des{' '}
-          <ScribbleUnderline>questions</ScribbleUnderline>
-          &nbsp;?
+          {ui.faq.headingBefore}{' '}
+          <ScribbleUnderline>{ui.faq.headingHighlight}</ScribbleUnderline>
+          {ui.faq.headingAfter}
         </h2>
-        <p className="mt-8 max-w-sm text-lg text-ink/75">
-          Hébergement, IA, données : ce qu’on nous demande avant de se lancer.
-        </p>
+        <p className="mt-8 max-w-sm text-lg text-ink/75">{ui.faq.subtitle}</p>
         <Button asChild variant="quiet" size="lg" className="mt-8">
           <a href={`${repositoryUrl}/issues`}>
-            Poser la tienne <ArrowUpRightIcon aria-hidden data-motion="lift" />
+            {ui.faq.askYours} <ArrowUpRightIcon aria-hidden data-motion="lift" />
           </a>
         </Button>
       </div>

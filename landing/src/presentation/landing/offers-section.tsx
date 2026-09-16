@@ -14,7 +14,7 @@ const LIFT = 'transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.6
  * "ou" disc.
  */
 export function OffersSection({ content }: { content: LandingContent }) {
-  const { offers, stores } = content
+  const { offers, stores, ui } = content
   const { hosted, selfHosted } = offers
 
   return (
@@ -77,9 +77,7 @@ export function OffersSection({ content }: { content: LandingContent }) {
                 <OfferCta offer={hosted} />
                 <p className="flex items-center gap-2 text-sm font-semibold text-white/85">
                   <SmartphoneIcon aria-hidden className="size-4" />
-                  {stores.appStore || stores.playStore
-                    ? 'App Store et Google Play'
-                    : 'iOS et Android · bientôt sur les stores'}
+                  {stores.appStore || stores.playStore ? ui.offers.storesAvailable : ui.offers.storesFallback}
                 </p>
               </div>
             </div>
@@ -110,7 +108,7 @@ export function OffersSection({ content }: { content: LandingContent }) {
           aria-hidden
           className="relative z-10 -my-5 grid size-16 -rotate-6 place-items-center rounded-full bg-ground-white text-xl font-extrabold text-ink shadow-card-float"
         >
-          ou
+          {ui.offers.or}
         </span>
 
         <article
