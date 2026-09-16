@@ -3,11 +3,24 @@ import type { ReactNode } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext, useRouterState } from '@tanstack/react-router'
 import type { LandingConnector } from '../domain/interfaces/landing-connector.js'
+import { SITE_URL, absoluteUrl } from '../lib/seo.js'
 import appCss from '../styles/app.css?url'
 
 const TITLE = 'Garde-manger — le frigo partagé du foyer, auto-hébergé'
 const DESCRIPTION =
   'Inventaire partagé, dates de péremption, scan de tickets et recettes avec ce qui reste. Open source et auto-hébergeable.'
+
+const ORGANIZATION_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Garde-manger',
+  url: SITE_URL,
+  image: absoluteUrl('/logo.png'),
+  applicationCategory: 'LifestyleApplication',
+  operatingSystem: 'iOS, Android',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+  sameAs: ['https://github.com/floriaaan/fridge-ai'],
+}
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
@@ -21,9 +34,15 @@ export const Route = createRootRouteWithContext<{
       { name: 'description', content: DESCRIPTION },
       { name: 'theme-color', content: '#E9F6D8' },
       { property: 'og:type', content: 'website' },
+      { property: 'og:site_name', content: 'Garde-manger' },
       { property: 'og:title', content: TITLE },
       { property: 'og:description', content: DESCRIPTION },
-      { property: 'og:image', content: '/logo.png' },
+      { property: 'og:image', content: absoluteUrl('/logo.png') },
+      { name: 'twitter:card', content: 'summary' },
+      { name: 'twitter:title', content: TITLE },
+      { name: 'twitter:description', content: DESCRIPTION },
+      { name: 'twitter:image', content: absoluteUrl('/logo.png') },
+      { 'script:ld+json': ORGANIZATION_JSON_LD },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
