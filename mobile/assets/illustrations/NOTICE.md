@@ -1,10 +1,12 @@
 # Third-party assets
 
-`carrot-3d.png`, `pot-of-food-3d.png`, `shopping-cart-3d.png`
+`carrot-3d.png`, `pot-of-food-3d.png`, `shopping-cart-3d.png`,
+`chart-increasing-3d.png`, `receipt-3d.png`
 
 Source: [microsoft/fluentui-emoji](https://github.com/microsoft/fluentui-emoji)
-(3D style), copied from `assets/{Carrot,Pot of food,Shopping cart}/3D/*.png`
-at commit `main` (2026-08-27).
+(3D style), copied from `assets/{Carrot,Pot of food,Shopping cart,Chart
+increasing,Receipt}/3D/*.png` at commit `main` (2026-08-27;
+`chart-increasing-3d.png` and `receipt-3d.png` added 2026-09-16).
 
 Copyright (c) Microsoft Corporation. Licensed under the MIT License:
 https://github.com/microsoft/fluentui-emoji/blob/main/LICENSE

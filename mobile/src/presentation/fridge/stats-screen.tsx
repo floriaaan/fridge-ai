@@ -8,6 +8,7 @@
  * separately-scoped stat the design explicitly left out of this pass.
  */
 import { useState } from 'react'
+import { Image, type ImageSourcePropType } from 'react-native'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
@@ -20,8 +21,11 @@ import { StatCard } from '../dashboard/stat-card.js'
 import { Meter } from '../shared/meter.js'
 import { WasteTrendChart } from './waste-trend-chart.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { CircleXIcon, TrendingUpIcon, WalletIcon } from '../dashboard/dashboard-icons.js'
+import type { SoftPalette } from '../dashboard/soft-palette.js'
+import { ChefHatIcon, CircleXIcon, SparklesIcon, TrendingUpIcon, WalletIcon } from '../dashboard/dashboard-icons.js'
 import { useProductOutcomeStatsQuery } from '../../application/fridge/product-outcome-stats.query.js'
+
+const mascotIllustration = require('../../../assets/mascot.png') as ImageSourcePropType
 
 /** `undefined` days = "Tout", the same convention `getExpiringSoonProducts`'s optional `days` already uses. */
 type PeriodOption = { label: string; days: number | undefined; testID: string }
@@ -34,6 +38,91 @@ const PERIODS: PeriodOption[] = [
 
 function formatEuros(value: number): string {
   return `${value.toFixed(2).replace('.', ',')} €`
+}
+
+function MascotCoachCard({
+  consumedCount,
+  discardedCount,
+  palette,
+}: {
+  consumedCount: number
+  discardedCount: number
+  palette: SoftPalette
+}) {
+  const isZeroWaste = discardedCount === 0 && consumedCount > 0
+  const isGoodRatio = consumedCount >= discardedCount
+
+  const badge = isZeroWaste
+    ? '🏆 Frigo étoilé'
+    : isGoodRatio
+      ? '🌱 Super élan'
+      : '🎯 Mission sauvetage'
+
+  const title = isZeroWaste
+    ? 'Zéro gaspi ! Quel talent !'
+    : isGoodRatio
+      ? 'La balance penche du bon côté !'
+      : 'Objectif sauvetage en cuisine !'
+
+  const subtitle = isZeroWaste
+    ? `${consumedCount} produit${consumedCount > 1 ? 's savourés' : ' savouré'} sans aucune perte sur cette période.`
+    : isGoodRatio
+      ? `${consumedCount} produit${consumedCount > 1 ? 's sauvés' : ' sauvé'} pour ${discardedCount} jeté${discardedCount > 1 ? 's' : ''}. Bien joué !`
+      : 'Pense à consulter les recettes suggérées pour transformer tes ingrédients à temps.'
+
+  return (
+    <XStack
+      backgroundColor={palette.cream}
+      borderRadius={22}
+      padding="$4"
+      alignItems="center"
+      gap="$3.5"
+      style={{
+        shadowColor: palette.shadowWarm,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 2,
+      }}
+    >
+      <YStack
+        width={56}
+        height={56}
+        borderRadius={18}
+        backgroundColor={palette.mintPale}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Image
+          source={mascotIllustration}
+          style={{ width: 44, height: 44 }}
+          resizeMode="contain"
+          accessibilityLabel="Mascotte Frigo"
+        />
+      </YStack>
+
+      <YStack flex={1} gap="$1">
+        <XStack alignItems="center" gap="$2">
+          <XStack
+            backgroundColor={palette.freshBg}
+            paddingVertical="$0.5"
+            paddingHorizontal="$2"
+            borderRadius={999}
+          >
+            <Text fontSize={10} fontWeight="700" color={palette.freshText}>
+              {badge}
+            </Text>
+          </XStack>
+        </XStack>
+        <Text fontSize={14} fontWeight="800" color={palette.ink}>
+          {title}
+        </Text>
+        <Text fontSize={12} fontWeight="500" color={palette.inkSecondary} lineHeight={16}>
+          {subtitle}
+        </Text>
+      </YStack>
+    </XStack>
+  )
 }
 
 export function StatsScreen() {
@@ -56,9 +145,16 @@ export function StatsScreen() {
     />
   )
 
+  const recipeShareBadge =
+    data && data.recipeSharePercent >= 50
+      ? '⭐ Chef Anti-gaspi'
+      : data && data.recipeSharePercent > 0
+        ? '🍳 Recettes à la rescousse'
+        : '💡 Pense aux recettes !'
+
   return (
     <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
-      <YStack marginTop="$5" gap="$5">
+      <YStack marginTop="$5" gap="$5" paddingBottom="$8">
         <XStack gap="$3">
           {PERIODS.map((period) => (
             <Chip
@@ -75,9 +171,11 @@ export function StatsScreen() {
 
         {loading ? (
           <YStack gap="$3">
+            <Skeleton height={80} radius={22} palette={palette} />
             <XStack gap="$3">
-              <Skeleton height={128} width="50%" radius={20} palette={palette} />
-              <Skeleton height={128} width="50%" radius={20} palette={palette} />
+              <Skeleton height={128} width="33%" radius={20} palette={palette} />
+              <Skeleton height={128} width="33%" radius={20} palette={palette} />
+              <Skeleton height={128} width="33%" radius={20} palette={palette} />
             </XStack>
             <Skeleton height={160} radius={20} palette={palette} />
             <Skeleton height={60} radius={20} palette={palette} />
@@ -100,14 +198,86 @@ export function StatsScreen() {
         ) : null}
 
         {empty ? (
-          <Text testID="stats-empty" fontSize={14} fontWeight="500" color={palette.inkSecondary}>
-            Rien à signaler sur cette période — pas de sortie de produit enregistrée.
-          </Text>
+          <YStack
+            backgroundColor={palette.cream}
+            borderRadius={24}
+            padding="$6"
+            alignItems="center"
+            gap="$3"
+            marginTop="$2"
+            style={{
+              shadowColor: palette.shadowWarm,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.08,
+              shadowRadius: 14,
+            }}
+          >
+            <YStack
+              width={64}
+              height={64}
+              borderRadius={22}
+              backgroundColor={palette.mintPale}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Image
+                source={mascotIllustration}
+                style={{ width: 50, height: 50 }}
+                resizeMode="contain"
+                accessibilityLabel="Mascotte en repos"
+              />
+            </YStack>
+            <Text fontSize={16} fontWeight="800" color={palette.ink} textAlign="center">
+              Ton frigo fait la sieste 💤
+            </Text>
+            <Text
+              testID="stats-empty"
+              fontSize={13}
+              fontWeight="500"
+              color={palette.inkSecondary}
+              textAlign="center"
+              lineHeight={18}
+            >
+              Rien à signaler sur cette période — pas de sortie de produit enregistrée.
+            </Text>
+          </YStack>
         ) : null}
 
         {data && !empty ? (
           <>
-            <XStack gap="$3" alignItems="stretch">
+            <MascotCoachCard
+              consumedCount={data.consumed.count}
+              discardedCount={data.discarded.count}
+              palette={palette}
+            />
+
+            <XStack gap="$2.5" alignItems="stretch">
+              <StatCard
+                testID="stats-consumed-count"
+                bg={palette.mintPale}
+                labelColor={palette.mintPaleText}
+                valueColor={palette.ink}
+                chipColor={palette.chipTeal}
+                icon={<ChefHatIcon size={18} color={palette.onDark} />}
+                label="Savourés"
+                value={String(data.consumed.count)}
+                corner="a"
+                palette={palette}
+                accessibilityLabel={`Produits savourés, ${data.consumed.count}`}
+              />
+              <StatCard
+                testID="stats-discarded-count"
+                bg={palette.cream}
+                labelColor={palette.creamText}
+                valueColor={palette.ink}
+                chipColor={palette.chipOrange}
+                icon={<CircleXIcon size={18} color={palette.onDark} />}
+                label="Jetés"
+                value={String(data.discarded.count)}
+                corner="b"
+                palette={palette}
+                accessibilityLabel={`Produits jetés, ${data.discarded.count}`}
+              />
               <StatCard
                 testID="stats-discarded-value"
                 bg={palette.lavender}
@@ -117,38 +287,50 @@ export function StatsScreen() {
                 icon={<WalletIcon size={18} color={palette.onDark} />}
                 label="Valeur jetée"
                 value={formatEuros(data.discarded.value)}
-                corner="a"
+                corner="c"
                 palette={palette}
                 accessibilityLabel={`Valeur jetée, ${formatEuros(data.discarded.value)}`}
               />
-              <StatCard
-                testID="stats-discarded-count"
-                bg={palette.cream}
-                labelColor={palette.creamText}
-                valueColor={palette.ink}
-                chipColor={palette.chipOrange}
-                icon={<CircleXIcon size={18} color={palette.onDark} />}
-                label="Produits jetés"
-                value={String(data.discarded.count)}
-                corner="b"
-                palette={palette}
-                accessibilityLabel={`Produits jetés, ${data.discarded.count}`}
-              />
             </XStack>
 
-            <YStack gap="$3">
-              <Text fontSize={15} fontWeight="800" color={palette.ink}>
-                Jeté vs consommé
-              </Text>
+            <YStack gap="$3" marginTop="$2">
+              <XStack justifyContent="space-between" alignItems="center">
+                <Text fontSize={15} fontWeight="800" color={palette.ink}>
+                  Jeté vs consommé
+                </Text>
+                <Text fontSize={11} fontWeight="600" color={palette.inkSecondary}>
+                  Par semaine
+                </Text>
+              </XStack>
               <WasteTrendChart testID="stats-trend-chart" buckets={data.buckets} palette={palette} />
             </YStack>
 
-            <Meter
-              testID="stats-recipe-share"
-              label="Repas cuisinés à partir d’une recette"
-              percent={data.recipeSharePercent}
-              palette={palette}
-            />
+            <YStack gap="$2.5" marginTop="$2">
+              <XStack justifyContent="space-between" alignItems="center">
+                <Text fontSize={15} fontWeight="800" color={palette.ink}>
+                  Impact des recettes
+                </Text>
+                <XStack
+                  alignItems="center"
+                  gap="$1"
+                  backgroundColor={palette.mintPale}
+                  paddingVertical="$0.5"
+                  paddingHorizontal="$2"
+                  borderRadius={999}
+                >
+                  <SparklesIcon size={11} color={palette.mintPaleText} />
+                  <Text fontSize={10} fontWeight="700" color={palette.mintPaleText}>
+                    {recipeShareBadge}
+                  </Text>
+                </XStack>
+              </XStack>
+              <Meter
+                testID="stats-recipe-share"
+                label="Repas cuisinés à partir d’une recette"
+                percent={data.recipeSharePercent}
+                palette={palette}
+              />
+            </YStack>
           </>
         ) : null}
       </YStack>

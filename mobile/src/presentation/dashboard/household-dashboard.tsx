@@ -82,6 +82,7 @@ import {
   CircleXIcon,
   LayoutGridIcon,
   PackageIcon,
+  ReceiptIcon,
   SettingsIcon,
   ShoppingCartIcon,
   TrendingUpIcon,
@@ -96,7 +97,7 @@ import { StatusChip } from './status-chip.js'
 import { StatCard } from './stat-card.js'
 import { HeroWarmGlow } from './hero-warm-glow.js'
 import { NavCard } from './nav-card.js'
-import { ReceiptsRow } from './receipts-row.js'
+import { receiptsSummary } from './receipts-row.js'
 import { MemberAvatars } from '../shared/member-avatars.js'
 import { PillButton } from '../shared/pill-button.js'
 import { useSoftPalette } from './soft-palette.js'
@@ -126,6 +127,8 @@ import type { Product } from '../../domain/fridge/product.js'
 // Attribution: assets/illustrations/NOTICE.md.
 const potOfFoodIllustration = require('../../../assets/illustrations/pot-of-food-3d.png') as ImageSourcePropType
 const shoppingCartIllustration = require('../../../assets/illustrations/shopping-cart-3d.png') as ImageSourcePropType
+const chartIncreasingIllustration = require('../../../assets/illustrations/chart-increasing-3d.png') as ImageSourcePropType
+const receiptIllustration = require('../../../assets/illustrations/receipt-3d.png') as ImageSourcePropType
 const mascotIllustration = require('../../../assets/mascot.png') as ImageSourcePropType
 
 /** Rows shown in the "À consommer en premier" preview before "Voir tout" takes over. */
@@ -236,7 +239,6 @@ export function HouseholdDashboard({
     () => receiptsQuery.refetch(),
   )
   const seeAllHover = useHoverPress()
-  const statsHover = useHoverPress()
   const settingsHover = useHoverPress()
   // The FAB opens the same two-choice sheet on every tab — see scan-sheet.tsx.
   const { openScanSheet, scanSheet } = useScanSheet()
@@ -354,32 +356,6 @@ export function HouseholdDashboard({
                 </Pressable>
               </XStack>
               <XStack alignItems="center" gap="$2">
-              {/* Same 44pt icon-button shape as Réglages, placed just before
-                  it — the waste-stats screen's only entry point. */}
-              <Pressable
-                onPress={onOpenStats}
-                testID="open-stats"
-                onHoverIn={statsHover.onHoverIn}
-                onHoverOut={statsHover.onHoverOut}
-                onPressIn={statsHover.onPressIn}
-                onPressOut={statsHover.onPressOut}
-                accessibilityRole="button"
-                accessibilityLabel="Statistiques"
-                style={pointerCursor}
-              >
-                <Animated.View style={{ transform: [{ scale: statsHover.scale }] }}>
-                  <YStack
-                    width={44}
-                    height={44}
-                    borderRadius={999}
-                    backgroundColor={palette.cream}
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <TrendingUpIcon size={19} color={palette.ink} />
-                  </YStack>
-                </Animated.View>
-              </Pressable>
               {/* Was an 11px grey text link — the app's only route to Réglages,
                   and invisible next to a 40px illustration. Now a real 44pt
                   icon button (the Sidebar carries its own entry on desktop). */}
@@ -625,43 +601,66 @@ export function HouseholdDashboard({
               </Text>
             </XStack>
             <TourAnchor id="navcards">
-            <XStack gap="$3" marginTop="$3">
-              <NavCard
-                bg={palette.navCardTeal}
-                glow={palette.chipTeal}
-                onPress={onOpenRecettes}
-                icon={<ChefHatIcon size={30} color={palette.onDark} />}
-                imageSource={potOfFoodIllustration}
-                title="Recettes"
-                subtitle={watchCount > 0 ? 'Cuisine ce qui part en premier' : 'Idées pour ce soir'}
-                corner="b"
-                palette={palette}
-              />
-              <NavCard
-                bg={palette.navCardViolet}
-                glow={palette.chipViolet}
-                onPress={onOpenCourses}
-                icon={<ShoppingCartIcon size={30} color={palette.onDark} />}
-                imageSource={shoppingCartIllustration}
-                title="Courses"
-                // No count here: the "À racheter" StatCard 200pt above already
-                // prints `toBuyCount` and already opens this exact destination.
-                // One question, one control.
-                subtitle={toBuyCount === 0 && !shoppingQuery.isPending ? 'Liste à jour' : 'Ce qu’il manque'}
-                corner="a"
-                palette={palette}
-              />
-            </XStack>
-            </TourAnchor>
-
-            <YStack marginTop="$3">
-              <ReceiptsRow
-                receipts={receiptsQuery.data ?? []}
-                pending={receiptsQuery.isPending}
-                onPress={onOpenReceipts}
-                palette={palette}
-              />
+            <YStack gap="$3" marginTop="$3">
+              <XStack gap="$3">
+                <NavCard
+                  bg={palette.navCardTeal}
+                  glow={palette.chipTeal}
+                  onPress={onOpenRecettes}
+                  icon={<ChefHatIcon size={30} color={palette.onDark} />}
+                  imageSource={potOfFoodIllustration}
+                  title="Recettes"
+                  subtitle={watchCount > 0 ? 'Cuisine ce qui part en premier' : 'Idées pour ce soir'}
+                  corner="b"
+                  palette={palette}
+                />
+                <NavCard
+                  bg={palette.navCardViolet}
+                  glow={palette.chipViolet}
+                  onPress={onOpenCourses}
+                  icon={<ShoppingCartIcon size={30} color={palette.onDark} />}
+                  imageSource={shoppingCartIllustration}
+                  title="Courses"
+                  // No count here: the "À racheter" StatCard 200pt above already
+                  // prints `toBuyCount` and already opens this exact destination.
+                  // One question, one control.
+                  subtitle={toBuyCount === 0 && !shoppingQuery.isPending ? 'Liste à jour' : 'Ce qu’il manque'}
+                  corner="a"
+                  palette={palette}
+                />
+              </XStack>
+              <XStack gap="$3">
+                <NavCard
+                  bg={palette.navCardWarm}
+                  glow={palette.chipOrange}
+                  onPress={onOpenStats}
+                  icon={<TrendingUpIcon size={30} color={palette.onDark} />}
+                  imageSource={chartIncreasingIllustration}
+                  title="Stats"
+                  subtitle="Ton gaspi cette semaine"
+                  corner="b"
+                  palette={palette}
+                />
+                <NavCard
+                  testID="dashboard-receipts"
+                  bg={palette.navCardRose}
+                  glow={palette.chipRose}
+                  onPress={onOpenReceipts}
+                  icon={<ReceiptIcon size={30} color={palette.onDark} />}
+                  imageSource={receiptIllustration}
+                  title="Tickets de caisse"
+                  subtitle={receiptsQuery.isPending ? 'Chargement…' : receiptsSummary(receiptsQuery.data ?? [])}
+                  corner="a"
+                  palette={palette}
+                  accessibilityLabel={
+                    receiptsQuery.isPending
+                      ? 'Tickets de caisse. Chargement'
+                      : `Tickets de caisse. ${receiptsSummary(receiptsQuery.data ?? [])}`
+                  }
+                />
+              </XStack>
             </YStack>
+            </TourAnchor>
           </YStack>
     </AppShell>
     {/* The mobile bottom nav (glass pill + FAB) and the desktop sidebar are

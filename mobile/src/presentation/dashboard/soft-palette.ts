@@ -28,6 +28,7 @@
  */
 import { useColorScheme } from 'react-native'
 import type { ColorSchemeName } from 'react-native'
+
 export interface SoftPalette {
   gradientTop: string
   gradientBottom: string
@@ -107,6 +108,9 @@ export interface SoftPalette {
   chipTeal: string
   navCardTeal: string
   navCardViolet: string
+  navCardWarm: string
+  navCardRose: string
+  chipRose: string
   cream: string
   /**
    * A pill sitting *on* a `cream` card. Not `gradientBottom`: that token is the
@@ -209,6 +213,9 @@ const light: SoftPalette = {
   // gets away with. chipTeal/chipViolet fail 4.5:1 with white text (~2.9:1).
   navCardTeal: '#1F7A62',
   navCardViolet: '#6355A8',
+  navCardWarm: '#A84E1A',
+  navCardRose: '#A8375A',
+  chipRose: '#D9628A',
   cream: '#FDF6E8',
   creamPill: '#FFFFFF',
   creamPillEdge: '#C9BEA8',
@@ -295,6 +302,9 @@ const dark: SoftPalette = {
   chipTeal: '#3FBFA0',
   navCardTeal: '#1F7A62',
   navCardViolet: '#6355A8',
+  navCardWarm: '#9E4514',
+  navCardRose: '#9E3A5C',
+  chipRose: '#E88AAC',
   cream: '#241F17',
   // Lighter than the card, the way white is lighter than cream in daylight —
   // ≈7.5:1 with creamText, ≈5.2:1 with inkSecondary.
