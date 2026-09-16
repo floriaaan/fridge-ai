@@ -23,7 +23,7 @@ export function SiteFooter({ repositoryUrl }: { repositoryUrl: string }) {
       links: [
         { href: repositoryUrl, label: 'GitHub' },
         { href: '#auto-hebergement', label: 'Auto-hébergement' },
-        { href: `${repositoryUrl}/blob/main/mobile/LICENSE`, label: 'Licence MIT' },
+        { href: `${repositoryUrl}/blob/main/LICENSE`, label: 'Licence MIT' },
         { href: `${repositoryUrl}/issues`, label: 'Signaler un problème' },
       ],
     },

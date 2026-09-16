@@ -82,10 +82,10 @@ export const landingContentFr: LandingContent = {
       ],
       commands: [
         'git clone https://github.com/floriaaan/fridge-ai.git && cd fridge-ai',
-        'cp .env.example .env',
+        'cp .env.example .env   # secrets + IP du serveur',
         'docker compose up -d',
       ],
-      cta: { label: 'Lire le guide', href: 'https://github.com/floriaaan/fridge-ai#readme' },
+      cta: { label: 'Lire le guide', href: 'https://github.com/floriaaan/fridge-ai#installation' },
     },
   },
   faq: [
@@ -117,7 +117,7 @@ export const landingContentFr: LandingContent = {
     {
       question: 'Sur quels appareils ?',
       answer:
-        'iOS, Android et le web. Les apps ne sont pas encore sur les stores : en attendant, elles se lancent depuis le dépôt avec Expo.',
+        'iOS et Android. L’app n’est pas encore sur les stores : en attendant, elle se lance depuis le dépôt dans Expo Go, pointée sur ton serveur.',
     },
   ],
   stores: { appStore: null, playStore: null },
