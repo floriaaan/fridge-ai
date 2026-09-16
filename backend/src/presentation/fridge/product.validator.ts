@@ -56,6 +56,23 @@ export const productOutcomeStatsValidator = vine.compile(
   vine.object({ days: vine.number().withoutDecimals().positive().optional() }),
 )
 
+export const importProductsValidator = vine.compile(
+  vine.object({
+    items: vine
+      .array(
+        vine.object({
+          name: vine.string().trim().minLength(1),
+          quantity: vine.number().positive(),
+          unit: vine.string().trim().minLength(1),
+          category: vine.string().trim().optional(),
+          location: locationSchema,
+          expiresAt: dateSchema.optional(),
+        }),
+      )
+      .minLength(1),
+  }),
+)
+
 export const recordProductOutcomeValidator = vine.compile(
   vine.object({
     kind: vine.enum(['consumed', 'discarded'] as const),

@@ -13,7 +13,12 @@ import type { AiProvider } from '#domain/settings/ai-provider.vo'
 function fakeSettings(provider: AiProvider): AiSettingsProvider {
   return {
     async resolveEffective() {
-      return { activeProvider: provider, source: 'environment', availableProviders: [provider] }
+      return {
+        activeProvider: provider,
+        source: 'environment',
+        availableProviders: [provider],
+        models: { vision: '', text: '' },
+      }
     },
   }
 }

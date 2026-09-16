@@ -13,6 +13,8 @@ router
   .group(() => {
     router.get('/products', [ProductController, 'index'])
     router.post('/products', [ProductController, 'store'])
+    router.post('/products/scan', [ProductController, 'scan'])
+    router.post('/products/import', [ProductController, 'importProducts'])
     router.get('/products/expiring-soon', [ProductController, 'expiringSoon'])
     router.get('/products/lookup', [ProductController, 'lookup'])
     router.get('/products/outcomes/stats', [ProductController, 'outcomeStats'])
