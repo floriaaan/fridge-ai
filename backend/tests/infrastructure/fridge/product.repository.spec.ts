@@ -2,6 +2,9 @@ import { test } from '@japa/runner'
 import db from '@adonisjs/lucid/services/db'
 import { LucidProductRepository } from '#infrastructure/database/fridge/product.repository'
 import { Product } from '#domain/fridge/product.entity'
+import type { Product as ProductEntity } from '#domain/fridge/product.entity'
+import { ProductOutcome } from '#domain/fridge/product-outcome.entity'
+import { OutcomeKind } from '#domain/fridge/outcome-kind.vo'
 import { Quantity } from '#domain/fridge/quantity.vo'
 import { Location } from '#domain/fridge/location.vo'
 
@@ -30,9 +33,14 @@ async function createHousehold(id: string, ownerId: string) {
 function buildProduct(
   id: string,
   householdId: string,
-  overrides: Partial<{ location: string; expiresAt: Date | null }> = {},
+  overrides: Partial<{
+    location: string
+    expiresAt: Date | null
+    amount: number
+    price: number | null
+  }> = {},
 ) {
-  const quantity = Quantity.create(1, 'L')
+  const quantity = Quantity.create(overrides.amount ?? 1, 'L')
   const location = Location.create(overrides.location ?? 'fridge')
   if (!quantity.ok || !location.ok) throw new Error('unreachable')
 
@@ -44,8 +52,25 @@ function buildProduct(
     location: location.value,
     category: 'Produits laitiers',
     expiresAt: overrides.expiresAt ?? null,
+    price: overrides.price ?? null,
     createdAt: new Date(),
   })
+}
+
+function outcomeFor(product: ProductEntity, amount: number, recordedBy: string, id = 'o_1') {
+  const at = new Date('2026-09-13T18:00:00Z')
+  const takeOut = product.takeOut(amount, at)
+  if (!takeOut.ok) throw new Error('unreachable')
+  const outcome = ProductOutcome.fromProduct(product, {
+    id,
+    kind: OutcomeKind.consumed(),
+    discardReason: null,
+    recordedBy,
+    recipeId: null,
+    takeOut: takeOut.value,
+    at,
+  })
+  return { outcome, remaining: takeOut.value.remaining }
 }
 
 test.group('LucidProductRepository', (group) => {
@@ -107,5 +132,83 @@ test.group('LucidProductRepository', (group) => {
     await repository.delete('p_7')
 
     assert.isNull(await repository.findById('p_7'))
+  })
+
+  test('save() round-trips initialQuantity', async ({ assert }) => {
+    await createUser('u_5', 'owner5@example.com')
+    await createHousehold('h_5', 'u_5')
+    const repository = new LucidProductRepository()
+    await repository.save(buildProduct('p_8', 'h_5', { amount: 6 }))
+
+    const found = await repository.findById('p_8')
+    assert.equal(found?.initialQuantity, 6)
+  })
+
+  test('recordOutcome() of the whole stock deletes the product and writes the log row', async ({
+    assert,
+  }) => {
+    await createUser('u_6', 'owner6@example.com')
+    await createHousehold('h_6', 'u_6')
+    const repository = new LucidProductRepository()
+    const product = buildProduct('p_9', 'h_6', { amount: 2, price: 3 })
+    await repository.save(product)
+
+    const { outcome, remaining } = outcomeFor(product, 2, 'u_6')
+    await repository.recordOutcome(outcome, remaining)
+
+    assert.isNull(await repository.findById('p_9'))
+    const rows = await db.from('product_outcome').where('product_id', 'p_9')
+    assert.lengthOf(rows, 1)
+    assert.equal(rows[0].kind, 'consumed')
+    assert.equal(rows[0].amount, 2)
+    assert.equal(Number(rows[0].price), 3)
+    assert.equal(rows[0].product_name, 'Lait')
+  })
+
+  test('recordOutcome() of part of the stock decrements the product and writes the log row', async ({
+    assert,
+  }) => {
+    await createUser('u_7', 'owner7@example.com')
+    await createHousehold('h_7', 'u_7')
+    const repository = new LucidProductRepository()
+    const product = buildProduct('p_10', 'h_7', { amount: 6, price: 3 })
+    await repository.save(product)
+
+    const { outcome, remaining } = outcomeFor(product, 2, 'u_7')
+    await repository.recordOutcome(outcome, remaining)
+
+    const found = await repository.findById('p_10')
+    assert.equal(found?.quantity.amount, 4)
+    assert.equal(found?.initialQuantity, 6)
+    const rows = await db.from('product_outcome').where('product_id', 'p_10')
+    assert.equal(Number(rows[0].price), 1)
+  })
+
+  test('recordOutcome() leaves the stock untouched when the log row cannot be written', async ({
+    assert,
+  }) => {
+    await createUser('u_8', 'owner8@example.com')
+    await createHousehold('h_8', 'u_8')
+    const repository = new LucidProductRepository()
+    const product = buildProduct('p_11', 'h_8', { amount: 2 })
+    await repository.save(product)
+
+    // An unknown member id violates `recorded_by`'s foreign key — after the
+    // product row has already been deleted inside the transaction.
+    const at = new Date('2026-09-13T18:00:00Z')
+    const takeOut = product.takeOut(2, at)
+    if (!takeOut.ok) throw new Error('unreachable')
+    const outcome = ProductOutcome.fromProduct(product, {
+      id: 'o_2',
+      kind: OutcomeKind.consumed(),
+      discardReason: null,
+      recordedBy: 'u_missing',
+      recipeId: null,
+      takeOut: takeOut.value,
+      at,
+    })
+
+    await assert.rejects(() => repository.recordOutcome(outcome, takeOut.value.remaining))
+    assert.isNotNull(await repository.findById('p_11'))
   })
 })

@@ -153,6 +153,12 @@ test.group('recipe: generate, suggestions, save, list, detail, delete', (group) 
     const gone = await client.get(`/api/products/${productId}`).headers({ cookie })
     gone.assertStatus(404)
 
+    const outcomes = await db.from('product_outcome').where('product_id', productId)
+    assert.lengthOf(outcomes, 1)
+    assert.equal(outcomes[0].kind, 'consumed')
+    assert.equal(outcomes[0].recipe_id, recipeId)
+    assert.equal(outcomes[0].amount, 200)
+
     // Twice is twice — the log appends rather than overwriting.
     await client.post(`/api/recipes/${recipeId}/cooked`).headers({ cookie }).json({})
     const detail = await client.get(`/api/recipes/${recipeId}`).headers({ cookie })

@@ -55,6 +55,7 @@ export function StatCard({
 
   const card = (
     <YStack
+      testID={onPress ? undefined : testID}
       flex={1}
       minHeight={128}
       backgroundColor={bg}

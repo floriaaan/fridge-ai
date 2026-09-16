@@ -1,11 +1,33 @@
 import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 import ProductModel from './product.lucid.js'
+import ProductOutcomeModel from './product_outcome.lucid.js'
 import { toDomain } from './product.mapper.js'
 import type {
   ProductRepository,
   ProductFilters,
 } from '#domain/fridge/interfaces/product-repository.interface'
 import type { Product } from '#domain/fridge/product.entity'
+import type { ProductOutcome } from '#domain/fridge/product-outcome.entity'
+
+function toRow(product: Product) {
+  return {
+    householdId: product.householdId,
+    receiptId: product.receiptId,
+    name: product.name,
+    quantity: product.quantity.amount,
+    initialQuantity: product.initialQuantity,
+    unit: product.quantity.unit,
+    location: product.location.value,
+    expiresAt: product.expiresAt ? DateTime.fromJSDate(product.expiresAt) : null,
+    openedAt: product.openedAt ? DateTime.fromJSDate(product.openedAt) : null,
+    category: product.category,
+    openfoodfactId: product.openfoodfactId,
+    categories: product.categories,
+    price: product.price,
+    imageKey: product.imageKey,
+  }
+}
 
 export class LucidProductRepository implements ProductRepository {
   async findById(id: string): Promise<Product | null> {
@@ -38,27 +60,47 @@ export class LucidProductRepository implements ProductRepository {
   }
 
   async save(product: Product): Promise<void> {
-    await ProductModel.updateOrCreate(
-      { id: product.id },
-      {
-        householdId: product.householdId,
-        receiptId: product.receiptId,
-        name: product.name,
-        quantity: product.quantity.amount,
-        unit: product.quantity.unit,
-        location: product.location.value,
-        expiresAt: product.expiresAt ? DateTime.fromJSDate(product.expiresAt) : null,
-        openedAt: product.openedAt ? DateTime.fromJSDate(product.openedAt) : null,
-        category: product.category,
-        openfoodfactId: product.openfoodfactId,
-        categories: product.categories,
-        price: product.price,
-        imageKey: product.imageKey,
-      },
-    )
+    await ProductModel.updateOrCreate({ id: product.id }, toRow(product))
   }
 
   async delete(id: string): Promise<void> {
     await ProductModel.query().where('id', id).delete()
+  }
+
+  /**
+   * Stock first, log second, one transaction: if the log row cannot be
+   * written, the product comes back — a sale that vanished from the fridge
+   * without a trace is exactly what this table exists to prevent.
+   */
+  async recordOutcome(outcome: ProductOutcome, remaining: Product | null): Promise<void> {
+    await db.transaction(async (trx) => {
+      if (remaining === null) {
+        await ProductModel.query({ client: trx }).where('id', outcome.productId).delete()
+      } else {
+        await ProductModel.updateOrCreate({ id: remaining.id }, toRow(remaining), { client: trx })
+      }
+
+      await ProductOutcomeModel.create(
+        {
+          id: outcome.id,
+          householdId: outcome.householdId,
+          productId: outcome.productId,
+          recordedBy: outcome.recordedBy,
+          recipeId: outcome.recipeId,
+          kind: outcome.kind.value,
+          discardReason: outcome.discardReason?.value ?? null,
+          productName: outcome.productName,
+          category: outcome.category,
+          categories: outcome.categories,
+          location: outcome.location.value,
+          amount: outcome.quantity.amount,
+          unit: outcome.quantity.unit,
+          price: outcome.price,
+          expiresAt: outcome.expiresAt ? DateTime.fromJSDate(outcome.expiresAt) : null,
+          occurredAt: DateTime.fromJSDate(outcome.occurredAt),
+        },
+        { client: trx },
+      )
+    })
   }
 }

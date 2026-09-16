@@ -10,6 +10,7 @@ import type { SoftPalette } from './soft-palette.js'
  * synthesis-plus-navigation hub, not an expiry log with two footnotes.
  */
 export function NavCard({
+  testID,
   bg,
   glow,
   onPress,
@@ -19,7 +20,9 @@ export function NavCard({
   subtitle,
   corner,
   palette,
+  accessibilityLabel,
 }: {
+  testID?: string
   bg: string
   glow: string
   onPress: () => void
@@ -29,6 +32,8 @@ export function NavCard({
   subtitle: string
   corner: 'a' | 'b'
   palette: SoftPalette
+  /** Overrides the announced label — the title alone when omitted; a card whose subtitle is the reason to tap (e.g. "1 ticket · dernier : Carrefour") should pass `${title}. ${subtitle}`. */
+  accessibilityLabel?: string
 }) {
   const radii =
     corner === 'a'
@@ -38,13 +43,14 @@ export function NavCard({
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       onHoverIn={hover.onHoverIn}
       onHoverOut={hover.onHoverOut}
       onPressIn={hover.onPressIn}
       onPressOut={hover.onPressOut}
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={accessibilityLabel ?? title}
       style={[{ flex: 1 }, pointerCursor]}
     >
       <Animated.View style={{ transform: [{ scale: hover.scale }] }}>

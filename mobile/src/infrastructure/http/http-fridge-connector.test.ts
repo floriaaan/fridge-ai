@@ -116,6 +116,46 @@ test('deleteProduct() maps a 204 response to Result.ok(undefined)', async () => 
   globalThis.fetch = originalFetch
 })
 
+test('recordProductOutcome() posts to the outcomes route and unwraps product and outcome', async () => {
+  const outcome = {
+    id: 'o-1',
+    productId: 'p-1',
+    recordedBy: 'u-1',
+    recipeId: null,
+    kind: 'discarded',
+    discardReason: 'spoiled',
+    productName: 'Yaourts',
+    category: 'Laitier',
+    categories: null,
+    location: 'fridge',
+    quantity: { amount: 2, unit: 'unités' },
+    price: 1,
+    expiresAt: null,
+    occurredAt: '2026-09-13T18:00:00.000Z',
+  }
+  const fetchMock = jest.fn().mockResolvedValue({
+    status: 200,
+    ok: true,
+    json: () => Promise.resolve({ product: null, outcome }),
+  })
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+
+  const connector = new HttpFridgeConnector()
+  const result = await connector.recordProductOutcome('p-1', {
+    kind: 'discarded',
+    amount: 2,
+    discardReason: 'spoiled',
+  })
+
+  expect(result).toEqual({ ok: true, value: { product: null, outcome } })
+  const [url, init] = fetchMock.mock.calls[0]
+  expect(String(url)).toContain('/api/products/p-1/outcomes')
+  expect(init.method).toBe('POST')
+  expect(JSON.parse(init.body)).toEqual({ kind: 'discarded', amount: 2, discardReason: 'spoiled' })
+
+  globalThis.fetch = originalFetch
+})
+
 test('createShoppingItem() posts the JSON payload and unwraps the created item', async () => {
   const fetchMock = jest.fn().mockResolvedValue({
     status: 201,

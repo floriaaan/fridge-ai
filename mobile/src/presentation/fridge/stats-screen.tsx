@@ -1,0 +1,339 @@
+/**
+ * Waste stats — a stack screen reached from the dashboard, not a bottom
+ * tab (see `docs/superpowers/specs/2026-09-14-waste-stats-design.md`).
+ * Answers three questions a foyer member actually asks: how much did we
+ * throw away (€ + count) over a period, is it trending down week to week,
+ * and how much of what we ate came from an actual recipe rather than
+ * habit. Deliberately excludes a category ranking — that's a distinct,
+ * separately-scoped stat the design explicitly left out of this pass.
+ */
+import { useState } from 'react'
+import { Image, type ImageSourcePropType } from 'react-native'
+import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import { AppShell } from '../shared/app-shell.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { Chip } from '../shared/chip.js'
+import { PillButton } from '../shared/pill-button.js'
+import { Skeleton } from '../shared/skeleton.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
+import { goBack } from '../shared/navigation.js'
+import { StatCard } from '../dashboard/stat-card.js'
+import { Meter } from '../shared/meter.js'
+import { WasteTrendChart } from './waste-trend-chart.js'
+import { useSoftPalette } from '../dashboard/soft-palette.js'
+import type { SoftPalette } from '../dashboard/soft-palette.js'
+import { ChefHatIcon, CircleXIcon, SparklesIcon, TrendingUpIcon, WalletIcon } from '../dashboard/dashboard-icons.js'
+import { useProductOutcomeStatsQuery } from '../../application/fridge/product-outcome-stats.query.js'
+
+const mascotIllustration = require('../../../assets/mascot.png') as ImageSourcePropType
+
+/** `undefined` days = "Tout", the same convention `getExpiringSoonProducts`'s optional `days` already uses. */
+type PeriodOption = { label: string; days: number | undefined; testID: string }
+
+const PERIODS: PeriodOption[] = [
+  { label: '7 j', days: 7, testID: 'stats-period-7' },
+  { label: '30 j', days: 30, testID: 'stats-period-30' },
+  { label: 'Tout', days: undefined, testID: 'stats-period-all' },
+]
+
+function formatEuros(value: number): string {
+  return `${value.toFixed(2).replace('.', ',')} €`
+}
+
+function MascotCoachCard({
+  consumedCount,
+  discardedCount,
+  palette,
+}: {
+  consumedCount: number
+  discardedCount: number
+  palette: SoftPalette
+}) {
+  const isZeroWaste = discardedCount === 0 && consumedCount > 0
+  const isGoodRatio = consumedCount >= discardedCount
+
+  const badge = isZeroWaste
+    ? '🏆 Frigo étoilé'
+    : isGoodRatio
+      ? '🌱 Super élan'
+      : '🎯 Mission sauvetage'
+
+  const title = isZeroWaste
+    ? 'Zéro gaspi ! Quel talent !'
+    : isGoodRatio
+      ? 'La balance penche du bon côté !'
+      : 'Objectif sauvetage en cuisine !'
+
+  const subtitle = isZeroWaste
+    ? `${consumedCount} produit${consumedCount > 1 ? 's savourés' : ' savouré'} sans aucune perte sur cette période.`
+    : isGoodRatio
+      ? `${consumedCount} produit${consumedCount > 1 ? 's sauvés' : ' sauvé'} pour ${discardedCount} jeté${discardedCount > 1 ? 's' : ''}. Bien joué !`
+      : 'Pense à consulter les recettes suggérées pour transformer tes ingrédients à temps.'
+
+  return (
+    <XStack
+      backgroundColor={palette.cream}
+      borderRadius={22}
+      padding="$4"
+      alignItems="center"
+      gap="$3.5"
+      style={{
+        shadowColor: palette.shadowWarm,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 2,
+      }}
+    >
+      <YStack
+        width={56}
+        height={56}
+        borderRadius={18}
+        backgroundColor={palette.mintPale}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Image
+          source={mascotIllustration}
+          style={{ width: 44, height: 44 }}
+          resizeMode="contain"
+          accessibilityLabel="Mascotte Frigo"
+        />
+      </YStack>
+
+      <YStack flex={1} gap="$1">
+        <XStack alignItems="center" gap="$2">
+          <XStack
+            backgroundColor={palette.freshBg}
+            paddingVertical="$0.5"
+            paddingHorizontal="$2"
+            borderRadius={999}
+          >
+            <Text fontSize={10} fontWeight="700" color={palette.freshText}>
+              {badge}
+            </Text>
+          </XStack>
+        </XStack>
+        <Text fontSize={14} fontWeight="800" color={palette.ink}>
+          {title}
+        </Text>
+        <Text fontSize={12} fontWeight="500" color={palette.inkSecondary} lineHeight={16}>
+          {subtitle}
+        </Text>
+      </YStack>
+    </XStack>
+  )
+}
+
+export function StatsScreen() {
+  const palette = useSoftPalette()
+  const [days, setDays] = useState<number | undefined>(30)
+  const statsQuery = useProductOutcomeStatsQuery(days)
+  const refresh = usePullToRefresh(() => statsQuery.refetch())
+
+  const data = statsQuery.data
+  const loading = statsQuery.isPending
+  const failed = !loading && statsQuery.isError
+  const empty = !loading && !failed && data !== undefined && data.discarded.count === 0 && data.consumed.count === 0
+
+  const header = (
+    <ScreenHeader
+      palette={palette}
+      icon={(color) => <TrendingUpIcon size={19} color={color} />}
+      title="Statistiques"
+      onBack={() => goBack('/(tabs)')}
+    />
+  )
+
+  const recipeShareBadge =
+    data && data.recipeSharePercent >= 50
+      ? '⭐ Chef Anti-gaspi'
+      : data && data.recipeSharePercent > 0
+        ? '🍳 Recettes à la rescousse'
+        : '💡 Pense aux recettes !'
+
+  return (
+    <AppShell nav={{ kind: 'stack' }} refresh={refresh} header={header}>
+      <YStack marginTop="$5" gap="$5" paddingBottom="$8">
+        <XStack gap="$3">
+          {PERIODS.map((period) => (
+            <Chip
+              key={period.testID}
+              testID={period.testID}
+              label={period.label}
+              selected={days === period.days}
+              onPress={() => setDays(period.days)}
+              palette={palette}
+              accessibilityLabel={`Période : ${period.label}`}
+            />
+          ))}
+        </XStack>
+
+        {loading ? (
+          <YStack gap="$3">
+            <Skeleton height={80} radius={22} palette={palette} />
+            <XStack gap="$3">
+              <Skeleton height={128} width="33%" radius={20} palette={palette} />
+              <Skeleton height={128} width="33%" radius={20} palette={palette} />
+              <Skeleton height={128} width="33%" radius={20} palette={palette} />
+            </XStack>
+            <Skeleton height={160} radius={20} palette={palette} />
+            <Skeleton height={60} radius={20} palette={palette} />
+          </YStack>
+        ) : null}
+
+        {failed ? (
+          <YStack gap="$3" alignItems="flex-start">
+            <Text fontSize={14} fontWeight="500" color={palette.expiredText}>
+              On n’a pas pu lire les statistiques. Vérifie ta connexion.
+            </Text>
+            <PillButton
+              testID="stats-retry"
+              label="Réessayer"
+              accessibilityLabel="Réessayer de charger les statistiques"
+              onPress={() => statsQuery.refetch()}
+              palette={palette}
+            />
+          </YStack>
+        ) : null}
+
+        {empty ? (
+          <YStack
+            backgroundColor={palette.cream}
+            borderRadius={24}
+            padding="$6"
+            alignItems="center"
+            gap="$3"
+            marginTop="$2"
+            style={{
+              shadowColor: palette.shadowWarm,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.08,
+              shadowRadius: 14,
+            }}
+          >
+            <YStack
+              width={64}
+              height={64}
+              borderRadius={22}
+              backgroundColor={palette.mintPale}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Image
+                source={mascotIllustration}
+                style={{ width: 50, height: 50 }}
+                resizeMode="contain"
+                accessibilityLabel="Mascotte en repos"
+              />
+            </YStack>
+            <Text fontSize={16} fontWeight="800" color={palette.ink} textAlign="center">
+              Ton frigo fait la sieste 💤
+            </Text>
+            <Text
+              testID="stats-empty"
+              fontSize={13}
+              fontWeight="500"
+              color={palette.inkSecondary}
+              textAlign="center"
+              lineHeight={18}
+            >
+              Rien à signaler sur cette période — pas de sortie de produit enregistrée.
+            </Text>
+          </YStack>
+        ) : null}
+
+        {data && !empty ? (
+          <>
+            <MascotCoachCard
+              consumedCount={data.consumed.count}
+              discardedCount={data.discarded.count}
+              palette={palette}
+            />
+
+            <XStack gap="$2.5" alignItems="stretch">
+              <StatCard
+                testID="stats-consumed-count"
+                bg={palette.mintPale}
+                labelColor={palette.mintPaleText}
+                valueColor={palette.ink}
+                chipColor={palette.chipTeal}
+                icon={<ChefHatIcon size={18} color={palette.onDark} />}
+                label="Savourés"
+                value={String(data.consumed.count)}
+                corner="a"
+                palette={palette}
+                accessibilityLabel={`Produits savourés, ${data.consumed.count}`}
+              />
+              <StatCard
+                testID="stats-discarded-count"
+                bg={palette.cream}
+                labelColor={palette.creamText}
+                valueColor={palette.ink}
+                chipColor={palette.chipOrange}
+                icon={<CircleXIcon size={18} color={palette.onDark} />}
+                label="Jetés"
+                value={String(data.discarded.count)}
+                corner="b"
+                palette={palette}
+                accessibilityLabel={`Produits jetés, ${data.discarded.count}`}
+              />
+              <StatCard
+                testID="stats-discarded-value"
+                bg={palette.lavender}
+                labelColor={palette.lavenderText}
+                valueColor={palette.ink}
+                chipColor={palette.chipViolet}
+                icon={<WalletIcon size={18} color={palette.onDark} />}
+                label="Valeur jetée"
+                value={formatEuros(data.discarded.value)}
+                corner="c"
+                palette={palette}
+                accessibilityLabel={`Valeur jetée, ${formatEuros(data.discarded.value)}`}
+              />
+            </XStack>
+
+            <YStack gap="$3" marginTop="$2">
+              <XStack justifyContent="space-between" alignItems="center">
+                <Text fontSize={15} fontWeight="800" color={palette.ink}>
+                  Jeté vs consommé
+                </Text>
+                <Text fontSize={11} fontWeight="600" color={palette.inkSecondary}>
+                  Par semaine
+                </Text>
+              </XStack>
+              <WasteTrendChart testID="stats-trend-chart" buckets={data.buckets} palette={palette} />
+            </YStack>
+
+            <YStack gap="$2.5" marginTop="$2">
+              <XStack justifyContent="space-between" alignItems="center">
+                <Text fontSize={15} fontWeight="800" color={palette.ink}>
+                  Impact des recettes
+                </Text>
+                <XStack
+                  alignItems="center"
+                  gap="$1"
+                  backgroundColor={palette.mintPale}
+                  paddingVertical="$0.5"
+                  paddingHorizontal="$2"
+                  borderRadius={999}
+                >
+                  <SparklesIcon size={11} color={palette.mintPaleText} />
+                  <Text fontSize={10} fontWeight="700" color={palette.mintPaleText}>
+                    {recipeShareBadge}
+                  </Text>
+                </XStack>
+              </XStack>
+              <Meter
+                testID="stats-recipe-share"
+                label="Repas cuisinés à partir d’une recette"
+                percent={data.recipeSharePercent}
+                palette={palette}
+              />
+            </YStack>
+          </>
+        ) : null}
+      </YStack>
+    </AppShell>
+  )
+}
