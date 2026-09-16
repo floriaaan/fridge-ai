@@ -9,7 +9,8 @@ export default class InstanceProvider {
       const { GetPublicStats } = await import('#application/instance/get-public-stats.use-case')
       const { LucidPublicStatsAdapter } =
         await import('#infrastructure/database/instance/public-stats.adapter')
-      const env = (await import('#start/env')).default
+      const envModule = await import('#start/env')
+      const env = envModule.default
       return new GetPublicStats(
         new LucidPublicStatsAdapter(),
         env.get('PUBLIC_STATS_ENABLED', false),

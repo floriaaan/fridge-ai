@@ -1,5 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
-import type { PublicStats, PublicStatsPort } from '#domain/instance/interfaces/public-stats.interface'
+import type {
+  PublicStats,
+  PublicStatsPort,
+} from '#domain/instance/interfaces/public-stats.interface'
 
 /** One round-trip, three scalar subqueries. */
 export class LucidPublicStatsAdapter implements PublicStatsPort {
@@ -10,7 +13,9 @@ export class LucidPublicStatsAdapter implements PublicStatsPort {
           (select count(*) from product_outcome where kind = 'consumed')::int as products_consumed,
           (select count(*) from recipe where source = 'ai')::int as recipes_generated`,
     )
-    const row = (rows as { households: number; products_consumed: number; recipes_generated: number }[])[0]!
+    const row = (
+      rows as { households: number; products_consumed: number; recipes_generated: number }[]
+    )[0]!
     return {
       households: row.households,
       productsConsumed: row.products_consumed,

@@ -1,5 +1,8 @@
 import type { UseCase } from '#application/shared/use-case'
-import type { PublicStats, PublicStatsPort } from '#domain/instance/interfaces/public-stats.interface'
+import type {
+  PublicStats,
+  PublicStatsPort,
+} from '#domain/instance/interfaces/public-stats.interface'
 
 /**
  * Opt-in per instance (`PUBLIC_STATS_ENABLED`): even aggregated, the counts of
