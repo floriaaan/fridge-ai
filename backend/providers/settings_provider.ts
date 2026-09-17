@@ -3,6 +3,7 @@ import type { AiProviderSettingsRepository } from '#domain/settings/interfaces/a
 import type { AiSettingsProvider } from '#domain/settings/interfaces/ai-settings-provider.interface'
 import type { ReceiptExtractionPort } from '#domain/receipt/interfaces/receipt-extraction-port.interface'
 import type { RecipeGenerationPort } from '#domain/recipe/interfaces/recipe-generation-port.interface'
+import type { FridgeScanExtractionPort } from '#domain/fridge/interfaces/fridge-scan-extraction-port.interface'
 
 export default class SettingsProvider {
   constructor(protected app: ApplicationService) {}
@@ -34,6 +35,13 @@ export default class SettingsProvider {
       const aiSettingsProvider = await this.app.container.make('settings.aiSettingsProvider')
       return () => resolveRecipeGenerationAdapter(aiSettingsProvider)
     })
+
+    this.app.container.singleton('settings.resolveFridgeScanExtractionPort', async () => {
+      const { resolveFridgeScanExtractionAdapter } =
+        await import('#infrastructure/settings/ai-provider-registry')
+      const aiSettingsProvider = await this.app.container.make('settings.aiSettingsProvider')
+      return () => resolveFridgeScanExtractionAdapter(aiSettingsProvider)
+    })
   }
 }
 
@@ -43,5 +51,6 @@ declare module '@adonisjs/core/types' {
     'settings.aiSettingsProvider': AiSettingsProvider
     'settings.resolveReceiptExtractionPort': () => Promise<ReceiptExtractionPort>
     'settings.resolveRecipeGenerationPort': () => Promise<RecipeGenerationPort>
+    'settings.resolveFridgeScanExtractionPort': () => Promise<FridgeScanExtractionPort>
   }
 }

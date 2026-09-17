@@ -13,7 +13,7 @@ import { ripple } from '../shared/material.js'
 import { ActionSheet } from '../shared/action-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
 import { pullToRefreshControl, usePullToRefresh } from '../shared/pull-to-refresh.js'
-import { useScanSheet } from '../shared/scan-sheet.js'
+import { goToScan } from '../shared/scan-sheet.js'
 import { SkeletonCard, SkeletonGroup } from '../shared/skeleton.js'
 import { EmptyStateLottie } from '../shared/empty-state-lottie.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
@@ -51,7 +51,6 @@ const RAIL_PEEK = 44
 
 export function RecipeListScreen() {
   const palette = useSoftPalette()
-  const { openScanSheet, scanSheet } = useScanSheet()
   const [hint, showHint] = useHint()
   const [search, setSearch] = useState('')
   const [budget, setBudget] = useState<TimeBudget | null>(null)
@@ -79,7 +78,7 @@ export function RecipeListScreen() {
     () => productsQuery.refetch(),
   )
 
-  const nav = { kind: 'tab' as const, tab: 'recettes' as const, onScan: openScanSheet }
+  const nav = { kind: 'tab' as const, tab: 'recettes' as const, onScan: goToScan }
   // `contentWidth`, never the window: on desktop the sidebar and the pane's own
   // margin are not content, and a hero sized off the window overflowed its
   // column by 80pt at the 768pt breakpoint — invisibly, since a horizontal
@@ -371,7 +370,6 @@ export function RecipeListScreen() {
         ]}
         onClose={() => setPendingDeletion(null)}
       />
-      {scanSheet}
     </>
   )
 }

@@ -5,9 +5,13 @@ import { OllamaReceiptExtractionAdapter } from './ollama-receipt-extraction.adap
 import { GeminiRecipeGenerationAdapter } from './gemini-recipe-generation.adapter.js'
 import { OpenAiRecipeGenerationAdapter } from './openai-recipe-generation.adapter.js'
 import { OllamaRecipeGenerationAdapter } from './ollama-recipe-generation.adapter.js'
+import { GeminiFridgeScanExtractionAdapter } from './gemini-fridge-scan-extraction.adapter.js'
+import { OpenAiFridgeScanExtractionAdapter } from './openai-fridge-scan-extraction.adapter.js'
+import { OllamaFridgeScanExtractionAdapter } from './ollama-fridge-scan-extraction.adapter.js'
 import type { AiSettingsProvider } from '#domain/settings/interfaces/ai-settings-provider.interface'
 import type { ReceiptExtractionPort } from '#domain/receipt/interfaces/receipt-extraction-port.interface'
 import type { RecipeGenerationPort } from '#domain/recipe/interfaces/recipe-generation-port.interface'
+import type { FridgeScanExtractionPort } from '#domain/fridge/interfaces/fridge-scan-extraction-port.interface'
 import type { AiProvider } from '#domain/settings/ai-provider.vo'
 
 let cached: { adapter: ReceiptExtractionPort; signature: AiProvider } | null = null
@@ -96,4 +100,45 @@ export async function resolveRecipeGenerationAdapter(
     }
   }
   return cachedRecipeGeneration.adapter
+}
+
+let cachedFridgeScan: { adapter: FridgeScanExtractionPort; signature: AiProvider } | null = null
+let testOverrideFridgeScan: FridgeScanExtractionPort | null = null
+
+/** Test-only seam — same contract as `__setReceiptExtractionOverrideForTests`. */
+export function __setFridgeScanExtractionOverrideForTests(
+  port: FridgeScanExtractionPort | null,
+): void {
+  testOverrideFridgeScan = port
+  cachedFridgeScan = null
+}
+
+function buildFridgeScanAdapter(provider: AiProvider): FridgeScanExtractionPort {
+  switch (provider) {
+    case 'gemini':
+      return new GeminiFridgeScanExtractionAdapter(env.get('GEMINI_API_KEY', ''))
+    case 'openai':
+      return new OpenAiFridgeScanExtractionAdapter(env.get('OPENAI_API_KEY', ''))
+    case 'ollama':
+      return new OllamaFridgeScanExtractionAdapter(
+        env.get('OLLAMA_BASE_URL', 'http://localhost:11434'),
+        env.get('OLLAMA_VISION_MODEL', ''),
+      )
+  }
+}
+
+/** Same hot-reload mechanism as `resolveReceiptExtractionAdapter`, separate cache. */
+export async function resolveFridgeScanExtractionAdapter(
+  settings: AiSettingsProvider,
+): Promise<FridgeScanExtractionPort> {
+  if (testOverrideFridgeScan) return testOverrideFridgeScan
+
+  const effective = await settings.resolveEffective()
+  if (!cachedFridgeScan || cachedFridgeScan.signature !== effective.activeProvider) {
+    cachedFridgeScan = {
+      adapter: buildFridgeScanAdapter(effective.activeProvider),
+      signature: effective.activeProvider,
+    }
+  }
+  return cachedFridgeScan.adapter
 }

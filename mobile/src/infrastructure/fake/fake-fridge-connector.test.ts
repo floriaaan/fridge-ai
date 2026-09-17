@@ -239,6 +239,7 @@ test('getAiSettings() returns the fixture settings', async () => {
     activeProvider: 'gemini',
     source: 'environment',
     availableProviders: ['gemini', 'openai'],
+    models: { vision: 'gemini-2.5-flash', text: 'gemini-2.5-flash' },
   })
 })
 
@@ -248,7 +249,12 @@ test('setActiveAiProvider() switches the active provider when it is available', 
 
   expect(result).toEqual({
     ok: true,
-    value: { activeProvider: 'openai', source: 'environment', availableProviders: ['gemini', 'openai'] },
+    value: {
+      activeProvider: 'openai',
+      source: 'environment',
+      availableProviders: ['gemini', 'openai'],
+      models: { vision: 'gemini-2.5-flash', text: 'gemini-2.5-flash' },
+    },
   })
 })
 

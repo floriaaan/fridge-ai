@@ -12,6 +12,7 @@ import type { LocationValue } from '../fridge/location.js'
 import type { ProductLookupResult } from '../fridge/product-lookup-result.js'
 import type { ReceiptDraft } from '../receipt/receipt-draft.js'
 import type { Receipt, ImportReceiptInput } from '../receipt/receipt.js'
+import type { FridgeScanDraft, ImportProductsItemInput } from '../fridge/fridge-scan-draft.js'
 import type { AiSettings, AiProvider } from '../settings/ai-settings.js'
 import type {
   HaLink,
@@ -77,6 +78,9 @@ export interface FridgeConnector {
   getProductOutcomeStats(days?: number): Promise<ProductOutcomeStats>
   getExpiringSoonProducts(days?: number): Promise<Product[]>
   lookupProductByBarcode(barcode: string): Promise<ProductLookupResult | null>
+  /** One photo per call — see `docs/superpowers/specs/2026-09-16-fridge-scan-photo-design.md`. The caller (`useFridgeScan`) orchestrates and merges N calls. */
+  scanFridgePhoto(imageUri: string): Promise<Result<FridgeScanDraft, ApiError>>
+  importProducts(items: ImportProductsItemInput[]): Promise<Result<{ products: Product[] }, ApiError>>
   scanReceipt(imageUri: string): Promise<Result<ReceiptDraft, ApiError>>
   importReceipt(input: ImportReceiptInput): Promise<Result<{ receipt: Receipt; products: Product[] }, ApiError>>
   getReceipts(): Promise<Receipt[]>

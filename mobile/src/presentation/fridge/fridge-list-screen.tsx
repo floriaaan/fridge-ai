@@ -9,7 +9,7 @@ import { ChipGroupSeparator } from '../shared/chip-group-separator.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { pullToRefreshControl, usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { SkeletonList } from '../shared/skeleton.js'
-import { useScanSheet } from '../shared/scan-sheet.js'
+import { goToScan } from '../shared/scan-sheet.js'
 import { PillButton } from '../shared/pill-button.js'
 import { ProductExitSheet } from './product-exit-sheet.js'
 import { useHint } from '../shared/hint-bubble.js'
@@ -365,14 +365,13 @@ export function FridgeListScreen({
   const [locationFilter, setLocationFilter] = useState<LocationValue | null>(null)
   const [search, setSearch] = useState('')
   const products = useProductsQuery(locationFilter ? { location: locationFilter } : undefined)
-  const { openScanSheet, scanSheet } = useScanSheet()
   const deleteProduct = useDeleteProductMutation()
   const recordOutcome = useRecordProductOutcomeMutation()
   const [hint, showHint] = useHint()
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([])
   const [exiting, setExiting] = useState(false)
   const selecting = selectedIds.length > 0
-  const nav = { kind: 'tab' as const, tab: 'frigo' as const, onScan: openScanSheet }
+  const nav = { kind: 'tab' as const, tab: 'frigo' as const, onScan: goToScan }
   const { isWide, hasMobileNav } = useAppShellLayout(nav)
   const refresh = usePullToRefresh(() => products.refetch())
 
@@ -548,7 +547,6 @@ export function FridgeListScreen({
         onDiscarded={({ discardReason }) => handleExitSelected({ kind: 'discarded', discardReason })}
         onCorrection={() => handleExitSelected({ kind: 'correction' })}
       />
-      {scanSheet}
     </>
   )
 }

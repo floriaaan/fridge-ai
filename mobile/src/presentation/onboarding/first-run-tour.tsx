@@ -53,7 +53,7 @@ const BEATS: Beat[] = [
   {
     id: 'fab',
     title: 'Le raccourci',
-    body: 'Photographie un ticket de caisse et tous ses produits entrent d’un coup — ou scanne un code-barres pour en ajouter un seul.',
+    body: 'Photographie ton frigo ou un ticket de caisse et tous les produits entrent d’un coup — ou scanne un code-barres pour en ajouter un seul.',
   },
 ]
 
@@ -64,13 +64,13 @@ const SPOTLIGHT_PADDING = 8
 export function FirstRunTour({
   scrollRef,
   scrollOffset,
-  onScanReceipt,
+  onScan,
   onFinish,
 }: {
   scrollRef: React.RefObject<ScrollView | null>
   /** The offset the last measurement happened at — turns a window rectangle into a scroll target. */
   scrollOffset: React.RefObject<number>
-  onScanReceipt: () => void
+  onScan: () => void
   onFinish: () => void
 }) {
   const palette = useSoftPalette()
@@ -254,11 +254,11 @@ export function FirstRunTour({
               {isLast ? (
                 <PillButton
                   testID="first-run-tour-scan"
-                  label="Scanner un ticket"
+                  label="Scanner"
                   tone="quiet"
                   onPress={() => {
                     onFinish()
-                    onScanReceipt()
+                    onScan()
                   }}
                   palette={palette}
                 />

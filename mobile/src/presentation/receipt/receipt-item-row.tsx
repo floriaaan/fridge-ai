@@ -51,6 +51,7 @@ export function ReceiptItemRow({
   onChange,
   onRemove,
   errors,
+  showPrice = true,
 }: {
   index: number
   item: EditableReceiptItem
@@ -59,6 +60,8 @@ export function ReceiptItemRow({
   onChange: (item: EditableReceiptItem) => void
   onRemove: () => void
   errors?: ReceiptItemErrors
+  /** The fridge-scan flow has no price to show or edit — see `fridge-scan-review-screen.tsx`. */
+  showPrice?: boolean
 }) {
   const palette = useSoftPalette()
   const hover = useHoverPress()
@@ -74,7 +77,7 @@ export function ReceiptItemRow({
   const summary = [
     item.quantity.trim().length > 0 ? `${item.quantity} ${item.unit}`.trim() : null,
     LOCATION_LABELS[item.location],
-    item.price.trim().length > 0 ? `${item.price} €` : null,
+    showPrice && item.price.trim().length > 0 ? `${item.price} €` : null,
     // Same vocabulary the fridge list and dashboard use for a date
     // (`expiryLabel`/`daysUntilExpiry`) — one source of truth for "what does
     // this date mean", not a second phrasing invented for this screen.
@@ -193,18 +196,20 @@ export function ReceiptItemRow({
                 icon={(color) => <TagIcon size={13} color={color} />}
               />
             </YStack>
-            <YStack flex={1}>
-              <FormField
-                testID={`receipt-item-${index}-price`}
-                label="Prix (€)"
-                value={item.price}
-                onChangeText={(v) => set('price', v)}
-                palette={palette}
-                keyboardType="decimal-pad"
-                error={errors?.price}
-                icon={(color) => <WalletIcon size={13} color={color} />}
-              />
-            </YStack>
+            {showPrice ? (
+              <YStack flex={1}>
+                <FormField
+                  testID={`receipt-item-${index}-price`}
+                  label="Prix (€)"
+                  value={item.price}
+                  onChangeText={(v) => set('price', v)}
+                  palette={palette}
+                  keyboardType="decimal-pad"
+                  error={errors?.price}
+                  icon={(color) => <WalletIcon size={13} color={color} />}
+                />
+              </YStack>
+            ) : null}
           </XStack>
           <FormField
             testID={`receipt-item-${index}-expires-at`}

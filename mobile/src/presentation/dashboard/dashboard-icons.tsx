@@ -120,6 +120,18 @@ export const ReceiptIcon = icon([
   { d: 'M8 15h5' },
 ])
 
+export const CameraIcon = icon([
+  { d: 'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z' },
+  { cx: '12', cy: '13', r: '3' },
+])
+
+// Camera overlays: pick from the photo library.
+export const ImageIcon = icon([
+  { rect: { x: '3', y: '3', width: '18', height: '18', rx: '2' } },
+  { cx: '9', cy: '9', r: '2' },
+  { d: 'm21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21' },
+])
+
 // Settings screen: sign-out button.
 export const LogOutIcon = icon([
   { d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' },

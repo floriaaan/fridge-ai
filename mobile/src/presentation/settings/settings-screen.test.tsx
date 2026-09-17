@@ -81,7 +81,12 @@ test('a single available provider is stated, not offered as a choice of one', as
   const connector = new FakeFridgeConnector()
   jest
     .spyOn(connector, 'getAiSettings')
-    .mockResolvedValue({ activeProvider: 'gemini', source: 'environment', availableProviders: ['gemini'] })
+    .mockResolvedValue({
+      activeProvider: 'gemini',
+      source: 'environment',
+      availableProviders: ['gemini'],
+      models: { vision: 'gemini-2.5-flash', text: 'gemini-2.5-flash' },
+    })
 
   await renderAuthenticated(connector)
 
@@ -93,7 +98,12 @@ test('a server with no provider configured says so instead of showing an empty r
   const connector = new FakeFridgeConnector()
   jest
     .spyOn(connector, 'getAiSettings')
-    .mockResolvedValue({ activeProvider: 'gemini', source: 'environment', availableProviders: [] })
+    .mockResolvedValue({
+      activeProvider: 'gemini',
+      source: 'environment',
+      availableProviders: [],
+      models: { vision: '', text: '' },
+    })
 
   await renderAuthenticated(connector)
 

@@ -13,76 +13,107 @@
 import { Animated, Pressable } from 'react-native'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
+import { ScreenHeader } from '../shared/screen-header.js'
+import { router } from 'expo-router'
 import { goToProductScan, goToReceiptScan } from '../shared/scan-sheet.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { ReceiptIcon, ScanLineIcon } from '../dashboard/dashboard-icons.js'
+import { ArrowRightIcon, CameraIcon, ReceiptIcon, ScanLineIcon } from '../dashboard/dashboard-icons.js'
+
+function goToFridgeScan() {
+  router.navigate('/fridge-scan/scan')
+}
 
 export function ScanScreen() {
   const palette = useSoftPalette()
 
   return (
-    <AppShell nav={{ kind: 'stack' }}>
-      <YStack gap="$2">
-        <Text fontSize={20} fontWeight="800" color={palette.ink}>
-          Scanner
-        </Text>
-        <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
-          Remplis le garde-manger sans rien taper.
-        </Text>
-      </YStack>
-
-      <YStack gap="$3" marginTop="$6">
+    <AppShell
+      nav={{ kind: 'stack' }}
+      header={
+        <ScreenHeader
+          palette={palette}
+          icon={(color) => <ScanLineIcon size={19} color={color} />}
+          title="Scanner"
+          subtitle="Remplis le garde-manger sans rien taper."
+        />
+      }
+    >
+      {/* The whole-fridge photo leads: it is the one path that fills many
+          shelves at once. The two single-purpose paths share a row under it
+          instead of three identical bars competing for first place. */}
+      <YStack gap="$3" marginTop="$4">
         <ScanChoice
-          testID="scan-screen-product"
-          title="Un produit"
-          subtitle="Le code-barres remplit le nom et la catégorie."
-          icon={<ScanLineIcon size={22} color={palette.onDark} />}
-          tint={palette.navCardTeal}
+          testID="scan-screen-fridge"
+          title="Mon frigo"
+          subtitle="Photographie chaque étagère, l’IA liste tout ce qu’elle voit."
+          detail="1 à 5 photos"
+          icon={(color) => <CameraIcon size={26} color={color} />}
+          tint={palette.navCardWarm}
           corner="a"
-          onPress={goToProductScan}
+          featured
+          onPress={goToFridgeScan}
           palette={palette}
         />
-        <ScanChoice
-          testID="scan-screen-receipt"
-          title="Un ticket de caisse"
-          subtitle="L’IA en extrait tous les produits d’un coup."
-          icon={<ReceiptIcon size={22} color={palette.onDark} />}
-          tint={palette.navCardViolet}
-          corner="b"
-          onPress={goToReceiptScan}
-          palette={palette}
-        />
+        <XStack gap="$3" alignItems="stretch">
+          <ScanChoice
+            testID="scan-screen-product"
+            title="Un produit"
+            subtitle="Le code-barres remplit le nom et la catégorie."
+            icon={(color) => <ScanLineIcon size={22} color={color} />}
+            tint={palette.navCardTeal}
+            corner="b"
+            onPress={goToProductScan}
+            palette={palette}
+          />
+          <ScanChoice
+            testID="scan-screen-receipt"
+            title="Un ticket"
+            subtitle="Tous les produits du ticket de caisse d’un coup."
+            icon={(color) => <ReceiptIcon size={22} color={color} />}
+            tint={palette.navCardViolet}
+            corner="c"
+            onPress={goToReceiptScan}
+            palette={palette}
+          />
+        </XStack>
       </YStack>
     </AppShell>
   )
 }
 
+const CORNERS = {
+  a: { borderTopLeftRadius: 32, borderTopRightRadius: 18, borderBottomRightRadius: 32, borderBottomLeftRadius: 18 },
+  b: { borderTopLeftRadius: 18, borderTopRightRadius: 28, borderBottomRightRadius: 16, borderBottomLeftRadius: 28 },
+  c: { borderTopLeftRadius: 28, borderTopRightRadius: 16, borderBottomRightRadius: 28, borderBottomLeftRadius: 18 },
+} as const
+
 function ScanChoice({
   testID,
   title,
   subtitle,
+  detail,
   icon,
   tint,
   corner,
+  featured = false,
   onPress,
   palette,
 }: {
   testID: string
   title: string
   subtitle: string
-  icon: React.ReactNode
+  detail?: string
+  icon: (color: string) => React.ReactNode
   tint: string
-  corner: 'a' | 'b'
+  corner: keyof typeof CORNERS
+  featured?: boolean
   onPress: () => void
   palette: SoftPalette
 }) {
   const hover = useHoverPress()
-  const radii =
-    corner === 'a'
-      ? { borderTopLeftRadius: 28, borderTopRightRadius: 16, borderBottomRightRadius: 28, borderBottomLeftRadius: 16 }
-      : { borderTopLeftRadius: 16, borderTopRightRadius: 28, borderBottomRightRadius: 16, borderBottomLeftRadius: 28 }
+  const stretch = featured ? null : { flex: 1, alignSelf: 'stretch' as const }
 
   return (
     <Pressable
@@ -94,16 +125,17 @@ function ScanChoice({
       onPressOut={hover.onPressOut}
       accessibilityRole="button"
       accessibilityLabel={`${title} — ${subtitle}`}
-      style={pointerCursor}
+      style={[pointerCursor, stretch]}
     >
-      <Animated.View style={{ transform: [{ scale: hover.scale }] }}>
-        <XStack
-          alignItems="center"
-          gap="$4"
-          padding="$4"
+      <Animated.View style={[{ transform: [{ scale: hover.scale }] }, stretch]}>
+        <YStack
+          flex={featured ? undefined : 1}
+          gap={featured ? '$5' : '$3'}
+          padding={featured ? '$5' : '$4'}
           backgroundColor={tint}
+          overflow="hidden"
           style={{
-            ...radii,
+            ...CORNERS[corner],
             shadowColor: palette.shadowCool,
             shadowOffset: { width: 0, height: 16 },
             shadowOpacity: 0.22,
@@ -111,18 +143,35 @@ function ScanChoice({
             elevation: 6,
           }}
         >
-          <YStack width={48} height={48} borderRadius={16} backgroundColor="rgba(255,255,255,0.18)" alignItems="center" justifyContent="center">
-            {icon}
-          </YStack>
-          <YStack flex={1} gap="$1">
-            <Text fontSize={16} fontWeight="800" color={palette.onDark}>
+          <XStack alignItems="center" justifyContent="space-between">
+            <YStack
+              width={featured ? 56 : 44}
+              height={featured ? 56 : 44}
+              borderRadius={featured ? 18 : 14}
+              backgroundColor="rgba(255,255,255,0.18)"
+              alignItems="center"
+              justifyContent="center"
+            >
+              {icon(palette.onDark)}
+            </YStack>
+            {featured ? <ArrowRightIcon size={22} color={palette.onDark} /> : null}
+          </XStack>
+          <YStack gap="$1.5">
+            <Text fontSize={featured ? 22 : 16} fontWeight="800" color={palette.onDark}>
               {title}
             </Text>
-            <Text fontSize={12} fontWeight="500" color={palette.onDark} opacity={0.85}>
+            <Text fontSize={featured ? 14 : 12} fontWeight="500" color={palette.onDarkSecondary}>
               {subtitle}
             </Text>
           </YStack>
-        </XStack>
+          {detail ? (
+            <YStack alignSelf="flex-start" backgroundColor={palette.heroPillFill} borderRadius={999} paddingHorizontal="$3" paddingVertical="$1">
+              <Text fontSize={12} fontWeight="700" color={palette.onDark}>
+                {detail}
+              </Text>
+            </YStack>
+          ) : null}
+        </YStack>
       </Animated.View>
     </Pressable>
   )
