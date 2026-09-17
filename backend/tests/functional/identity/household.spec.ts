@@ -137,16 +137,23 @@ test.group('household: create, join, manage members', () => {
       .json({ newOwnerId: memberUserId })
     transfer.assertStatus(204)
 
-    const mineAsFormerOwner = await client.get('/api/households/mine').headers({ cookie: ownerCookie })
+    const mineAsFormerOwner = await client
+      .get('/api/households/mine')
+      .headers({ cookie: ownerCookie })
     mineAsFormerOwner.assertBodyContains({ household: { role: 'member' } })
 
-    const mineAsNewOwner = await client.get('/api/households/mine').headers({ cookie: memberCookie })
+    const mineAsNewOwner = await client
+      .get('/api/households/mine')
+      .headers({ cookie: memberCookie })
     mineAsNewOwner.assertBodyContains({ household: { role: 'owner' } })
   })
 
   test('transferring ownership to the current owner fails', async ({ client }) => {
     const cookie = await signUp(client, 'owner7@example.com', 'Owner7')
-    const create = await client.post('/api/households').headers({ cookie }).json({ name: 'Foyer 7' })
+    const create = await client
+      .post('/api/households')
+      .headers({ cookie })
+      .json({ name: 'Foyer 7' })
     const ownerId = create.body().household.ownerId ?? create.body().household.members[0].userId
 
     const transfer = await client

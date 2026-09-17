@@ -8,7 +8,8 @@ export interface TransferHouseholdOwnershipInput {
   newOwnerId: string
 }
 
-export type TransferHouseholdOwnershipError = 'no_household' | 'not_owner' | 'not_a_member' | 'already_owner'
+export type TransferHouseholdOwnershipError =
+  'no_household' | 'not_owner' | 'not_a_member' | 'already_owner'
 
 export class TransferHouseholdOwnership implements UseCase<
   TransferHouseholdOwnershipInput,

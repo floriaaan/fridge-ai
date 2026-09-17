@@ -71,7 +71,8 @@ export const auth = betterAuth({
        * `transferOwnership`).
        */
       beforeDelete: async (user) => {
-        const app = (await import('@adonisjs/core/services/app')).default
+        const appModule = await import('@adonisjs/core/services/app')
+        const app = appModule.default
         const households = await app.container.make('identity.households')
         const household = await households.findByUserId(user.id)
         if (!household) return
@@ -132,7 +133,9 @@ export const auth = betterAuth({
     },
   },
   ...(googleConfigured
-    ? { socialProviders: { google: { clientId: googleClientId, clientSecret: googleClientSecret } } }
+    ? {
+        socialProviders: { google: { clientId: googleClientId, clientSecret: googleClientSecret } },
+      }
     : {}),
   verification: {
     fields: {
