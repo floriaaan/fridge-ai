@@ -1,5 +1,5 @@
 export interface AuthMethod {
-  id: 'password' | 'pocketid'
+  id: 'password' | 'pocketid' | 'google' | 'passkey'
   enabled: boolean
   label: string
 }

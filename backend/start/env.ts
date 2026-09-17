@@ -34,6 +34,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   POCKETID_ISSUER_URL: Env.schema.string.optional({ format: 'url', tld: false }),
   POCKETID_CLIENT_ID: Env.schema.string.optional(),
   POCKETID_CLIENT_SECRET: Env.schema.string.optional(),
+
+  // Google OAuth (Google Cloud Console credentials) — same on/off-by-presence
+  // pattern as PocketID above.
+  GOOGLE_CLIENT_ID: Env.schema.string.optional(),
+  GOOGLE_CLIENT_SECRET: Env.schema.string.optional(),
+
   DISABLE_PASSWORD_LOGIN: Env.schema.boolean.optional(),
 
   // Frontend/app origin(s) the client actually calls the API from — used by

@@ -198,14 +198,14 @@ test('the debug menu triggers a hint via the same HintBubble every real action u
   await waitFor(() => expect(screen.getByText('Ajouté au frigo. (debug)')).toBeTruthy())
 })
 
-test('the debug menu’s "Réinitialiser l’onboarding" signs out, clears the welcome flag, and previews it immediately', async () => {
+test('the debug menu’s "Réinitialiser l’état de l’app" signs out, clears the welcome flag and chosen server, and previews it immediately', async () => {
   const SecureStore = jest.requireMock('expo-secure-store')
   const connector = new FakeFridgeConnector()
   await renderAuthenticated(connector)
 
   fireEvent.press(screen.getByTestId('debug-menu-open'))
-  await waitFor(() => expect(screen.getByTestId('debug-reset-onboarding')).toBeTruthy())
-  await fireEvent.press(screen.getByTestId('debug-reset-onboarding'))
+  await waitFor(() => expect(screen.getByTestId('debug-reset-app-state')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('debug-reset-app-state'))
 
   // Signs out first: `/welcome` finishes onto `/(auth)/sign-up`, which
   // redirects straight back to the tabs whenever a session exists — this
@@ -213,6 +213,7 @@ test('the debug menu’s "Réinitialiser l’onboarding" signs out, clears the w
   // never reaches it.
   await waitFor(async () => expect(await connector.getSession()).toBeNull())
   await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('garde-manger.welcome.seen'))
+  await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('server_url'))
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/welcome'))
 })
 

@@ -11,6 +11,8 @@ import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { LockIcon, LinkIcon, TrashIcon, UserIcon } from '../dashboard/dashboard-icons.js'
 import { AuthField } from './auth-field.js'
 import { AuthButton } from './auth-button.js'
+import { PocketIdIcon } from './pocket-id-icon.js'
+import { GoogleIcon } from './google-icon.js'
 import { initials } from '../shared/member-avatars.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
@@ -19,7 +21,23 @@ import { useChangeAccountPasswordMutation } from '../../application/identity/cha
 import { useLinkedAccountsQuery } from '../../application/identity/linked-accounts.query.js'
 import { useDeleteAccountMutation } from '../../application/identity/delete-account.mutation.js'
 
-const PROVIDER_LABELS: Record<string, string> = { password: 'Email et mot de passe', pocketid: 'PocketID' }
+const PROVIDER_LABELS: Record<string, string> = {
+  password: 'Email et mot de passe',
+  pocketid: 'PocketID',
+  google: 'Google',
+  passkey: 'Clé d’accès (passkey)',
+}
+
+function ProviderIcon({ provider, color }: { provider: string; color: string }) {
+  switch (provider) {
+    case 'pocketid':
+      return <PocketIdIcon size={17} />
+    case 'google':
+      return <GoogleIcon size={17} />
+    default:
+      return <LinkIcon size={17} color={color} />
+  }
+}
 
 export function AccountScreen() {
   const palette = useSoftPalette()
@@ -164,7 +182,7 @@ export function AccountScreen() {
               minHeight={44}
             >
               <YStack width={36} height={36} borderRadius={12} backgroundColor={palette.chipViolet} alignItems="center" justifyContent="center">
-                <LinkIcon size={17} color={palette.onDark} />
+                <ProviderIcon provider={account.provider} color={palette.onDark} />
               </YStack>
               <Text fontSize={14} fontWeight="700" color={palette.ink} flex={1}>
                 {PROVIDER_LABELS[account.provider] ?? account.provider}
@@ -249,9 +267,6 @@ function NameEditor({
   const [name, setName] = useState(initialName)
   return (
     <YStack marginTop="$6" gap="$2">
-      <Text fontSize={15} fontWeight="800" color={palette.ink}>
-        Nom
-      </Text>
       <AuthField testID="account-name" label="Nom" value={name} onChangeText={setName} autoCapitalize="words" />
       <AuthButton
         testID="account-save-name"

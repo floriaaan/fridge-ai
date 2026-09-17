@@ -29,6 +29,11 @@ tasks:
       - cmd: cp -n landing/.env.example landing/.env
         ignore_error: true
 
+  env:sync:
+    desc: Sync root .env (Docker Compose) from backend/.env (AdonisJS) for vars they share.
+    cmds:
+      - dev/sync-env.sh
+
   dev:
     desc: Run the backend dev server locally (HMR), Postgres in Docker.
     deps: [dev:db]

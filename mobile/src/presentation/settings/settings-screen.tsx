@@ -33,7 +33,7 @@ import { useSignOutMutation } from '../../application/identity/sign-out.mutation
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
 import { useSetActiveAiProviderMutation } from '../../application/settings/set-active-ai-provider.mutation.js'
 import { useInstanceInfoQuery } from '../../application/instance/instance-info.query.js'
-import { getServerUrl } from '../../infrastructure/http/server-config.js'
+import { clearServerUrl, getServerUrl } from '../../infrastructure/http/server-config.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
@@ -98,15 +98,20 @@ export function SettingsScreen() {
     queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
   }
 
-  // Clears the device flag and previews the result immediately rather than
-  // asking whoever is testing it to force-quit and relaunch — the whole
-  // point of a dev tool is not costing more than the thing it's checking.
-  // Also signs out: `/welcome` finishes onto `/(auth)/sign-up`, and
-  // `(auth)/_layout.tsx` redirects straight to the tabs whenever a session
-  // exists — previewing the onboarding flow while still signed in bounced
-  // off that gate before this reached `/welcome` at all. Best-effort: a
-  // sign-out failure here shouldn't block the one thing this button is for.
-  async function handleResetOnboarding() {
+  // Clears every device-local first-run flag and previews the result
+  // immediately rather than asking whoever is testing it to force-quit and
+  // relaunch — the whole point of a dev tool is not costing more than the
+  // thing it's checking. Also signs out: `/welcome` finishes onto
+  // `/(auth)/sign-up`, and `(auth)/_layout.tsx` redirects straight to the
+  // tabs whenever a session exists — previewing the onboarding flow while
+  // still signed in bounced off that gate before this reached `/welcome` at
+  // all. Best-effort: a sign-out failure here shouldn't block the one thing
+  // this button is for.
+  //
+  // Clears the chosen server too, not just the welcome flag — a reset that
+  // still landed on `/server-choice` pre-picked with the last real server
+  // wasn't previewing first launch, it was previewing "second launch".
+  async function handleResetAppState() {
     setDebugMenuOpen(false)
     try {
       await signOut.mutateAsync(undefined)
@@ -115,6 +120,7 @@ export function SettingsScreen() {
       // Preview it anyway — see comment above.
     }
     await resetWelcomeSeen()
+    await clearServerUrl()
     router.replace('/welcome')
   }
 
@@ -204,15 +210,15 @@ export function SettingsScreen() {
       },
     },
     {
-      // Not `destructive`: it touches no household data, only a local device
-      // flag — the red treatment is reserved for a row that can hurt the
+      // Not `destructive`: it touches no household data, only local device
+      // flags — the red treatment is reserved for a row that can hurt the
       // foyer's shared state, which this can't.
-      testID: 'debug-reset-onboarding',
-      label: 'Réinitialiser l’onboarding',
+      testID: 'debug-reset-app-state',
+      label: 'Réinitialiser l’état de l’app',
       icon: (color) => <RefreshIcon size={16} color={color} />,
       tint: palette.navCardViolet,
       onPress: () => {
-        void handleResetOnboarding()
+        void handleResetAppState()
       },
     },
   ]

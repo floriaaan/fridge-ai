@@ -82,9 +82,15 @@ export function IdentityCard({
           `fridge-cabinet.tsx`'s interior light already use elsewhere in the
           app, here reading as sun on the pantry shelf rather than a printed
           tile. Absolute + `pointerEvents="none"`: decoration, never a hit
-          target. */}
+          target. A white highlight on dark mode's dim card fills read as a
+          flat gray smear rather than a sheen — dark mode darkens instead,
+          same "light source above" read either way. */}
       <LinearGradient
-        colors={[hexToRgba('#ffffff', 0.22), hexToRgba('#ffffff', 0)]}
+        colors={
+          palette.blurTint === 'dark'
+            ? [hexToRgba('#000000', 0.22), hexToRgba('#000000', 0)]
+            : [hexToRgba('#ffffff', 0.22), hexToRgba('#ffffff', 0)]
+        }
         locations={[0, 0.6]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}

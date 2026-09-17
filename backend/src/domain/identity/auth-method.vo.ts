@@ -1,6 +1,6 @@
 import { ValueObject } from '#domain/shared/value-object'
 
-export type AuthMethodId = 'password' | 'pocketid'
+export type AuthMethodId = 'password' | 'pocketid' | 'google' | 'passkey'
 
 interface AuthMethodProps {
   id: AuthMethodId

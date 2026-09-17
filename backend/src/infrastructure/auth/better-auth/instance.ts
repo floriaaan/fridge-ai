@@ -1,6 +1,7 @@
 import { betterAuth, APIError } from 'better-auth'
 import { genericOAuth } from 'better-auth/plugins'
 import { expo } from '@better-auth/expo'
+import { passkey } from '@better-auth/passkey'
 import { Kysely, PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
 import env from '#start/env'
@@ -19,6 +20,17 @@ const pocketIdClientId = env.get('POCKETID_CLIENT_ID', '')
 const pocketIdClientSecret = env.get('POCKETID_CLIENT_SECRET', '')
 const pocketIdIssuerUrl = env.get('POCKETID_ISSUER_URL', '')
 const pocketIdConfigured = Boolean(pocketIdClientId && pocketIdClientSecret && pocketIdIssuerUrl)
+
+const googleClientId = env.get('GOOGLE_CLIENT_ID', '')
+const googleClientSecret = env.get('GOOGLE_CLIENT_SECRET', '')
+const googleConfigured = Boolean(googleClientId && googleClientSecret)
+
+// WebAuthn binds a passkey to a single origin/hostname (`rpID`) for its
+// lifetime — NETWORK_URL is that same "however this backend is actually
+// reached" address already used as the PocketID redirect_uri, so passkeys
+// keep working across the LAN-IP-in-dev / real-domain-in-prod split without
+// their own env var.
+const networkUrl = new URL(env.get('NETWORK_URL'))
 
 /**
  * Unlike arr's OIDC config (hot-reloaded from a settings table), PocketID
@@ -115,10 +127,13 @@ export const auth = betterAuth({
      */
     accountLinking: {
       enabled: true,
-      trustedProviders: ['pocketid'],
+      trustedProviders: ['pocketid', 'google'],
       requireLocalEmailVerified: false,
     },
   },
+  ...(googleConfigured
+    ? { socialProviders: { google: { clientId: googleClientId, clientSecret: googleClientSecret } } }
+    : {}),
   verification: {
     fields: {
       expiresAt: 'expires_at',
@@ -128,6 +143,23 @@ export const auth = betterAuth({
   },
   plugins: [
     expo(),
+    passkey({
+      rpID: networkUrl.hostname,
+      rpName: env.get('INSTANCE_NAME', 'Garde-manger'),
+      origin: env.get('NETWORK_URL'),
+      schema: {
+        passkey: {
+          fields: {
+            publicKey: 'public_key',
+            userId: 'user_id',
+            credentialID: 'credential_id',
+            deviceType: 'device_type',
+            backedUp: 'backed_up',
+            createdAt: 'created_at',
+          },
+        },
+      },
+    }),
     ...(pocketIdConfigured
       ? [
           genericOAuth({

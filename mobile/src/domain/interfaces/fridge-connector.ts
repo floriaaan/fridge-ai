@@ -41,7 +41,7 @@ export interface FridgeConnector {
   getAuthMethods(): Promise<AuthMethod[]>
   signInEmail(email: string, password: string): Promise<Result<Session, ApiError>>
   signUpEmail(email: string, password: string, name: string): Promise<Result<Session, ApiError>>
-  signInSocial(provider: 'pocketid'): Promise<Result<Session, ApiError>>
+  signInSocial(provider: 'pocketid' | 'google'): Promise<Result<Session, ApiError>>
   signOut(): Promise<void>
   getHousehold(): Promise<Household | null>
   /**

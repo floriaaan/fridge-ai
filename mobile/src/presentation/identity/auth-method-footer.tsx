@@ -47,6 +47,7 @@ import { AuthError } from './auth-error.js'
 import { PillButton } from '../shared/pill-button.js'
 import { ArrowLeftIcon } from '../dashboard/dashboard-icons.js'
 import { PocketIdIcon } from './pocket-id-icon.js'
+import { GoogleIcon } from './google-icon.js'
 
 type Mode = 'choice' | 'email'
 
@@ -71,6 +72,8 @@ export function AuthMethodFooter({
   const [hasMeasured, setHasMeasured] = useState(false)
 
   const pocketId = authMethods.data?.find((m) => m.id === 'pocketid' && m.enabled)
+  const google = authMethods.data?.find((m) => m.id === 'google' && m.enabled)
+  const hasSocial = Boolean(pocketId || google)
   const socialError = authErrorMessage(signInSocial.error, signInSocial.data, 'Une erreur est survenue lors de la connexion.')
 
   const onMeasure = useCallback(
@@ -98,6 +101,11 @@ export function AuthMethodFooter({
     if (result.ok) onSuccess()
   }
 
+  async function handleGoogle() {
+    const result = await signInSocial.mutateAsync({ provider: 'google' })
+    if (result.ok) onSuccess()
+  }
+
   function chooseEmail() {
     setEverEnteredEmail(true)
     setMode('email')
@@ -108,20 +116,34 @@ export function AuthMethodFooter({
       <View onLayout={onMeasure} style={{ gap: 12 }}>
         <View style={{ display: mode === 'choice' ? 'flex' : 'none', gap: 12 }}>
           <AuthButton testID="auth-method-email" label={emailLabel} onPress={chooseEmail} />
-          {pocketId ? (
+          {hasSocial ? (
             <>
               <AuthDivider label="ou" />
               {socialError ? <AuthError message={socialError} /> : null}
-              <AuthButton
-                testID="auth-method-pocketid"
-                label={pocketId.label}
-                pendingLabel="Connexion..."
-                pending={signInSocial.isPending}
-                onPress={handlePocketId}
-                variant="secondary"
-                tone="on-dark"
-                icon={<PocketIdIcon size={18} />}
-              />
+              {pocketId ? (
+                <AuthButton
+                  testID="auth-method-pocketid"
+                  label={pocketId.label}
+                  pendingLabel="Connexion..."
+                  pending={signInSocial.isPending}
+                  onPress={handlePocketId}
+                  variant="secondary"
+                  tone="on-dark"
+                  icon={<PocketIdIcon size={18} />}
+                />
+              ) : null}
+              {google ? (
+                <AuthButton
+                  testID="auth-method-google"
+                  label={google.label}
+                  pendingLabel="Connexion..."
+                  pending={signInSocial.isPending}
+                  onPress={handleGoogle}
+                  variant="secondary"
+                  tone="on-dark"
+                  icon={<GoogleIcon size={18} />}
+                />
+              ) : null}
             </>
           ) : authMethods.isError ? (
             // Loading, "nothing configured", and "couldn't check" all used to

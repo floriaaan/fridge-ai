@@ -159,7 +159,7 @@ export class HttpFridgeConnector implements FridgeConnector {
     }
   }
 
-  async signInSocial(provider: 'pocketid'): Promise<Result<Session, ApiError>> {
+  async signInSocial(provider: 'pocketid' | 'google'): Promise<Result<Session, ApiError>> {
     try {
       // better-auth validates callbackURL as a plain path — Expo Router's
       // `(tabs)` route-group syntax isn't one (the parens fail its check
@@ -297,12 +297,24 @@ export class HttpFridgeConnector implements FridgeConnector {
 
   async getLinkedAccounts(): Promise<LinkedAccount[]> {
     try {
-      const { data, error } = await authClient.listAccounts()
+      const [{ data, error }, passkeys] = await Promise.all([
+        authClient.listAccounts(),
+        // Passkeys live in their own table (`passkey`), separate from
+        // credential/OAuth accounts (`account`) — better-auth exposes them
+        // through a dedicated endpoint rather than `listAccounts`.
+        authClient.passkey.listUserPasskeys().catch(() => ({ data: [] })),
+      ])
       if (error || !data) return []
-      return data.map((account) => ({
-        provider: account.providerId === 'pocketid' ? 'pocketid' : 'password',
+      const accounts: LinkedAccount[] = data.map((account) => ({
+        provider: account.providerId === 'pocketid' || account.providerId === 'google' ? account.providerId : 'password',
         createdAt: new Date(account.createdAt).toISOString(),
       }))
+      if ((passkeys.data ?? []).length > 0) {
+        // One row per *provider*, not per credential — the account screen
+        // lists login methods, not every individual passkey a user registered.
+        accounts.push({ provider: 'passkey', createdAt: new Date(passkeys.data![0].createdAt).toISOString() })
+      }
+      return accounts
     } catch (error) {
       reportFailure('identity.get_linked_accounts', error)
       return []

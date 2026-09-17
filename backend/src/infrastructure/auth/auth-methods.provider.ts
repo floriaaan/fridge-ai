@@ -21,6 +21,18 @@ export class EnvAuthMethodsProvider implements AuthMethodsProvider {
       methods.push(AuthMethod.create({ id: 'pocketid', enabled: true, label: 'PocketID' }))
     }
 
+    const googleConfigured =
+      Boolean(env.get('GOOGLE_CLIENT_ID', '')) && Boolean(env.get('GOOGLE_CLIENT_SECRET', ''))
+
+    if (googleConfigured) {
+      methods.push(AuthMethod.create({ id: 'google', enabled: true, label: 'Google' }))
+    }
+
+    // Passkeys are a WebAuthn/device capability, not a server credential to
+    // configure — always offered, same as the passkey plugin itself always
+    // being registered in instance.ts.
+    methods.push(AuthMethod.create({ id: 'passkey', enabled: true, label: 'Clé d’accès' }))
+
     return methods
   }
 }

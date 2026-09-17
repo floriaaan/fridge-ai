@@ -6,5 +6,5 @@ export const useSignInEmailMutation = defineMutation(
 )
 
 export const useSignInSocialMutation = defineMutation(
-  (connector, input: { provider: 'pocketid' }) => connector.signInSocial(input.provider),
+  (connector, input: { provider: 'pocketid' | 'google' }) => connector.signInSocial(input.provider),
 )
