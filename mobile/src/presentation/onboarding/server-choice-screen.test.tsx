@@ -19,12 +19,12 @@ test('a recognized server shows what was found, then confirming calls onDone', a
   await renderWithProviders(<ServerChoiceScreen onDone={onDone} />)
 
   await fireEvent.changeText(screen.getByTestId('server-choice-url'), 'https://valid.example.com')
-  await fireEvent.press(screen.getByTestId('server-choice-check'))
+  await fireEvent.press(screen.getByTestId('server-choice-submit'))
 
   await waitFor(() => expect(screen.getByTestId('server-choice-found')).toBeTruthy())
   expect(screen.getByText('Garde-manger de test — v0.0.0')).toBeTruthy()
 
-  await fireEvent.press(screen.getByTestId('server-choice-confirm'))
+  await fireEvent.press(screen.getByTestId('server-choice-submit'))
   expect(onDone).toHaveBeenCalledTimes(1)
 })
 
@@ -33,11 +33,11 @@ test('a server that does not answer like Garde-manger is rejected with a clear m
   await renderWithProviders(<ServerChoiceScreen onDone={onDone} />)
 
   await fireEvent.changeText(screen.getByTestId('server-choice-url'), 'https://not-a-garde-manger.example.com')
-  await fireEvent.press(screen.getByTestId('server-choice-check'))
+  await fireEvent.press(screen.getByTestId('server-choice-submit'))
 
   await waitFor(() =>
     expect(screen.getByText("Ce serveur ne répond pas comme une instance Garde-manger. Vérifie l'adresse.")).toBeTruthy(),
   )
-  expect(screen.queryByTestId('server-choice-confirm')).toBeNull()
+  expect(screen.getByText('Vérifier')).toBeTruthy()
   expect(onDone).not.toHaveBeenCalled()
 })

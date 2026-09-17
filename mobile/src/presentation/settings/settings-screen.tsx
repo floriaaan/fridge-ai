@@ -24,7 +24,7 @@ import {
 } from '../dashboard/dashboard-icons.js'
 import { resetWelcomeSeen } from '../welcome/use-welcome-seen.js'
 import { IdentityCard, RoleBadge } from './identity-card.js'
-import { MemberAvatars, initials } from '../shared/member-avatars.js'
+import { initials } from '../shared/member-avatars.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { ROLE_LABELS } from '../identity/role-labels.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
@@ -76,7 +76,6 @@ export function SettingsScreen() {
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
   const [confirmingSignOut, setConfirmingSignOut] = useState(false)
-  const [confirmingChangeServer, setConfirmingChangeServer] = useState(false)
   const [debugMenuOpen, setDebugMenuOpen] = useState(false)
   const [hint, showHint] = useHint()
   const refresh = usePullToRefresh(
@@ -130,25 +129,9 @@ export function SettingsScreen() {
     router.replace('/(auth)/sign-in')
   }
 
-  // Same shape as `handleResetOnboarding`: this device's session belongs to
-  // the server being left, so it can't come along. Best-effort sign-out,
-  // then clear every cached query — otherwise the new server's screens would
-  // flash the old one's household/AI settings until each query refetched.
-  async function handleChangeServer() {
-    setConfirmingChangeServer(false)
-    try {
-      await signOut.mutateAsync(undefined)
-    } catch {
-      // Preview it anyway — see handleResetOnboarding.
-    }
-    queryClient.clear()
-    router.replace('/server-choice?next=sign-in')
-  }
-
   const signOutError = signOut.error ? 'Une erreur est survenue lors de la déconnexion.' : null
   const members = household.data?.members ?? []
   const memberSummary = members.length > 0 ? `${members.length} membre${members.length > 1 ? 's' : ''}` : undefined
-  const memberNames = members.map((member) => member.name)
   const roleLabel = household.data ? ROLE_LABELS[household.data.role] : null
   const householdSpokenLabel = [
     'Foyer',
@@ -279,7 +262,6 @@ export function SettingsScreen() {
             household.isError ? 'Tire pour réessayer.' : (memberSummary ?? 'Personne d’autre pour l’instant')
           }
           trailing={roleLabel ? <RoleBadge label={roleLabel} palette={palette} /> : null}
-          footer={memberNames.length > 0 ? <MemberAvatars names={memberNames} palette={palette} /> : null}
           corner="b"
           palette={palette}
           onPress={() => router.push('/household')}
@@ -365,30 +347,18 @@ export function SettingsScreen() {
           bg={palette.cream}
           labelColor={palette.creamText}
           chipColor={palette.chipOrange}
-          icon={<ServerIcon size={18} color={palette.onDark} />}
-          label="Instance"
-          value={instance.data ? (instance.data.name ?? (instance.data.mode === 'hosted' ? 'Garde-manger hébergé' : 'Garde-manger auto-hébergé')) : '—'}
-          secondary={instance.data ? `${getServerUrl()} · v${instance.data.version}` : 'Impossible de contacter ce serveur.'}
-          corner="a"
-          palette={palette}
-          footer={
-            <PillButton
-              testID="settings-change-server"
-              label="Changer de serveur"
-              tone="quiet"
-              size="dense"
-              palette={palette}
-              icon={(color) => <ServerIcon size={14} color={color} />}
-              onPress={() => setConfirmingChangeServer(true)}
-            />
+          icon={<ServerIcon size={17} color={palette.onDark} />}
+          label="Serveur"
+          value={
+            instance.data
+              ? instance.data.name ?? (instance.data.mode === 'hosted' ? 'Garde-manger hébergé' : 'Garde-manger auto-hébergé')
+              : '—'
           }
+          secondary={instance.data ? `${getServerUrl()} · v${instance.data.version}` : 'Impossible de contacter ce serveur.'}
+          corner="b"
+          palette={palette}
+          onPress={() => router.push('/server-info')}
         />
-      </YStack>
-
-      <YStack marginTop="$5" alignItems="center">
-        <Text fontSize={12} fontWeight="600" color={palette.inkSecondary}>
-          Garde-manger · v{Constants.expoConfig?.version ?? '—'}
-        </Text>
       </YStack>
 
       {/* Dev-only: one menu instead of a growing row of pills — the row was
@@ -418,6 +388,10 @@ export function SettingsScreen() {
         </YStack>
       ) : null}
 
+      {/* One consistent $8 rhythm between every section on the page (Serveur
+          above, this, the version line below) — the version line used to sit
+          between Serveur and Debug at its own $5, which broke that rhythm and
+          read as a stray fact dropped mid-list rather than the page's close. */}
       <YStack marginTop="$8" gap="$2">
         <AuthButton
           testID="sign-out"
@@ -438,6 +412,12 @@ export function SettingsScreen() {
         ) : null}
       </YStack>
 
+      <YStack marginTop="$8" alignItems="center">
+        <Text fontSize={12} fontWeight="600" color={palette.inkSecondary}>
+          Garde-manger · v{Constants.expoConfig?.version ?? '—'}
+        </Text>
+      </YStack>
+
       <ActionSheet
         visible={confirmingSignOut}
         title="Se déconnecter ?"
@@ -453,23 +433,6 @@ export function SettingsScreen() {
           },
         ]}
         onClose={() => setConfirmingSignOut(false)}
-      />
-
-      <ActionSheet
-        visible={confirmingChangeServer}
-        title="Changer de serveur ?"
-        description="Il faudra se reconnecter, sur le nouveau serveur, pour retrouver un garde-manger."
-        options={[
-          {
-            testID: 'change-server-confirm',
-            label: 'Changer de serveur',
-            icon: (color) => <ServerIcon size={18} color={color} />,
-            tint: palette.expiredBg,
-            destructive: true,
-            onPress: handleChangeServer,
-          },
-        ]}
-        onClose={() => setConfirmingChangeServer(false)}
       />
     </AppShell>
   )

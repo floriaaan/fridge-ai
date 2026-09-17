@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 import { Animated, Pressable } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { pointerCursor, useHoverPress } from '../shared/hover.js'
+import { hexToRgba } from '../shared/hex-to-rgba.js'
 import { ChevronRightIcon } from '../dashboard/dashboard-icons.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 
@@ -72,10 +74,33 @@ export function IdentityCard({
       backgroundColor={bg}
       padding="$4"
       gap="$3"
+      overflow="hidden"
       style={{ ...radii, shadowColor: palette.shadowCool, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 3 }}
     >
+      {/* A flat pastel fill under flat pastel fills is where "terne" came
+          from — the same top-light sheen `welcome-screen.tsx`'s vignette and
+          `fridge-cabinet.tsx`'s interior light already use elsewhere in the
+          app, here reading as sun on the pantry shelf rather than a printed
+          tile. Absolute + `pointerEvents="none"`: decoration, never a hit
+          target. */}
+      <LinearGradient
+        colors={[hexToRgba('#ffffff', 0.22), hexToRgba('#ffffff', 0)]}
+        locations={[0, 0.6]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '65%' }}
+      />
       <XStack alignItems="center" gap="$3">
-        <YStack width={36} height={36} borderRadius={12} backgroundColor={chipColor} alignItems="center" justifyContent="center">
+        <YStack
+          width={36}
+          height={36}
+          borderRadius={12}
+          backgroundColor={chipColor}
+          alignItems="center"
+          justifyContent="center"
+          style={{ shadowColor: palette.shadowCool, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.22, shadowRadius: 6, elevation: 4 }}
+        >
           {icon}
         </YStack>
         <YStack flex={1} minWidth={0}>

@@ -49,9 +49,6 @@ test('the foyer card carries the whole width, its members and the role — not a
 
   expect(screen.getByText('2 membres')).toBeTruthy()
   expect(screen.getByText('Propriétaire')).toBeTruthy()
-  // Initials, one per member, from the two fixture names.
-  expect(screen.getByText('TC')).toBeTruthy()
-  expect(screen.getByText('C')).toBeTruthy()
 
   fireEvent.press(screen.getByTestId('settings-household'))
 
@@ -231,17 +228,11 @@ test('shows the instance card with the mode, server URL and version', async () =
   expect(screen.getByText(/v0\.0\.0/)).toBeTruthy()
 })
 
-test('changing server signs out, clears the cache, and lands on server-choice for a returning account', async () => {
-  const connector = new FakeFridgeConnector()
-  await renderAuthenticated(connector)
+test('tapping the instance card opens the server-info page', async () => {
+  await renderAuthenticated()
 
-  await waitFor(() => expect(screen.getByTestId('settings-change-server')).toBeTruthy())
-  await fireEvent.press(screen.getByTestId('settings-change-server'))
+  await waitFor(() => expect(screen.getByTestId('settings-instance')).toBeTruthy())
+  fireEvent.press(screen.getByTestId('settings-instance'))
 
-  // Confirmed, like sign-out and every other consequential action here.
-  await waitFor(() => expect(screen.getByTestId('change-server-confirm')).toBeTruthy())
-  await fireEvent.press(screen.getByTestId('change-server-confirm'))
-
-  await waitFor(async () => expect(await connector.getSession()).toBeNull())
-  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/server-choice?next=sign-in'))
+  expect(router.push).toHaveBeenCalledWith('/server-info')
 })
