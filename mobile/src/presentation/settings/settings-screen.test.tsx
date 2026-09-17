@@ -70,66 +70,13 @@ test('shows the app version in the À propos line', async () => {
   await waitFor(() => expect(screen.getByText(/Garde-manger · v/)).toBeTruthy())
 })
 
-test('shows only the available providers with the active one selected, and says what the choice drives', async () => {
+test('tapping the AI card opens the provider page', async () => {
   await renderAuthenticated()
 
-  await waitFor(() => expect(screen.getByTestId('ai-provider-gemini')).toBeTruthy())
-  expect(screen.queryByTestId('ai-provider-ollama')).toBeNull()
-  expect(screen.getByTestId('ai-provider-gemini').props.accessibilityState.selected).toBe(true)
-  expect(screen.getByText('Lit tes tickets de caisse et invente tes recettes.')).toBeTruthy()
-})
+  await waitFor(() => expect(screen.getByTestId('settings-ai-provider')).toBeTruthy())
+  fireEvent.press(screen.getByTestId('settings-ai-provider'))
 
-test('never claims the administrator locked a choice the foyer can in fact make', async () => {
-  await renderAuthenticated()
-
-  await waitFor(() => expect(screen.getByTestId('ai-provider-gemini')).toBeTruthy())
-  // `source` only records whether anyone has picked yet — the stored row always
-  // wins over the env default, so the old wording described a lock that isn't there.
-  expect(screen.queryByText("Configuré par l'administrateur")).toBeNull()
-  expect(screen.queryByText('Choisi par le foyer')).toBeNull()
-})
-
-test('a single available provider is stated, not offered as a choice of one', async () => {
-  const connector = new FakeFridgeConnector()
-  jest
-    .spyOn(connector, 'getAiSettings')
-    .mockResolvedValue({
-      activeProvider: 'gemini',
-      source: 'environment',
-      availableProviders: ['gemini'],
-      models: { vision: 'gemini-2.5-flash', text: 'gemini-2.5-flash' },
-    })
-
-  await renderAuthenticated(connector)
-
-  await waitFor(() => expect(screen.getByText('Gemini')).toBeTruthy())
-  expect(screen.queryByTestId('ai-provider-gemini')).toBeNull()
-})
-
-test('a server with no provider configured says so instead of showing an empty row', async () => {
-  const connector = new FakeFridgeConnector()
-  jest
-    .spyOn(connector, 'getAiSettings')
-    .mockResolvedValue({
-      activeProvider: 'gemini',
-      source: 'environment',
-      availableProviders: [],
-      models: { vision: '', text: '' },
-    })
-
-  await renderAuthenticated(connector)
-
-  await waitFor(() => expect(screen.getByText('Aucun fournisseur n’est configuré sur ce serveur.')).toBeTruthy())
-})
-
-test('tapping an unselected provider switches the active one', async () => {
-  await renderAuthenticated()
-
-  await waitFor(() => expect(screen.getByTestId('ai-provider-openai')).toBeTruthy())
-
-  await fireEvent.press(screen.getByTestId('ai-provider-openai'))
-
-  await waitFor(() => expect(screen.getByTestId('ai-provider-openai').props.accessibilityState.selected).toBe(true))
+  expect(router.push).toHaveBeenCalledWith('/ai-provider')
 })
 
 test('does not file the receipt history under settings — it is content, and it lives on the dashboard now', async () => {
@@ -217,7 +164,7 @@ test('the debug menu’s "Réinitialiser l’état de l’app" signs out, clears
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/welcome'))
 })
 
-test('shows the instance card with the mode, server URL and version', async () => {
+test('shows the instance card with the name, without the raw server URL or version', async () => {
   const connector = new FakeFridgeConnector()
   jest
     .spyOn(connector, 'getInstanceInfo')
@@ -226,7 +173,8 @@ test('shows the instance card with the mode, server URL and version', async () =
   await renderAuthenticated(connector)
 
   await waitFor(() => expect(screen.getByText('Garde-manger de test')).toBeTruthy())
-  expect(screen.getByText(/v0\.0\.0/)).toBeTruthy()
+  // Technical detail — that's what "Changer de serveur" is for now.
+  expect(screen.queryByText(/v0\.0\.0/)).toBeNull()
 })
 
 test('tapping the instance card opens the server-info page', async () => {
