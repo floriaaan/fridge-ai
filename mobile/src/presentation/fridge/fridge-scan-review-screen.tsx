@@ -17,14 +17,13 @@ import { pointerCursor } from '../shared/hover.js'
 import { goBack } from '../shared/navigation.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { CameraIcon, CircleCheckIcon } from '../dashboard/dashboard-icons.js'
+import { CameraIcon, CircleCheckIcon, CircleXIcon, TriangleAlertIcon } from '../dashboard/dashboard-icons.js'
 import { ReceiptItemRow, type EditableReceiptItem, type ReceiptItemErrors } from '../receipt/receipt-item-row.js'
 import { useFridgeScan } from '../../application/fridge/use-fridge-scan.js'
 import { useImportProductsMutation } from '../../application/fridge/import-products.mutation.js'
 import { useProductsQuery } from '../../application/fridge/products.query.js'
 import { isLikelyDuplicate } from '../../domain/fridge/fridge-scan-merge.js'
-import type { FridgeScanDraftItem } from '../../domain/fridge/fridge-scan-draft.js'
-import type { ImportProductsItemInput } from '../../domain/fridge/fridge-scan-draft.js'
+import type { FridgeScanDraftItem, ImportProductsItemInput } from '../../domain/fridge/fridge-scan-draft.js'
 
 interface EditableFridgeItem extends EditableReceiptItem {
   included: boolean
@@ -169,7 +168,7 @@ export function FridgeScanReviewScreen({ imageUris }: { imageUris: string[] }) {
       title="Vérifier le frigo"
       subtitle={
         scan.done && items.length > 0 && imported === null
-          ? `${items.length} produit${items.length > 1 ? 's' : ''} détecté${items.length > 1 ? 's' : ''} — corrige ce qui cloche, décoche ce qui n’est pas à ajouter.`
+          ? `${items.length} produit${items.length > 1 ? 's' : ''} détecté${items.length > 1 ? 's' : ''} — touche-en un pour le corriger`
           : undefined
       }
       onBack={() => goBack('/(tabs)/scan')}
@@ -202,7 +201,7 @@ export function FridgeScanReviewScreen({ imageUris }: { imageUris: string[] }) {
       <AppShell nav={nav} header={header}>
         <YStack flex={1} alignItems="center" justifyContent="center" gap="$3">
           <YStack width={64} height={64} borderRadius={999} backgroundColor={palette.expiredBg} alignItems="center" justifyContent="center">
-            <CircleCheckIcon size={30} color={palette.expiredText} />
+            <TriangleAlertIcon size={30} color={palette.expiredText} />
           </YStack>
           <Text testID="fridge-scan-blocked-title" fontSize={17} fontWeight="800" color={palette.ink} textAlign="center">
             Extraction indisponible
@@ -216,24 +215,27 @@ export function FridgeScanReviewScreen({ imageUris }: { imageUris: string[] }) {
   }
 
   if (!scan.done) {
-    const runningIndex = scan.states.findIndex((s) => s.status === 'running')
+    const settled = scan.states.filter((s) => s.status === 'done' || s.status === 'failed').length
     return (
       <AppShell nav={nav} header={header}>
-        <YStack alignItems="center" gap="$3" marginTop="$8">
-          <Image
-            testID="fridge-scan-reading-photo"
-            source={{ uri: imageUris[Math.max(runningIndex, 0)] }}
-            resizeMode="cover"
-            accessibilityLabel="Photo du frigo en cours de lecture"
-            style={{ width: 96, height: 96, borderRadius: 16, backgroundColor: palette.cream }}
-          />
+        <YStack alignItems="center" gap="$4" marginTop="$8">
+          {/* Every photo, each carrying its own state: the wait is per photo,
+              so is the progress — a failed shot shows up here, not only
+              once the whole batch has landed. */}
+          <XStack testID="fridge-scan-reading-photos" gap="$2.5" flexWrap="wrap" justifyContent="center">
+            {imageUris.map((uri, index) => (
+              <PhotoProgress key={uri} uri={uri} state={scan.states[index]?.status ?? 'pending'} palette={palette} />
+            ))}
+          </XStack>
           <PulseDots palette={palette} size={12} testID="fridge-scan-reading-dots" label="Lecture des photos en cours" />
-          <Text fontSize={15} fontWeight="700" color={palette.ink}>
-            Lecture des photos…
-          </Text>
-          <Text testID="fridge-scan-progress" fontSize={13} fontWeight="500" color={palette.inkSecondary} textAlign="center">
-            {scan.states.filter((s) => s.status === 'done' || s.status === 'failed').length} / {scan.states.length} photos analysées
-          </Text>
+          <YStack alignItems="center" gap="$1">
+            <Text fontSize={17} fontWeight="800" color={palette.ink}>
+              L’IA fait l’inventaire…
+            </Text>
+            <Text testID="fridge-scan-progress" fontSize={13} fontWeight="500" color={palette.inkSecondary} textAlign="center">
+              {settled} / {scan.states.length} photos analysées
+            </Text>
+          </YStack>
         </YStack>
       </AppShell>
     )
@@ -270,9 +272,9 @@ export function FridgeScanReviewScreen({ imageUris }: { imageUris: string[] }) {
           </XStack>
         </YStack>
       ) : null}
-      <XStack gap="$2">
-        {imageUris.map((uri) => (
-          <Image key={uri} source={{ uri }} style={{ width: 56, height: 56, borderRadius: 10, backgroundColor: palette.cream }} />
+      <XStack gap="$2.5" flexWrap="wrap">
+        {imageUris.map((uri, index) => (
+          <PhotoProgress key={uri} uri={uri} state={scan.states[index]?.status ?? 'pending'} palette={palette} size={56} />
         ))}
       </XStack>
     </YStack>
@@ -319,9 +321,10 @@ export function FridgeScanReviewScreen({ imageUris }: { imageUris: string[] }) {
                     accessibilityLabel={item.included ? 'Ne pas ajouter ce produit' : 'Ajouter quand même ce produit'}
                     style={pointerCursor}
                   >
-                    <XStack alignItems="center" minHeight={32} paddingHorizontal="$3" borderRadius={999} backgroundColor={palette.expiredBg}>
-                      <Text fontSize={11} fontWeight="700" color={palette.expiredText}>
-                        {item.included ? 'Déjà au frigo — ajouté quand même' : 'Déjà au frigo — exclu'}
+                    <XStack alignItems="center" gap="$1.5" minHeight={32} paddingHorizontal="$3" borderRadius={999} backgroundColor={palette.soonBg}>
+                      <TriangleAlertIcon size={13} color={palette.soonText} />
+                      <Text fontSize={12} fontWeight="700" color={palette.soonText}>
+                        {item.included ? 'Déjà au frigo · ajouté quand même' : 'Déjà au frigo · touche pour l’ajouter'}
                       </Text>
                     </XStack>
                   </Pressable>
@@ -356,6 +359,44 @@ function EmptyItems({ palette }: { palette: SoftPalette }) {
       <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
         L’IA n’a rien reconnu sur ces photos. Reprends-en en cadrant bien l’intérieur du frigo.
       </Text>
+    </YStack>
+  )
+}
+
+function PhotoProgress({
+  uri,
+  state,
+  palette,
+  size = 72,
+}: {
+  uri: string
+  state: 'pending' | 'running' | 'done' | 'failed'
+  palette: SoftPalette
+  size?: number
+}) {
+  return (
+    <YStack opacity={state === 'pending' ? 0.45 : 1}>
+      <Image
+        source={{ uri }}
+        resizeMode="cover"
+        style={{ width: size, height: size, borderRadius: 14, backgroundColor: palette.cream }}
+      />
+      {state === 'done' || state === 'failed' ? (
+        <YStack
+          position="absolute"
+          top={-6}
+          right={-6}
+          width={24}
+          height={24}
+          borderRadius={999}
+          backgroundColor={state === 'done' ? palette.freshBg : palette.expiredBg}
+          alignItems="center"
+          justifyContent="center"
+          accessibilityLabel={state === 'done' ? 'Photo analysée' : 'Photo non analysée'}
+        >
+          {state === 'done' ? <CircleCheckIcon size={15} color={palette.freshText} /> : <CircleXIcon size={15} color={palette.expiredText} />}
+        </YStack>
+      ) : null}
     </YStack>
   )
 }

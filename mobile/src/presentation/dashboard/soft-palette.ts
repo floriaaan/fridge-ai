@@ -146,6 +146,12 @@ export interface SoftPalette {
   cardShadow: string
   /** The dimming layer behind a modal sheet — darker in dark mode, where the sheet itself is dim. */
   scrim: string
+  /**
+   * The wash behind anything drawn over a live camera feed (close, galerie,
+   * hint). Same value in both themes: the feed behind it does not follow the
+   * theme, and a bright fridge interior needs ≈5:1 under white text.
+   */
+  cameraScrim: string
 }
 
 const light: SoftPalette = {
@@ -235,6 +241,7 @@ const light: SoftPalette = {
   expiredText: '#B23A2E',
   cardShadow: 'rgba(15,43,29,0.14)',
   scrim: 'rgba(15,43,29,0.40)',
+  cameraScrim: 'rgba(0,0,0,0.58)',
 }
 
 const dark: SoftPalette = {
@@ -326,6 +333,7 @@ const dark: SoftPalette = {
   expiredText: '#F0968A',
   cardShadow: 'rgba(0,0,0,0.45)',
   scrim: 'rgba(0,0,0,0.62)',
+  cameraScrim: 'rgba(0,0,0,0.58)',
 }
 
 /** The light palette, for tests that render a palette-taking component outside a screen. */

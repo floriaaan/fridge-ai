@@ -1,13 +1,10 @@
 import { useRef } from 'react'
-import { Pressable } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import { router } from 'expo-router'
 import { YStack } from '../shared/tamagui-typed.js'
-import { pointerCursor } from '../shared/hover.js'
 import { CameraPermissionModal } from '../shared/camera-permission-modal.js'
 import { goBack } from '../shared/navigation.js'
-import { XIcon } from '../dashboard/dashboard-icons.js'
+import { CameraChrome } from '../shared/camera-chrome.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { getTelemetry } from '../../application/shared/telemetry.js'
 
@@ -79,28 +76,13 @@ export function BarcodeScannerScreen(props: BarcodeScannerMode) {
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }}
         onBarcodeScanned={handleBarcodeScanned}
       />
-      <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-        <Pressable
-          testID="barcode-scanner-close"
-          onPress={() => goBack('/(tabs)/fridge')}
-          accessibilityRole="button"
-          accessibilityLabel="Fermer le scanner"
-          style={[pointerCursor, { padding: 12 }]}
-        >
-          {/* A scrim behind the glyph: white-on-white was invisible against a
-              fridge door, a ceiling, or a pale receipt. */}
-          <YStack
-            width={44}
-            height={44}
-            borderRadius={999}
-            alignItems="center"
-            justifyContent="center"
-            backgroundColor="rgba(0,0,0,0.45)"
-          >
-            <XIcon size={22} color={palette.onDark} />
-          </YStack>
-        </Pressable>
-      </SafeAreaView>
+      <CameraChrome
+        palette={palette}
+        guide="barcode"
+        hint="Vise le code-barres, il se lit tout seul"
+        onClose={() => goBack('/(tabs)/fridge')}
+        closeTestID="barcode-scanner-close"
+      />
     </YStack>
   )
 }

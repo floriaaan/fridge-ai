@@ -4,12 +4,17 @@
  * call (see `fridge-scan-extraction-port.interface.ts`), so this prompt
  * never has to reason about de-duplicating across photos — `ScanFridge`'s
  * caller does that once every photo's draft comes back.
+ *
+ * Water and ice are excluded by name (2026-09-17): a fridge door full of
+ * bottled water is the first thing a photo sees, and none of it expires or
+ * needs cooking from — it only buried the real products in the review list.
  */
 export const FRIDGE_SCAN_EXTRACTION_PROMPT = `Analyse cette photo de l'intérieur d'un frigo, d'un congélateur ou d'un placard et retourne UNIQUEMENT un JSON de la forme :
 {"items": [{"name": string, "quantity": number, "unit": string, "category": string | null, "location": "fridge" | "freezer" | "pantry", "expiresInDays": number | null}]}
 
 Règles pour "items" :
 - N'inclus que des aliments ou boissons clairement identifiables. Ignore les emballages vides, les contenants non identifiables et tout objet qui n'est pas un produit alimentaire.
+- Exclus ce qui n'a pas d'intérêt à être suivi dans un garde-manger : eau plate, eau gazeuse ou pétillante (bouteilles, carafes, gourdes), glaçons et bacs à glaçons.
 - "quantity" est le nombre d'unités visibles de ce produit (ex. 3 yaourts identiques = quantity: 3). Si tu ne peux pas compter d'unités distinctes (ex. un reste dans un plat), mets 1.
 - "unit" est "pièce" par défaut. N'invente jamais un poids ou un volume que la photo ne montre pas explicitement (étiquette lisible).
 - "location" : déduis-la de la photo. Givre, glaçons ou emballages typés surgelés → "freezer". Étagère ou placard sec, sans réfrigération visible → "pantry". Sinon → "fridge".

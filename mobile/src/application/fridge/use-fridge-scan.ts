@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useConnector } from '../shared/connector-context.js'
 import { mergeScanItems } from '../../domain/fridge/fridge-scan-merge.js'
 import type { FridgeScanDraftItem } from '../../domain/fridge/fridge-scan-draft.js'
@@ -56,7 +56,9 @@ export function useFridgeScan(imageUris: string[]) {
   const retry = useCallback((index: number) => runOne(index), [runOne])
 
   const done = states.every((s) => s.status === 'done' || s.status === 'failed')
-  const items = mergeScanItems(states.flatMap((s) => (s.status === 'done' ? s.items : [])))
+  // Memoized: the review screen seeds its editable list from `items` in an
+  // effect, so a fresh array every render re-ran that effect forever.
+  const items = useMemo(() => mergeScanItems(states.flatMap((s) => (s.status === 'done' ? s.items : []))), [states])
   const blockedByProvider = states.some((s) => s.status === 'failed' && s.error.type === 'provider_not_configured')
 
   return { states, items, done, blockedByProvider, retry }
