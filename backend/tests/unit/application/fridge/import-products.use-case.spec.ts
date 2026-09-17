@@ -10,8 +10,22 @@ test.group('ImportProducts', () => {
     const result = await useCase.execute({
       householdId: 'h_1',
       items: [
-        { name: 'Yaourts', quantity: 4, unit: 'pièce', category: 'Laitier', location: 'fridge', expiresAt: null },
-        { name: 'Épinards', quantity: 1, unit: 'pièce', category: null, location: 'freezer', expiresAt: null },
+        {
+          name: 'Yaourts',
+          quantity: 4,
+          unit: 'pièce',
+          category: 'Laitier',
+          location: 'fridge',
+          expiresAt: null,
+        },
+        {
+          name: 'Épinards',
+          quantity: 1,
+          unit: 'pièce',
+          category: null,
+          location: 'freezer',
+          expiresAt: null,
+        },
       ],
     })
 
@@ -34,7 +48,14 @@ test.group('ImportProducts', () => {
     const result = await useCase.execute({
       householdId: 'h_1',
       items: [
-        { name: 'X', quantity: 1, unit: 'pièce', category: null, location: 'garage', expiresAt: null },
+        {
+          name: 'X',
+          quantity: 1,
+          unit: 'pièce',
+          category: null,
+          location: 'garage',
+          expiresAt: null,
+        },
       ],
     })
 

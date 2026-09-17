@@ -4,7 +4,7 @@
  * `receipt-review-screen.tsx`, reusing its row component (`showPrice`
  * false: the fridge scan has no price to show or edit).
  */
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { FlatList, Image, KeyboardAvoidingView, Platform, Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -76,15 +76,16 @@ export function FridgeScanReviewScreen({ imageUris }: { imageUris: string[] }) {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [imported, setImported] = useState<number | null>(null)
 
-  // Reseeds the editable list every time the merged draft changes — safe
-  // because a household edit only happens once `scan.done`, by which point
-  // this stops firing (`scan.items` is stable after the last photo lands).
-  useEffect(() => {
-    if (!scan.done) return
+  // Reseeds the editable list whenever the merged draft changes (a retried
+  // photo lands), adjusting state during render rather than in an effect —
+  // React's documented pattern, one render instead of two. `scan.items` is
+  // memoized, so this runs once per change, never per render.
+  const [seededFrom, setSeededFrom] = useState<typeof scan.items | null>(null)
+  if (scan.done && seededFrom !== scan.items) {
     const existing = existingProducts.data ?? []
+    setSeededFrom(scan.items)
     setItems(scan.items.map((item) => toEditable(item, isLikelyDuplicate(item, existing))))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scan.done, scan.items])
+  }
 
   function updateItem(index: number, next: EditableFridgeItem) {
     setItems((current) => current.map((item, i) => (i === index ? next : item)))
