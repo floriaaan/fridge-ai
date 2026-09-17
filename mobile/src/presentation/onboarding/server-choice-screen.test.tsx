@@ -28,6 +28,19 @@ test('a recognized server shows what was found, then confirming calls onDone', a
   expect(onDone).toHaveBeenCalledTimes(1)
 })
 
+test('an address with no protocol is rejected before any network call', async () => {
+  const onDone = jest.fn()
+  await renderWithProviders(<ServerChoiceScreen onDone={onDone} />)
+
+  await fireEvent.changeText(screen.getByTestId('server-choice-url'), 'mon-serveur.exemple.com')
+  await fireEvent.press(screen.getByTestId('server-choice-submit'))
+
+  await waitFor(() =>
+    expect(screen.getByText('Adresse invalide : il manque le https:// (ex. https://mon-serveur.exemple.com).')).toBeTruthy(),
+  )
+  expect(onDone).not.toHaveBeenCalled()
+})
+
 test('a server that does not answer like Garde-manger is rejected with a clear message', async () => {
   const onDone = jest.fn()
   await renderWithProviders(<ServerChoiceScreen onDone={onDone} />)
