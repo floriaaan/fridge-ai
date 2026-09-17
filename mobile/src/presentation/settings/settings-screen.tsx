@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
+import Constants from 'expo-constants'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
@@ -16,14 +17,14 @@ import {
   HomeIcon,
   LogOutIcon,
   RefreshIcon,
+  ServerIcon,
   SettingsIcon,
   SparklesIcon,
   TriangleAlertIcon,
-  UserIcon,
 } from '../dashboard/dashboard-icons.js'
 import { resetWelcomeSeen } from '../welcome/use-welcome-seen.js'
 import { IdentityCard, RoleBadge } from './identity-card.js'
-import { MemberAvatars } from '../shared/member-avatars.js'
+import { MemberAvatars, initials } from '../shared/member-avatars.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { ROLE_LABELS } from '../identity/role-labels.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
@@ -31,6 +32,8 @@ import { useHouseholdQuery } from '../../application/identity/household.query.js
 import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
 import { useSetActiveAiProviderMutation } from '../../application/settings/set-active-ai-provider.mutation.js'
+import { useInstanceInfoQuery } from '../../application/instance/instance-info.query.js'
+import { getServerUrl } from '../../infrastructure/http/server-config.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
@@ -69,15 +72,18 @@ export function SettingsScreen() {
   const signOut = useSignOutMutation()
   const settings = useAiSettingsQuery()
   const setProvider = useSetActiveAiProviderMutation()
+  const instance = useInstanceInfoQuery()
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
   const [confirmingSignOut, setConfirmingSignOut] = useState(false)
+  const [confirmingChangeServer, setConfirmingChangeServer] = useState(false)
   const [debugMenuOpen, setDebugMenuOpen] = useState(false)
   const [hint, showHint] = useHint()
   const refresh = usePullToRefresh(
     () => session.refetch(),
     () => household.refetch(),
     () => settings.refetch(),
+    () => instance.refetch(),
   )
 
   async function handleSelectProvider(provider: AiProvider) {
@@ -122,6 +128,21 @@ export function SettingsScreen() {
     }
     await session.refetch()
     router.replace('/(auth)/sign-in')
+  }
+
+  // Same shape as `handleResetOnboarding`: this device's session belongs to
+  // the server being left, so it can't come along. Best-effort sign-out,
+  // then clear every cached query — otherwise the new server's screens would
+  // flash the old one's household/AI settings until each query refetched.
+  async function handleChangeServer() {
+    setConfirmingChangeServer(false)
+    try {
+      await signOut.mutateAsync(undefined)
+    } catch {
+      // Preview it anyway — see handleResetOnboarding.
+    }
+    queryClient.clear()
+    router.replace('/server-choice?next=sign-in')
   }
 
   const signOutError = signOut.error ? 'Une erreur est survenue lors de la déconnexion.' : null
@@ -226,15 +247,21 @@ export function SettingsScreen() {
     >
       <YStack gap="$3" marginTop="$5">
         <IdentityCard
+          testID="settings-account"
           bg={palette.cream}
           labelColor={palette.creamText}
           chipColor={palette.chipOrange}
-          icon={<UserIcon size={18} color={palette.onDark} />}
+          icon={
+            <Text fontSize={14} fontWeight="800" color={palette.onDark}>
+              {initials(session.data?.user.name || '?')}
+            </Text>
+          }
           label="Compte"
           value={session.data?.user.name || '—'}
           secondary={session.data?.user.email}
           corner="a"
           palette={palette}
+          onPress={() => router.push('/account')}
         />
         <IdentityCard
           testID="settings-household"
@@ -332,6 +359,38 @@ export function SettingsScreen() {
         />
       </YStack>
 
+      <YStack marginTop="$3" gap="$2">
+        <IdentityCard
+          testID="settings-instance"
+          bg={palette.cream}
+          labelColor={palette.creamText}
+          chipColor={palette.chipOrange}
+          icon={<ServerIcon size={18} color={palette.onDark} />}
+          label="Instance"
+          value={instance.data ? (instance.data.name ?? (instance.data.mode === 'hosted' ? 'Garde-manger hébergé' : 'Garde-manger auto-hébergé')) : '—'}
+          secondary={instance.data ? `${getServerUrl()} · v${instance.data.version}` : 'Impossible de contacter ce serveur.'}
+          corner="a"
+          palette={palette}
+          footer={
+            <PillButton
+              testID="settings-change-server"
+              label="Changer de serveur"
+              tone="quiet"
+              size="dense"
+              palette={palette}
+              icon={(color) => <ServerIcon size={14} color={color} />}
+              onPress={() => setConfirmingChangeServer(true)}
+            />
+          }
+        />
+      </YStack>
+
+      <YStack marginTop="$5" alignItems="center">
+        <Text fontSize={12} fontWeight="600" color={palette.inkSecondary}>
+          Garde-manger · v{Constants.expoConfig?.version ?? '—'}
+        </Text>
+      </YStack>
+
       {/* Dev-only: one menu instead of a growing row of pills — the row was
           already wrapping to two lines at five buttons, and "Réinitialiser
           l'onboarding" made it six. Never bundled into a release build. */}
@@ -394,6 +453,23 @@ export function SettingsScreen() {
           },
         ]}
         onClose={() => setConfirmingSignOut(false)}
+      />
+
+      <ActionSheet
+        visible={confirmingChangeServer}
+        title="Changer de serveur ?"
+        description="Il faudra se reconnecter, sur le nouveau serveur, pour retrouver un garde-manger."
+        options={[
+          {
+            testID: 'change-server-confirm',
+            label: 'Changer de serveur',
+            icon: (color) => <ServerIcon size={18} color={color} />,
+            tint: palette.expiredBg,
+            destructive: true,
+            onPress: handleChangeServer,
+          },
+        ]}
+        onClose={() => setConfirmingChangeServer(false)}
       />
     </AppShell>
   )

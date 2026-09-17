@@ -58,6 +58,21 @@ test('the foyer card carries the whole width, its members and the role — not a
   expect(router.push).toHaveBeenCalledWith('/household')
 })
 
+test('tapping the account card opens Mon compte', async () => {
+  await renderAuthenticated()
+
+  await waitFor(() => expect(screen.getByTestId('settings-account')).toBeTruthy())
+  fireEvent.press(screen.getByTestId('settings-account'))
+
+  expect(router.push).toHaveBeenCalledWith('/account')
+})
+
+test('shows the app version in the À propos line', async () => {
+  await renderAuthenticated()
+
+  await waitFor(() => expect(screen.getByText(/Garde-manger · v/)).toBeTruthy())
+})
+
 test('shows only the available providers with the active one selected, and says what the choice drives', async () => {
   await renderAuthenticated()
 
@@ -202,4 +217,31 @@ test('the debug menu’s "Réinitialiser l’onboarding" signs out, clears the w
   await waitFor(async () => expect(await connector.getSession()).toBeNull())
   await waitFor(() => expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('garde-manger.welcome.seen'))
   await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/welcome'))
+})
+
+test('shows the instance card with the mode, server URL and version', async () => {
+  const connector = new FakeFridgeConnector()
+  jest
+    .spyOn(connector, 'getInstanceInfo')
+    .mockResolvedValue({ mode: 'self-hosted', name: 'Garde-manger de test', version: '0.0.0' })
+
+  await renderAuthenticated(connector)
+
+  await waitFor(() => expect(screen.getByText('Garde-manger de test')).toBeTruthy())
+  expect(screen.getByText(/v0\.0\.0/)).toBeTruthy()
+})
+
+test('changing server signs out, clears the cache, and lands on server-choice for a returning account', async () => {
+  const connector = new FakeFridgeConnector()
+  await renderAuthenticated(connector)
+
+  await waitFor(() => expect(screen.getByTestId('settings-change-server')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('settings-change-server'))
+
+  // Confirmed, like sign-out and every other consequential action here.
+  await waitFor(() => expect(screen.getByTestId('change-server-confirm')).toBeTruthy())
+  await fireEvent.press(screen.getByTestId('change-server-confirm'))
+
+  await waitFor(async () => expect(await connector.getSession()).toBeNull())
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/server-choice?next=sign-in'))
 })

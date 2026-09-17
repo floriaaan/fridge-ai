@@ -114,4 +114,46 @@ test.group('household: create, join, manage members', () => {
     const mine = await client.get('/api/households/mine').headers({ cookie })
     mine.assertBodyContains({ household: null })
   })
+
+  test('owner transfers ownership to another member', async ({ client }) => {
+    const ownerCookie = await signUp(client, 'owner6@example.com', 'Owner6')
+    const create = await client
+      .post('/api/households')
+      .headers({ cookie: ownerCookie })
+      .json({ name: 'Foyer 6' })
+    const inviteCode = create.body().household.inviteCode
+
+    const memberCookie = await signUp(client, 'member6@example.com', 'Member6')
+    await client.post('/api/households/join').headers({ cookie: memberCookie }).json({ inviteCode })
+
+    const mineAsOwner = await client.get('/api/households/mine').headers({ cookie: ownerCookie })
+    const memberUserId = mineAsOwner
+      .body()
+      .household.members.find((m: { role: string }) => m.role === 'member').userId
+
+    const transfer = await client
+      .post('/api/households/transfer-ownership')
+      .headers({ cookie: ownerCookie })
+      .json({ newOwnerId: memberUserId })
+    transfer.assertStatus(204)
+
+    const mineAsFormerOwner = await client.get('/api/households/mine').headers({ cookie: ownerCookie })
+    mineAsFormerOwner.assertBodyContains({ household: { role: 'member' } })
+
+    const mineAsNewOwner = await client.get('/api/households/mine').headers({ cookie: memberCookie })
+    mineAsNewOwner.assertBodyContains({ household: { role: 'owner' } })
+  })
+
+  test('transferring ownership to the current owner fails', async ({ client }) => {
+    const cookie = await signUp(client, 'owner7@example.com', 'Owner7')
+    const create = await client.post('/api/households').headers({ cookie }).json({ name: 'Foyer 7' })
+    const ownerId = create.body().household.ownerId ?? create.body().household.members[0].userId
+
+    const transfer = await client
+      .post('/api/households/transfer-ownership')
+      .headers({ cookie })
+      .json({ newOwnerId: ownerId })
+    transfer.assertStatus(409)
+    transfer.assertBodyContains({ error: { type: 'already_owner' } })
+  })
 })

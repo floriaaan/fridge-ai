@@ -32,6 +32,7 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   link_unreadable: 409,
   token_required: 422,
   invalid_direction: 422,
+  already_owner: 409,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -61,6 +62,7 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   link_unreadable: 'La connexion enregistrée est illisible — reconfigurez-la.',
   token_required: 'Un jeton est requis pour la première connexion.',
   invalid_direction: 'Sens de synchronisation invalide.',
+  already_owner: 'Cette personne est déjà propriétaire du foyer.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {

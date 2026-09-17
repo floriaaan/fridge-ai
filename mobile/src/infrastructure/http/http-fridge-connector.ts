@@ -8,6 +8,7 @@ import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.j
 import type { Session } from '../../domain/identity/session.js'
 import type { Household } from '../../domain/identity/household.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
+import type { LinkedAccount } from '../../domain/identity/linked-account.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
 import type { Recipe } from '../../domain/recipe/recipe.js'
@@ -27,6 +28,7 @@ import type {
   DiscoverHaEntitiesInput,
   BindHaListInput,
 } from '../../domain/home-assistant/ha-link.js'
+import type { InstanceInfo } from '../../domain/instance/instance-info.js'
 
 function toSession(
   data: { user: { id: string; email: string; name: string; image?: string | null } } | null | undefined,
@@ -90,6 +92,20 @@ async function appendImagePart(formData: FormData, imageUri: string, filename: s
 }
 
 export class HttpFridgeConnector implements FridgeConnector {
+  /** Raw `fetch`, not `apiFetch`: `url` is a candidate server, not necessarily the one currently configured — this must never read `getServerUrl()`. */
+  async getInstanceInfo(url: string): Promise<InstanceInfo | null> {
+    try {
+      const response = await fetch(`${url.replace(/\/+$/, '')}/api/public/instance`)
+      if (!response.ok) return null
+      const body = await response.json()
+      if (body?.mode !== 'hosted' && body?.mode !== 'self-hosted') return null
+      return body as InstanceInfo
+    } catch (error) {
+      reportFailure('instance.get_instance_info', error)
+      return null
+    }
+  }
+
   async getSession(): Promise<Session | null> {
     try {
       const { data } = await authClient.getSession()
@@ -242,6 +258,68 @@ export class HttpFridgeConnector implements FridgeConnector {
       { action: 'identity.leave_household' },
     )
     return result.ok ? Result.ok(undefined) : Result.err(result.error)
+  }
+
+  async transferHouseholdOwnership(newOwnerId: string): Promise<Result<void, ApiError>> {
+    const result = await apiFetch<void>(
+      '/api/households/transfer-ownership',
+      { method: 'POST', body: JSON.stringify({ newOwnerId }) },
+      { action: 'identity.transfer_household_ownership', attributes: { 'entity.id': newOwnerId } },
+    )
+    return result.ok ? Result.ok(undefined) : Result.err(result.error)
+  }
+
+  async updateAccountName(name: string): Promise<Result<void, ApiError>> {
+    try {
+      const { error } = await authClient.updateUser({ name })
+      if (error) {
+        return Result.err({ type: error.code ?? 'update_failed', message: error.message ?? 'Mise à jour impossible.' })
+      }
+      return Result.ok(undefined)
+    } catch (error) {
+      reportFailure('identity.update_account_name', error)
+      return Result.err({ type: 'update_failed', message: 'Mise à jour impossible.' })
+    }
+  }
+
+  async changeAccountPassword(currentPassword: string, newPassword: string): Promise<Result<void, ApiError>> {
+    try {
+      const { error } = await authClient.changePassword({ currentPassword, newPassword })
+      if (error) {
+        return Result.err({ type: error.code ?? 'change_password_failed', message: error.message ?? 'Changement de mot de passe impossible.' })
+      }
+      return Result.ok(undefined)
+    } catch (error) {
+      reportFailure('identity.change_account_password', error)
+      return Result.err({ type: 'change_password_failed', message: 'Changement de mot de passe impossible.' })
+    }
+  }
+
+  async getLinkedAccounts(): Promise<LinkedAccount[]> {
+    try {
+      const { data, error } = await authClient.listAccounts()
+      if (error || !data) return []
+      return data.map((account) => ({
+        provider: account.providerId === 'pocketid' ? 'pocketid' : 'password',
+        createdAt: new Date(account.createdAt).toISOString(),
+      }))
+    } catch (error) {
+      reportFailure('identity.get_linked_accounts', error)
+      return []
+    }
+  }
+
+  async deleteAccount(password: string): Promise<Result<void, ApiError>> {
+    try {
+      const { error } = await authClient.deleteUser({ password })
+      if (error) {
+        return Result.err({ type: error.code ?? 'delete_account_failed', message: error.message ?? 'Suppression du compte impossible.' })
+      }
+      return Result.ok(undefined)
+    } catch (error) {
+      reportFailure('identity.delete_account', error)
+      return Result.err({ type: 'delete_account_failed', message: 'Suppression du compte impossible.' })
+    }
   }
 
   async getShoppingItems(): Promise<ShoppingItem[]> {

@@ -1,4 +1,4 @@
-import { betterAuth } from 'better-auth'
+import { betterAuth, APIError } from 'better-auth'
 import { genericOAuth } from 'better-auth/plugins'
 import { expo } from '@better-auth/expo'
 import { Kysely, PostgresDialect } from 'kysely'
@@ -48,6 +48,36 @@ export const auth = betterAuth({
       emailVerified: 'email_verified',
       createdAt: 'created_at',
       updatedAt: 'updated_at',
+    },
+    deleteUser: {
+      enabled: true,
+      /**
+       * Safety net for the client-side flow (which offers ownership
+       * transfer before deletion): solo owner's household is deleted
+       * outright, plain member just leaves, owner-with-others is blocked
+       * since they must transfer ownership first (cf. household.aggregate's
+       * `transferOwnership`).
+       */
+      beforeDelete: async (user) => {
+        const app = (await import('@adonisjs/core/services/app')).default
+        const households = await app.container.make('identity.households')
+        const household = await households.findByUserId(user.id)
+        if (!household) return
+
+        if (household.ownerId === user.id) {
+          if (household.members.length > 1) {
+            throw new APIError('BAD_REQUEST', {
+              message: 'Transférez la propriété du foyer avant de supprimer votre compte.',
+              code: 'ownership_transfer_required',
+            })
+          }
+          await households.delete(household.id)
+          return
+        }
+
+        const { LeaveHousehold } = await import('#application/identity/leave-household.use-case')
+        await new LeaveHousehold(households).execute({ userId: user.id })
+      },
     },
   },
   session: {

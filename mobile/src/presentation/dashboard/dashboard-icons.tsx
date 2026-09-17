@@ -172,6 +172,13 @@ export const RefreshIcon = icon([
 // BackButton. Was the literal character `←` set in a Text — a unicode glyph
 // standing in for an icon, so it carried the font's own weight and baseline
 // instead of this file's 2px round stroke, and shifted shape per platform.
+export const ServerIcon = icon([
+  { rect: { x: '2', y: '2', width: '20', height: '8', rx: '2' } },
+  { rect: { x: '2', y: '14', width: '20', height: '8', rx: '2' } },
+  { d: 'M6 6h.01' },
+  { d: 'M6 18h.01' },
+])
+
 export const ArrowLeftIcon = icon([{ d: 'M19 12H5' }, { d: 'm12 19-7-7 7-7' }])
 
 // Home Assistant's sync-direction rows ("Vers Home Assistant").
@@ -332,4 +339,32 @@ export const ShareIcon = icon([
   { cx: '18', cy: '19', r: '3' },
   { d: 'M8.59 13.51 15.42 17.49' },
   { d: 'M15.41 6.51 8.59 10.49' },
+])
+
+// Mon compte: delete-account action.
+export const TrashIcon = icon([
+  { d: 'M3 6h18' },
+  { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6' },
+  { d: 'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' },
+])
+
+// Mon compte: change-password action.
+export const LockIcon = icon([
+  { rect: { x: '3', y: '11', width: '18', height: '11', rx: '2' } },
+  { d: 'M7 11V7a5 5 0 0 1 10 0v4' },
+])
+
+// Mon compte: linked connection methods section.
+export const LinkIcon = icon([
+  { d: 'M9 17H7A5 5 0 0 1 7 7h2' },
+  { d: 'M15 7h2a5 5 0 1 1 0 10h-2' },
+  { d: 'M8 12h8' },
+])
+
+// Foyer: "Transférer la propriété" action.
+export const ArrowLeftRightIcon = icon([
+  { d: 'M8 3 4 7l4 4' },
+  { d: 'M4 7h16' },
+  { d: 'M16 21l4-4-4-4' },
+  { d: 'M20 17H4' },
 ])

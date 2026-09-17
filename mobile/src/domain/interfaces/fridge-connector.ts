@@ -3,6 +3,7 @@ import type { ApiError } from '../shared/api-error.js'
 import type { Session } from '../identity/session.js'
 import type { Household } from '../identity/household.js'
 import type { AuthMethod } from '../identity/auth-method.js'
+import type { LinkedAccount } from '../identity/linked-account.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../shopping-list/shopping-item.js'
 import type { Recipe } from '../recipe/recipe.js'
 import type { Product, CreateProductInput, UpdateProductInput } from '../fridge/product.js'
@@ -21,6 +22,7 @@ import type {
   DiscoverHaEntitiesInput,
   BindHaListInput,
 } from '../home-assistant/ha-link.js'
+import type { InstanceInfo } from '../instance/instance-info.js'
 
 /**
  * The app's one abstraction boundary over the backend. Extended by one
@@ -28,6 +30,13 @@ import type {
  * placeholder method for a context this phase doesn't build.
  */
 export interface FridgeConnector {
+  /**
+   * Pings `GET /api/public/instance` on a candidate server URL — used both
+   * by the server-choice onboarding screen (validating what the user typed
+   * before saving it) and by Réglages (showing what the current one is).
+   * `null` means the URL didn't answer like a Garde-manger server.
+   */
+  getInstanceInfo(url: string): Promise<InstanceInfo | null>
   getSession(): Promise<Session | null>
   getAuthMethods(): Promise<AuthMethod[]>
   signInEmail(email: string, password: string): Promise<Result<Session, ApiError>>
@@ -45,6 +54,12 @@ export interface FridgeConnector {
   regenerateInviteCode(): Promise<Result<string, ApiError>>
   removeHouseholdMember(userId: string): Promise<Result<void, ApiError>>
   leaveHousehold(): Promise<Result<void, ApiError>>
+  transferHouseholdOwnership(newOwnerId: string): Promise<Result<void, ApiError>>
+  updateAccountName(name: string): Promise<Result<void, ApiError>>
+  changeAccountPassword(currentPassword: string, newPassword: string): Promise<Result<void, ApiError>>
+  getLinkedAccounts(): Promise<LinkedAccount[]>
+  /** Session must be fresh — the current password re-proves it, same as better-auth's own deleteUser gate. */
+  deleteAccount(password: string): Promise<Result<void, ApiError>>
   getShoppingItems(): Promise<ShoppingItem[]>
   createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>
   updateShoppingItem(itemId: string, patch: UpdateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>

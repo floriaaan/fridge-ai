@@ -78,4 +78,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Off by default: on a one-household instance even aggregates describe
   // that household.
   PUBLIC_STATS_ENABLED: Env.schema.boolean.optional(),
+
+  // GET /api/public/instance — lets the mobile app tell a self-hosted
+  // backend apart from the (not yet open) hosted offering, cf. onboarding.
+  INSTANCE_MODE: Env.schema.enum.optional(['hosted', 'self-hosted'] as const),
+  INSTANCE_NAME: Env.schema.string.optional(),
 })

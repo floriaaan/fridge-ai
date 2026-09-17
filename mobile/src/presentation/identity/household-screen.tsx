@@ -31,13 +31,14 @@ import { InviteShareCard } from './invite-share-card.js'
 import { ROLE_LABELS } from './role-labels.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-import { HomeIcon, LogOutIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
+import { ArrowLeftRightIcon, HomeIcon, LogOutIcon, UserIcon, UsersIcon, XIcon } from '../dashboard/dashboard-icons.js'
 import { IdentityCard } from '../settings/identity-card.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useRegenerateInviteCodeMutation } from '../../application/identity/regenerate-invite-code.mutation.js'
 import { useRemoveHouseholdMemberMutation } from '../../application/identity/remove-household-member.mutation.js'
 import { useLeaveHouseholdMutation } from '../../application/identity/leave-household.mutation.js'
+import { useTransferHouseholdOwnershipMutation } from '../../application/identity/transfer-household-ownership.mutation.js'
 import { useHaLinkQuery } from '../../application/home-assistant/ha-link.query.js'
 import type { HouseholdMember } from '../../domain/identity/household.js'
 
@@ -49,10 +50,12 @@ export function HouseholdScreen() {
   const regenerate = useRegenerateInviteCodeMutation()
   const removeMember = useRemoveHouseholdMemberMutation()
   const leave = useLeaveHouseholdMutation()
+  const transferOwnership = useTransferHouseholdOwnershipMutation()
   const haLink = useHaLinkQuery()
   const [hint, showHint] = useHint()
   const [memberToRemove, setMemberToRemove] = useState<HouseholdMember | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [transferPickerOpen, setTransferPickerOpen] = useState(false)
 
   const data = household.data
   const isOwner = data?.role === 'owner'
@@ -93,6 +96,17 @@ export function HouseholdScreen() {
     // frame of dashboard belonging to a household that no longer exists.
     queryClient.clear()
     router.replace('/(onboarding)')
+  }
+
+  async function handleTransfer(member: HouseholdMember) {
+    setTransferPickerOpen(false)
+    const result = await transferOwnership.mutateAsync(member.userId)
+    if (!result.ok) {
+      showHint(result.error.message)
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['household'] })
+    showHint(`${member.name} est désormais propriétaire du foyer.`)
   }
 
   const refresh = usePullToRefresh(() => household.refetch())
@@ -208,7 +222,19 @@ export function HouseholdScreen() {
         </YStack>
       ) : null}
 
-      <YStack marginTop="$8">
+      {isOwner && data.members.length > 1 ? (
+        <YStack marginTop="$8">
+          <AuthButton
+            testID="household-transfer-ownership"
+            label="Transférer la propriété"
+            variant="secondary"
+            icon={<ArrowLeftRightIcon size={16} color={palette.ink} />}
+            onPress={() => setTransferPickerOpen(true)}
+          />
+        </YStack>
+      ) : null}
+
+      <YStack marginTop="$4">
         <AuthButton
           testID="household-leave"
           label="Quitter le foyer"
@@ -239,6 +265,45 @@ export function HouseholdScreen() {
           : []
       }
     />
+
+    <ActionSheet
+      visible={transferPickerOpen}
+      onClose={() => setTransferPickerOpen(false)}
+      title="Transférer la propriété"
+      description="Choisis qui devient propriétaire du foyer. Tu resteras membre."
+      options={[]}
+    >
+      <YStack gap="$2">
+        {data.members
+          .filter((member) => member.userId !== currentUserId)
+          .map((member) => (
+            <Pressable
+              key={member.userId}
+              testID={`household-transfer-target-${member.userId}`}
+              onPress={() => handleTransfer(member)}
+              accessibilityRole="button"
+              accessibilityLabel={`Transférer la propriété à ${member.name}`}
+              style={pointerCursor}
+            >
+              <XStack
+                alignItems="center"
+                gap="$3"
+                backgroundColor={palette.gradientBottom}
+                borderRadius={16}
+                padding="$3"
+                minHeight={44}
+              >
+                <YStack width={36} height={36} borderRadius={999} backgroundColor={palette.mintPale} alignItems="center" justifyContent="center">
+                  <UserIcon size={17} color={palette.mintPaleText} />
+                </YStack>
+                <Text fontSize={14} fontWeight="700" color={palette.ink} flex={1}>
+                  {member.name}
+                </Text>
+              </XStack>
+            </Pressable>
+          ))}
+      </YStack>
+    </ActionSheet>
 
     <ActionSheet
       visible={confirmLeave}
