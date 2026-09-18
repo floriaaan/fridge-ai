@@ -11,19 +11,18 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
-import { Text, YStack } from '../shared/tamagui-typed.js'
+import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { RadioCard } from '../shared/radio-card.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { SparklesIcon } from '../dashboard/dashboard-icons.js'
+import { CameraIcon, ChefHatIcon, ReceiptIcon, SparklesIcon } from '../dashboard/dashboard-icons.js'
 import { GeminiIcon } from './gemini-icon.js'
 import { OpenAiIcon } from './openai-icon.js'
 import { OllamaIcon } from './ollama-icon.js'
-import { AiQuotaHint, AiSetupGuideCard, SubscriptionPaywall } from './ai-access-cards.js'
+import { AiSetupGuideCard } from './ai-access-cards.js'
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
 import { useSetActiveAiProviderMutation } from '../../application/settings/set-active-ai-provider.mutation.js'
-import { useAiSubscribe } from '../../application/settings/use-ai-subscribe.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
@@ -35,6 +34,12 @@ const PROVIDER_DESCRIPTIONS: Record<AiProvider, string> = {
   openai: 'Modèle d’OpenAI, envoyé à leurs serveurs.',
   ollama: 'Modèle exécuté sur ton propre serveur, rien n’en sort.',
 }
+
+const AI_FEATURES = [
+  { title: 'Scan de tickets', description: 'Prends ton ticket en photo : les produits arrivent dans le frigo avec leur date.', tone: 'mint', Icon: ReceiptIcon },
+  { title: 'Scan du frigo', description: 'Photographie ton frigo pour repérer d’un coup ce qu’il contient.', tone: 'lavender', Icon: CameraIcon },
+  { title: 'Recettes', description: 'Des idées de repas à partir de ce qui va bientôt périmer.', tone: 'cream', Icon: ChefHatIcon },
+] as const
 
 function ProviderIcon({ provider, color }: { provider: AiProvider; color: string }) {
   switch (provider) {
@@ -50,7 +55,6 @@ function ProviderIcon({ provider, color }: { provider: AiProvider; color: string
 export function AiProviderScreen() {
   const palette = useSoftPalette()
   const settings = useAiSettingsQuery()
-  const subscription = useAiSubscribe()
   const setProvider = useSetActiveAiProviderMutation()
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
@@ -87,6 +91,50 @@ export function AiProviderScreen() {
         <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
           Lit tes tickets de caisse et invente tes recettes.
         </Text>
+
+        <YStack testID="ai-features" gap="$2.5" marginTop="$3">
+          {AI_FEATURES.map((feature, index) => {
+            const tone = {
+              mint: { bg: palette.mintPale, text: palette.mintPaleText, chip: palette.chipTeal },
+              lavender: { bg: palette.lavender, text: palette.lavenderText, chip: palette.chipViolet },
+              cream: { bg: palette.cream, text: palette.creamText, chip: palette.chipOrange },
+            }[feature.tone]
+            return (
+              <XStack
+                key={feature.title}
+                alignItems="center"
+                gap="$3"
+                padding="$3.5"
+                backgroundColor={tone.bg}
+                style={
+                  index % 2 === 0
+                    ? { borderTopLeftRadius: 26, borderTopRightRadius: 14, borderBottomRightRadius: 26, borderBottomLeftRadius: 14 }
+                    : { borderTopLeftRadius: 14, borderTopRightRadius: 26, borderBottomRightRadius: 14, borderBottomLeftRadius: 26 }
+                }
+              >
+                <YStack width={44} height={44} borderRadius={16} backgroundColor={tone.chip} alignItems="center" justifyContent="center">
+                  <feature.Icon size={22} color={palette.onDark} />
+                </YStack>
+                <YStack flex={1}>
+                  <Text fontSize={15} fontWeight="800" color={palette.ink}>
+                    {feature.title}
+                  </Text>
+                  <Text fontSize={13} fontWeight="500" color={tone.text}>
+                    {feature.description}
+                  </Text>
+                </YStack>
+              </XStack>
+            )
+          })}
+          <XStack alignItems="center" gap="$2" paddingHorizontal="$1">
+            <SparklesIcon size={14} color={palette.lavenderText} />
+            <Text flex={1} fontSize={12} fontWeight="600" color={palette.inkSecondary}>
+              {settings.data && !canChooseProvider
+                ? 'Chaque scan ou recette compte dans ton offre : le détail est dans Abonnement.'
+                : 'L’IA n’intervient que quand tu lances un scan ou une recette.'}
+            </Text>
+          </XStack>
+        </YStack>
 
         {canChooseProvider ? (
           <>
@@ -132,19 +180,6 @@ export function AiProviderScreen() {
               palette={palette}
             />
           </YStack>
-        ) : null}
-
-        {!canChooseProvider && settings.data?.access.plan === 'free' ? (
-          <SubscriptionPaywall
-            palette={palette}
-            onSubscribe={subscription.subscribe}
-            pending={subscription.pending}
-            error={subscription.error}
-          />
-        ) : null}
-
-        {settings.data && settings.data.access.plan !== 'self-hosted' ? (
-          <AiQuotaHint access={settings.data.access} palette={palette} />
         ) : null}
 
         {setProvider.isPending ? (

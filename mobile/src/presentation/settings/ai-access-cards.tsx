@@ -6,9 +6,9 @@
  * - anyone with a capped quota → say how much is left.
  */
 import { Linking, Pressable } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { CircleCheckIcon, SparklesIcon } from '../dashboard/dashboard-icons.js'
+import { HeroWarmGlow } from '../dashboard/hero-warm-glow.js'
 import { useAiSubscribe } from '../../application/settings/use-ai-subscribe.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import type { AiAccess } from '../../domain/settings/ai-settings.js'
@@ -38,8 +38,10 @@ const PAYWALL_BENEFITS = ['Scan de tickets et de frigo', 'Recettes générées �
 
 /**
  * The one paywall — Réglages, the recipe sheet and both scan screens all
- * render this. Saturated card on purpose: it is the only place the app asks
- * for money, so it must not read as another pastel tile. `reason` says why it
+ * render this. It is the screen's one dark surface (same `brandDeep` + ember
+ * glow as the hero card), so it asks for money without a second visual
+ * language: the price is the headline, cut off from the benefits by a
+ * dashed tear line like the receipt the app scans. `reason` says why it
  * showed up (quota spent) instead of a bare pitch.
  */
 export function SubscriptionPaywall({
@@ -59,11 +61,12 @@ export function SubscriptionPaywall({
     <YStack
       testID="subscription-paywall"
       overflow="hidden"
+      backgroundColor={palette.brandDeep}
       style={{
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 16,
-        borderBottomRightRadius: 30,
-        borderBottomLeftRadius: 16,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 36,
+        borderBottomLeftRadius: 20,
         shadowColor: palette.shadowCool,
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.28,
@@ -71,42 +74,46 @@ export function SubscriptionPaywall({
         elevation: 6,
       }}
     >
-      <LinearGradient
-        colors={[palette.navCardViolet, palette.navCardTeal]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      />
-      <YStack padding="$4" gap="$3">
-        <XStack alignItems="center" gap="$2.5">
-          <YStack width={40} height={40} borderRadius={14} backgroundColor={palette.accentLime} alignItems="center" justifyContent="center">
-            <SparklesIcon size={20} color={palette.accentLimeText} />
-          </YStack>
-          <Text flex={1} fontSize={13} fontWeight="700" color={palette.onDarkSecondary}>
-            {reason ?? 'Garde-manger IA'}
+      <HeroWarmGlow warm={palette.accentWarm} ground={palette.brandDeep} />
+      <YStack padding="$5" gap="$4">
+        <YStack gap="$2">
+          {reason ? (
+            <XStack
+              alignSelf="flex-start"
+              alignItems="center"
+              gap="$1.5"
+              paddingHorizontal="$2.5"
+              paddingVertical="$1.5"
+              borderRadius={999}
+              backgroundColor={palette.heroPillFill}
+            >
+              <SparklesIcon size={14} color={palette.accentLime} />
+              <Text fontSize={12} fontWeight="700" color={palette.onDark}>
+                {reason}
+              </Text>
+            </XStack>
+          ) : null}
+          <Text fontSize={28} fontWeight="900" lineHeight={32} letterSpacing={-0.5} color={palette.onDark}>
+            Abonnement Garde-manger
+          </Text>
+        </YStack>
+
+        <XStack alignItems="flex-end" gap="$2.5">
+          <Text fontSize={64} fontWeight="900" lineHeight={64} letterSpacing={-2} color={palette.accentLime}>
+            2€
+          </Text>
+          <Text flex={1} fontSize={14} fontWeight="700" lineHeight={18} color={palette.onDarkSecondary} paddingBottom={6}>
+            par mois,{'\n'}pour tout le foyer
           </Text>
         </XStack>
 
-        <YStack>
-          <Text fontSize={26} fontWeight="900" color={palette.onDark}>
-            Débloque l’IA
-          </Text>
-          <XStack alignItems="baseline" gap="$1.5" marginTop="$1">
-            <Text fontSize={40} fontWeight="900" color={palette.accentLime} lineHeight={44}>
-              2€
-            </Text>
-            <Text fontSize={15} fontWeight="700" color={palette.onDarkSecondary}>
-              par mois, pour tout le foyer
-            </Text>
-          </XStack>
-        </YStack>
+        <YStack height={0} borderTopWidth={1.5} borderStyle="dashed" borderColor={palette.onDarkSecondary} opacity={0.4} />
 
-        <YStack gap="$1.5">
+        <YStack gap="$2">
           {PAYWALL_BENEFITS.map((benefit) => (
-            <XStack key={benefit} alignItems="center" gap="$2">
-              <CircleCheckIcon size={16} color={palette.accentLime} />
-              <Text fontSize={14} fontWeight="600" color={palette.onDark}>
+            <XStack key={benefit} alignItems="center" gap="$2.5">
+              <CircleCheckIcon size={18} color={palette.accentLime} />
+              <Text flex={1} fontSize={14} fontWeight="600" color={palette.onDark}>
                 {benefit}
               </Text>
             </XStack>
@@ -121,7 +128,15 @@ export function SubscriptionPaywall({
           accessibilityLabel="S’abonner pour 2 euros par mois"
           style={{ opacity: pending ? 0.7 : 1 }}
         >
-          <XStack backgroundColor={palette.accentLime} borderRadius={999} paddingVertical="$3" alignItems="center" justifyContent="center" gap="$2" minHeight={48}>
+          <XStack
+            backgroundColor={palette.accentLime}
+            borderRadius={999}
+            alignItems="center"
+            justifyContent="center"
+            gap="$2"
+            minHeight={52}
+          >
+            <SparklesIcon size={18} color={palette.accentLimeText} />
             <Text fontSize={16} fontWeight="900" color={palette.accentLimeText}>
               {pending ? 'Un instant…' : 'S’abonner'}
             </Text>
@@ -133,7 +148,7 @@ export function SubscriptionPaywall({
           </Text>
         ) : null}
         <Text fontSize={11} fontWeight="500" color={palette.onDarkSecondary}>
-          Résiliable à tout moment depuis le store. Usage raisonnable.
+          Résiliable à tout moment depuis le store.
         </Text>
       </YStack>
     </YStack>
