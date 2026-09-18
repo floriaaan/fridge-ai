@@ -82,7 +82,9 @@ import {
   CircleXIcon,
   LayoutGridIcon,
   PackageIcon,
+  PlusIcon,
   ReceiptIcon,
+  ScanLineIcon,
   SettingsIcon,
   ShoppingCartIcon,
   TrendingUpIcon,
@@ -573,8 +575,21 @@ export function HouseholdDashboard({
                     Ajoute un produit, photographie ton frigo ou scanne un ticket pour démarrer.
                   </Text>
                   <XStack gap="$2" flexWrap="wrap">
-                    <PillButton label="Ajouter un produit" onPress={onAddProduct} testID="dashboard-empty-add" palette={palette} />
-                    <PillButton label="Scanner" onPress={goToScan} testID="dashboard-empty-scan" tone="quiet" palette={palette} />
+                    <PillButton
+                      label="Scanner"
+                      onPress={goToScan}
+                      testID="dashboard-empty-scan"
+                      icon={(color) => <ScanLineIcon size={15} color={color} />}
+                      palette={palette}
+                    />
+                    <PillButton
+                      label="Ajouter un produit"
+                      onPress={onAddProduct}
+                      testID="dashboard-empty-add"
+                      icon={(color) => <PlusIcon size={15} color={color} />}
+                      tone="quiet"
+                      palette={palette}
+                    />
                   </XStack>
                 </YStack>
               ) : null}

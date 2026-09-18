@@ -19,6 +19,8 @@ import { useHouseholdQuery } from '../../application/identity/household.query.js
 import { useUpdateAccountNameMutation } from '../../application/identity/update-account-name.mutation.js'
 import { useChangeAccountPasswordMutation } from '../../application/identity/change-account-password.mutation.js'
 import { useLinkedAccountsQuery } from '../../application/identity/linked-accounts.query.js'
+import { useAuthMethodsQuery } from '../../application/identity/auth-methods.query.js'
+import { useLinkSocialMutation } from '../../application/identity/link-social.mutation.js'
 import { useDeleteAccountMutation } from '../../application/identity/delete-account.mutation.js'
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -45,8 +47,10 @@ export function AccountScreen() {
   const session = useSessionQuery()
   const household = useHouseholdQuery()
   const linkedAccounts = useLinkedAccountsQuery()
+  const authMethods = useAuthMethodsQuery()
   const updateName = useUpdateAccountNameMutation()
   const changePassword = useChangeAccountPasswordMutation()
+  const linkSocial = useLinkSocialMutation()
   const deleteAccount = useDeleteAccountMutation()
   const [hint, showHint] = useHint()
 
@@ -58,6 +62,20 @@ export function AccountScreen() {
 
   const canChangePassword = linkedAccounts.data?.some((a) => a.provider === 'password') ?? false
   const isOwnerOfSharedHousehold = household.data?.role === 'owner' && (household.data?.members.length ?? 0) > 1
+  const linkedProviders = new Set((linkedAccounts.data ?? []).map((a) => a.provider))
+  const linkableMethods = (authMethods.data ?? []).filter(
+    (m): m is typeof m & { id: 'pocketid' | 'google' } =>
+      m.enabled && (m.id === 'pocketid' || m.id === 'google') && !linkedProviders.has(m.id),
+  )
+
+  async function handleLinkSocial(provider: 'pocketid' | 'google') {
+    const result = await linkSocial.mutateAsync(provider)
+    if (!result.ok) {
+      showHint(result.error.message)
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['linked-accounts'] })
+  }
 
   async function handleSaveName(trimmed: string) {
     if (!trimmed) {
@@ -93,7 +111,7 @@ export function AccountScreen() {
   }
 
   async function handleConfirmDelete() {
-    const result = await deleteAccount.mutateAsync(deletePassword)
+    const result = await deleteAccount.mutateAsync(canChangePassword ? deletePassword : undefined)
     if (!result.ok) {
       setDeleteSheetOpen(false)
       showHint(result.error.message)
@@ -189,6 +207,17 @@ export function AccountScreen() {
               </Text>
             </XStack>
           ))}
+          {linkableMethods.map((method) => (
+            <AuthButton
+              key={method.id}
+              testID={`account-link-${method.id}`}
+              label={`Connecter ${PROVIDER_LABELS[method.id] ?? method.label}`}
+              variant="secondary"
+              icon={<ProviderIcon provider={method.id} color={palette.ink} />}
+              pending={linkSocial.isPending}
+              onPress={() => handleLinkSocial(method.id)}
+            />
+          ))}
         </YStack>
 
         <YStack marginTop="$8" gap="$2">
@@ -238,13 +267,15 @@ export function AccountScreen() {
           },
         ]}
       >
-        <AuthField
-          testID="account-delete-password"
-          label="Confirme avec ton mot de passe"
-          value={deletePassword}
-          onChangeText={setDeletePassword}
-          secureTextEntry
-        />
+        {canChangePassword ? (
+          <AuthField
+            testID="account-delete-password"
+            label="Confirme avec ton mot de passe"
+            value={deletePassword}
+            onChangeText={setDeletePassword}
+            secureTextEntry
+          />
+        ) : null}
       </ActionSheet>
     </>
   )

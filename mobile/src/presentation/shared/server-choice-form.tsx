@@ -10,14 +10,9 @@ import { AuthError } from '../identity/auth-error.js'
 import { useConnector } from '../../application/shared/connector-context.js'
 import { APP_UPDATE_URL, APP_VERSION, getDefaultServerUrl, OFFICIAL_SERVER_URL } from '../../application/shared/server-config.js'
 import { CircleCheckIcon, RefreshIcon, SearchIcon, TriangleAlertIcon } from '../dashboard/dashboard-icons.js'
+import { haptic } from './haptics.js'
 import type { InstanceInfo } from '../../domain/instance/instance-info.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
-
-/** expo-haptics has no web implementation; every call site goes through this. */
-function haptic(run: () => Promise<void>) {
-  if (Platform.OS === 'web') return
-  void run()
-}
 
 type Mode = 'official' | 'self-hosted'
 

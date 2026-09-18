@@ -4,6 +4,7 @@ import { parseReceiptDraftJson } from '#domain/receipt/receipt-draft-parser'
 import { ReceiptExtractionUnavailableError } from '#domain/receipt/receipt-extraction.errors'
 import { RECEIPT_EXTRACTION_PROMPT } from '#domain/receipt/receipt-extraction-prompt'
 import { logAiAdapterFailure } from './log-ai-adapter-failure.js'
+import { fetchWithRetry } from './fetch-with-retry.js'
 
 export class OllamaReceiptExtractionAdapter implements ReceiptExtractionPort {
   constructor(
@@ -16,7 +17,7 @@ export class OllamaReceiptExtractionAdapter implements ReceiptExtractionPort {
 
     let response: Response
     try {
-      response = await fetch(`${this.baseUrl}/api/generate`, {
+      response = await fetchWithRetry(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

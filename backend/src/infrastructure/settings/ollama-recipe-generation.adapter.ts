@@ -7,6 +7,7 @@ import { buildRecipeGenerationPrompt } from '#domain/recipe/recipe-generation-pr
 import { parseRecipeDraftsJson } from '#domain/recipe/recipe-draft-parser'
 import { RecipeGenerationUnavailableError } from '#domain/recipe/recipe-generation.errors'
 import { logAiAdapterFailure } from './log-ai-adapter-failure.js'
+import { fetchWithRetry } from './fetch-with-retry.js'
 
 export class OllamaRecipeGenerationAdapter implements RecipeGenerationPort {
   constructor(
@@ -19,7 +20,7 @@ export class OllamaRecipeGenerationAdapter implements RecipeGenerationPort {
 
     let response: Response
     try {
-      response = await fetch(`${this.baseUrl}/api/generate`, {
+      response = await fetchWithRetry(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

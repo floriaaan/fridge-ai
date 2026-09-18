@@ -27,9 +27,7 @@ services:
       - internal
 
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ${BACKEND_IMAGE:-ghcr.io/floriaaan/garde-manger-backend:main}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -107,13 +105,7 @@ services:
   # (`docker compose --profile landing up -d landing`).
   landing:
     profiles: [landing]
-    build:
-      context: .
-      dockerfile: landing/Dockerfile
-      args:
-        VITE_CONNECTOR: ${LANDING_CONNECTOR:-http}
-        VITE_API_URL: ${LANDING_API_URL:-http://localhost:3333}
-        VITE_GITHUB_REPO: ${LANDING_GITHUB_REPO:-floriaaan/fridge-ai}
+    image: ${LANDING_IMAGE:-ghcr.io/floriaaan/garde-manger-landing:main}
     restart: unless-stopped
     ports:
       - '${LANDING_PORT:-3000}:3000'

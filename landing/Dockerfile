@@ -15,7 +15,7 @@ FROM deps AS build
 # are public URLs, not runtime secrets.
 ARG VITE_CONNECTOR=http
 ARG VITE_API_URL=http://localhost:3333
-ARG VITE_GITHUB_REPO=floriaaan/fridge-ai
+ARG VITE_GITHUB_REPO=floriaaan/garde-manger
 ENV VITE_CONNECTOR=$VITE_CONNECTOR VITE_API_URL=$VITE_API_URL VITE_GITHUB_REPO=$VITE_GITHUB_REPO
 COPY landing ./landing
 RUN pnpm --filter garde-manger-landing run build

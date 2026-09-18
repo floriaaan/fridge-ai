@@ -7,17 +7,39 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
-import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import { Text, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
-import { Chip } from '../shared/chip.js'
+import { RadioCard } from '../shared/radio-card.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { SparklesIcon } from '../dashboard/dashboard-icons.js'
+import { GeminiIcon } from './gemini-icon.js'
+import { OpenAiIcon } from './openai-icon.js'
+import { OllamaIcon } from './ollama-icon.js'
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
 import { useSetActiveAiProviderMutation } from '../../application/settings/set-active-ai-provider.mutation.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
+
+const PROVIDER_TINTS: Record<AiProvider, string> = { gemini: '#4C8DF6', openai: '#10A37F', ollama: '#1A1A1A' }
+
+const PROVIDER_DESCRIPTIONS: Record<AiProvider, string> = {
+  gemini: 'Modèle de Google, envoyé à leurs serveurs.',
+  openai: 'Modèle d’OpenAI, envoyé à leurs serveurs.',
+  ollama: 'Modèle exécuté sur ton propre serveur, rien n’en sort.',
+}
+
+function ProviderIcon({ provider, color }: { provider: AiProvider; color: string }) {
+  switch (provider) {
+    case 'gemini':
+      return <GeminiIcon size={17} color={color} />
+    case 'openai':
+      return <OpenAiIcon size={17} color={color} />
+    case 'ollama':
+      return <OllamaIcon size={17} />
+  }
+}
 
 export function AiProviderScreen() {
   const palette = useSoftPalette()
@@ -72,29 +94,30 @@ export function AiProviderScreen() {
         <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
           Lit tes tickets de caisse et invente tes recettes.
         </Text>
+        {canChooseProvider ? (
+          <Text fontSize={12} color={palette.inkSecondary}>
+            Le fournisseur choisi vaut pour tout le foyer, pas seulement toi.
+          </Text>
+        ) : null}
 
         {canChooseProvider ? (
-          <XStack gap="$3" flexWrap="wrap" marginTop="$2">
+          <YStack gap="$2" marginTop="$2">
             {[...availableProviders, ...lockedProviders].map((provider) => (
-              <Chip
+              <RadioCard
                 key={provider}
                 testID={`ai-provider-${provider}`}
-                label={
-                  lockedProviders.includes(provider)
-                    ? `${PROVIDER_LABELS[provider]} · abonnement`
-                    : PROVIDER_LABELS[provider]
-                }
-                accessibilityLabel={
-                  lockedProviders.includes(provider)
-                    ? `${PROVIDER_LABELS[provider]}, nécessite un abonnement actif`
-                    : PROVIDER_LABELS[provider]
+                label={PROVIDER_LABELS[provider]}
+                description={
+                  lockedProviders.includes(provider) ? 'Nécessite un abonnement actif' : PROVIDER_DESCRIPTIONS[provider]
                 }
                 selected={settings.data?.activeProvider === provider}
                 onPress={() => handleSelectProvider(provider)}
+                icon={(color) => <ProviderIcon provider={provider} color={color} />}
+                iconTint={PROVIDER_TINTS[provider]}
                 palette={palette}
               />
             ))}
-          </XStack>
+          </YStack>
         ) : null}
         {setProvider.isPending ? (
           // The mutation had no visible state at all: on a slow connection a

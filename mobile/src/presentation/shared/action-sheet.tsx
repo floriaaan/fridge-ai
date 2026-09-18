@@ -1,4 +1,4 @@
-import { Animated, Modal, Pressable } from 'react-native'
+import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Text, XStack, YStack } from './tamagui-typed.js'
 import { pointerCursor, useHoverPress } from './hover.js'
@@ -124,42 +124,44 @@ export function ActionSheet({
             here (not on the card itself) is what lifts the sheet off every screen edge;
             the card's own radius is uniform on all four corners — floating, not
             edge-to-edge, so a top-only radius would look clipped at the bottom. */}
-        <SafeAreaView edges={['bottom']} style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-          <YStack backgroundColor={palette.layoutSurface} borderRadius={32} style={{ paddingHorizontal: 20, paddingVertical: 20 }} gap="$2.5">
-            {title ? (
-              <YStack gap="$1" paddingHorizontal="$2" paddingBottom="$1">
-                <Text fontSize={15} fontWeight="800" color={palette.ink}>
-                  {title}
-                </Text>
-                {description ? (
-                  <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
-                    {description}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <SafeAreaView edges={['bottom']} style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+            <YStack backgroundColor={palette.layoutSurface} borderRadius={32} style={{ paddingHorizontal: 20, paddingVertical: 20 }} gap="$2.5">
+              {title ? (
+                <YStack gap="$1" paddingHorizontal="$2" paddingBottom="$1">
+                  <Text fontSize={15} fontWeight="800" color={palette.ink}>
+                    {title}
                   </Text>
-                ) : null}
-              </YStack>
-            ) : null}
-            {children}
-            {options.map((option) => (
-              <ActionSheetRow key={option.testID} option={option} palette={palette} />
-            ))}
-            {/* The backdrop and Android back were the only ways out. A visible
-                way to say "no" belongs on any sheet, and is required on one
-                that carries a destructive row. */}
-            <Pressable
-              testID="action-sheet-cancel"
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Annuler"
-              style={pointerCursor}
-            >
-              <XStack alignItems="center" justifyContent="center" minHeight={44} borderRadius={16}>
-                <Text fontSize={14} fontWeight="700" color={palette.inkSecondary}>
-                  Annuler
-                </Text>
-              </XStack>
-            </Pressable>
-          </YStack>
-        </SafeAreaView>
+                  {description ? (
+                    <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
+                      {description}
+                    </Text>
+                  ) : null}
+                </YStack>
+              ) : null}
+              {children}
+              {options.map((option) => (
+                <ActionSheetRow key={option.testID} option={option} palette={palette} />
+              ))}
+              {/* The backdrop and Android back were the only ways out. A visible
+                  way to say "no" belongs on any sheet, and is required on one
+                  that carries a destructive row. */}
+              <Pressable
+                testID="action-sheet-cancel"
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Annuler"
+                style={pointerCursor}
+              >
+                <XStack alignItems="center" justifyContent="center" minHeight={44} borderRadius={16}>
+                  <Text fontSize={14} fontWeight="700" color={palette.inkSecondary}>
+                    Annuler
+                  </Text>
+                </XStack>
+              </Pressable>
+            </YStack>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
       </YStack>
     </Modal>
   )

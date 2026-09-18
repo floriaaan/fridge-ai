@@ -42,6 +42,8 @@ export interface FridgeConnector {
   signInEmail(email: string, password: string): Promise<Result<Session, ApiError>>
   signUpEmail(email: string, password: string, name: string): Promise<Result<Session, ApiError>>
   signInSocial(provider: 'pocketid' | 'google'): Promise<Result<Session, ApiError>>
+  /** Explicit linking from an authenticated session — the only path the backend allows, cf. account-linking security notes in `instance.ts`. */
+  linkSocial(provider: 'pocketid' | 'google'): Promise<Result<void, ApiError>>
   signOut(): Promise<void>
   getHousehold(): Promise<Household | null>
   /**
@@ -58,8 +60,12 @@ export interface FridgeConnector {
   updateAccountName(name: string): Promise<Result<void, ApiError>>
   changeAccountPassword(currentPassword: string, newPassword: string): Promise<Result<void, ApiError>>
   getLinkedAccounts(): Promise<LinkedAccount[]>
-  /** Session must be fresh — the current password re-proves it, same as better-auth's own deleteUser gate. */
-  deleteAccount(password: string): Promise<Result<void, ApiError>>
+  /**
+   * `password` re-proves a fresh session for password accounts. SSO-only
+   * accounts have none to give — omit it and better-auth falls back to its
+   * own session-freshness check instead.
+   */
+  deleteAccount(password?: string): Promise<Result<void, ApiError>>
   getShoppingItems(): Promise<ShoppingItem[]>
   createShoppingItem(input: CreateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>
   updateShoppingItem(itemId: string, patch: UpdateShoppingItemInput): Promise<Result<ShoppingItem, ApiError>>

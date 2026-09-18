@@ -4,6 +4,7 @@ import { parseFridgeScanDraftJson } from '#domain/fridge/fridge-scan-draft-parse
 import { ReceiptExtractionUnavailableError } from '#domain/receipt/receipt-extraction.errors'
 import { FRIDGE_SCAN_EXTRACTION_PROMPT } from '#domain/fridge/fridge-scan-extraction-prompt'
 import { logAiAdapterFailure } from './log-ai-adapter-failure.js'
+import { fetchWithRetry } from './fetch-with-retry.js'
 
 export class OllamaFridgeScanExtractionAdapter implements FridgeScanExtractionPort {
   constructor(
@@ -16,7 +17,7 @@ export class OllamaFridgeScanExtractionAdapter implements FridgeScanExtractionPo
 
     let response: Response
     try {
-      response = await fetch(`${this.baseUrl}/api/generate`, {
+      response = await fetchWithRetry(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
