@@ -57,7 +57,7 @@ export default class ReceiptController {
         const resolveExtraction = await ctx.containerResolver.make(
           'settings.resolveReceiptExtractionPort',
         )
-        const extraction = await resolveExtraction()
+        const extraction = await resolveExtraction(ctx.household.id)
 
         const result = await new ScanReceipt(extraction).execute({ image: buffer })
         if (!result.ok) {

@@ -27,15 +27,24 @@ export function AiProviderScreen() {
   const [providerError, setProviderError] = useState<string | null>(null)
 
   const availableProviders = settings.data?.availableProviders ?? []
+  const lockedProviders = settings.data?.lockedProviders ?? []
   // The gate is `availableProviders`, never `source`. `source` only records
   // whether anyone has picked yet (`env-ai-settings-provider.ts`: a stored row
   // wins, env is the first-boot fallback), so reading it as "the administrator
   // configured this" described a lock that does not exist — the foyer can
   // change the provider whenever more than one has credentials.
-  const canChooseProvider = availableProviders.length > 1
+  //
+  // Paywalled providers are drawn alongside, locked rather than hidden: a
+  // Gemini that vanishes because the abonnement lapsed is indistinguishable
+  // from a Gemini nobody configured, and only one of the two is actionable.
+  const canChooseProvider = availableProviders.length + lockedProviders.length > 1
 
   async function handleSelectProvider(provider: AiProvider) {
     if (settings.data?.activeProvider === provider) {
+      return
+    }
+    if (lockedProviders.includes(provider)) {
+      setProviderError(`${PROVIDER_LABELS[provider]} nécessite un abonnement actif.`)
       return
     }
     setProviderError(null)
@@ -66,11 +75,20 @@ export function AiProviderScreen() {
 
         {canChooseProvider ? (
           <XStack gap="$3" flexWrap="wrap" marginTop="$2">
-            {availableProviders.map((provider) => (
+            {[...availableProviders, ...lockedProviders].map((provider) => (
               <Chip
                 key={provider}
                 testID={`ai-provider-${provider}`}
-                label={PROVIDER_LABELS[provider]}
+                label={
+                  lockedProviders.includes(provider)
+                    ? `${PROVIDER_LABELS[provider]} · abonnement`
+                    : PROVIDER_LABELS[provider]
+                }
+                accessibilityLabel={
+                  lockedProviders.includes(provider)
+                    ? `${PROVIDER_LABELS[provider]}, nécessite un abonnement actif`
+                    : PROVIDER_LABELS[provider]
+                }
                 selected={settings.data?.activeProvider === provider}
                 onPress={() => handleSelectProvider(provider)}
                 palette={palette}
@@ -85,7 +103,7 @@ export function AiProviderScreen() {
             Changement en cours…
           </Text>
         ) : null}
-        {settings.data && availableProviders.length === 0 ? (
+        {settings.data && availableProviders.length === 0 && lockedProviders.length === 0 ? (
           // `activeProvider` can name a provider whose key is gone — the picker
           // then drew an empty row and no selection, explaining nothing.
           <Text fontSize={13} color={palette.expiredText}>

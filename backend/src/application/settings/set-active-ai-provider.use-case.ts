@@ -14,7 +14,8 @@ export interface SetActiveAiProviderInput {
   provider: AiProvider
 }
 
-export type SetActiveAiProviderError = 'not_owner' | 'provider_not_configured'
+export type SetActiveAiProviderError =
+  'not_owner' | 'provider_not_configured' | 'subscription_required'
 
 export class SetActiveAiProvider implements UseCase<
   SetActiveAiProviderInput,
@@ -34,15 +35,19 @@ export class SetActiveAiProvider implements UseCase<
     const household = await this.households.findByUserId(input.userId)
     if (!household || household.ownerId !== input.userId) return Result.err('not_owner')
 
-    const effective = await this.settingsProvider.resolveEffective()
+    const effective = await this.settingsProvider.resolveEffective(household.id)
+    if (effective.lockedProviders.includes(input.provider)) {
+      return Result.err('subscription_required')
+    }
     if (!effective.availableProviders.includes(input.provider)) {
       return Result.err('provider_not_configured')
     }
 
     const now = this.clock.now()
-    const existing = await this.repository.find()
+    const existing = await this.repository.find(household.id)
     const settings =
-      existing ?? AiProviderSettings.seedFromEnv(this.idGenerator.next(), input.provider, now)
+      existing ??
+      AiProviderSettings.seedFromEnv(this.idGenerator.next(), household.id, input.provider, now)
     settings.changeProvider(input.provider, input.userId, now)
 
     await this.repository.save(settings)

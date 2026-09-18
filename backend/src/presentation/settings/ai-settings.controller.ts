@@ -9,14 +9,22 @@ import { SetActiveAiProvider } from '#application/settings/set-active-ai-provide
 
 export default class AiSettingsController {
   async show(ctx: HttpContext) {
-    requireAuthenticatedUser(ctx)
+    const user = requireAuthenticatedUser(ctx)
     return traceAction(
       ctx,
       'settings',
       GetEffectiveAiSettings,
       async () => {
         const settingsProvider = await ctx.containerResolver.make('settings.aiSettingsProvider')
-        const effective = await new GetEffectiveAiSettings(settingsProvider).execute()
+        // No `householdRequired` on this route on purpose: a user who has not
+        // joined a foyer yet still reads the instance's defaults (that is what
+        // `source: 'environment'` means), so the household is looked up here
+        // and stays nullable.
+        const households = await ctx.containerResolver.make('identity.households')
+        const household = await households.findByUserId(user.id)
+        const effective = await new GetEffectiveAiSettings(settingsProvider).execute({
+          householdId: household?.id ?? null,
+        })
         ctx.response.json(toAiSettingsDto(effective))
       },
       { action: 'settings.get_ai_settings' },
@@ -51,7 +59,7 @@ export default class AiSettingsController {
           return result
         }
 
-        const effective = await settingsProvider.resolveEffective()
+        const effective = await settingsProvider.resolveEffective(result.value.householdId)
         ctx.response.json(toAiSettingsDto(effective))
         return result
       },

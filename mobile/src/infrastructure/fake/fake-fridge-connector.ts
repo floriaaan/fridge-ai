@@ -143,7 +143,11 @@ export class FakeFridgeConnector implements FridgeConnector {
   private recipes: Recipe[] = fakeRecipes.map((r) => ({ ...r }))
   private generatedRecipes: Recipe[] = []
   private nextRecipeId = 1
-  private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
+  private aiSettings: AiSettings = {
+    ...fakeAiSettings,
+    availableProviders: [...fakeAiSettings.availableProviders],
+    lockedProviders: [...fakeAiSettings.lockedProviders],
+  }
   private haLink: HaLink = { ...fakeUnconfiguredHaLink }
   private readonly aiLatencyMs: number
 

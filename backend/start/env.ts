@@ -46,14 +46,22 @@ export default await Env.create(new URL('../', import.meta.url), {
   // better-auth's trustedOrigins check (cf. instance.ts), comma-separated.
   CORS_ORIGIN: Env.schema.string.optional(),
 
-  // AI provider (settings, cf. docs/adr/0007) — optional, EnvAiSettingsProvider
-  // falls back to a hardcoded default if unset.
-  AI_PROVIDER: Env.schema.enum.optional(['gemini', 'openai', 'ollama'] as const),
+  // AI providers (settings, cf. docs/adr/0007) — comma-separated whitelist of
+  // what this instance exposes, in order; the first entry is the default a
+  // household gets before anyone picks. Unset means "all of them". Validated
+  // by `parseAllowedProviders`, not by the schema, so the error names the
+  // offending value.
+  AI_PROVIDER: Env.schema.string.optional(),
   GEMINI_API_KEY: Env.schema.string.optional(),
   OPENAI_API_KEY: Env.schema.string.optional(),
   OLLAMA_BASE_URL: Env.schema.string.optional({ format: 'url', tld: false }),
   OLLAMA_VISION_MODEL: Env.schema.string.optional(),
   OLLAMA_TEXT_MODEL: Env.schema.string.optional(),
+
+  // Official SaaS instance: cloud AI providers (Gemini, OpenAI) are billed to
+  // us, so they sit behind a subscription. Self-hosted instances leave this
+  // false and pay their own API bills.
+  SAAS_MODE: Env.schema.boolean.optional(),
 
   // Root directory for locally-stored images (receipts, products) — cf. ADR-0009.
   STORAGE_ROOT: Env.schema.string.optional(),
