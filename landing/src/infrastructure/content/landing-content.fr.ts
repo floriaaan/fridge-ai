@@ -66,7 +66,11 @@ export const landingContentFr: LandingContent = {
       perks: ['Hébergé et sauvegardé pour toi', 'Mises à jour automatiques', 'Chacun son compte, un foyer partagé'],
       tiers: [
         { name: 'Gratuit', description: 'Inventaire, dates de péremption, liste de courses partagée.' },
-        { name: 'Abonnement IA', description: 'Tickets de caisse en une photo et recettes avec ce qui reste.' },
+        {
+          name: 'Abonnement IA',
+          description: 'Tickets de caisse en une photo et recettes avec ce qui reste.',
+          price: '2€/mois',
+        },
       ],
       cta: { label: 'Ouverture bientôt', href: null },
     },
@@ -98,7 +102,7 @@ export const landingContentFr: LandingContent = {
     {
       question: 'Et si je ne veux pas gérer de serveur ?',
       answer:
-        'Une offre clé en main est en préparation : gratuite pour l’essentiel, avec un abonnement pour les fonctionnalités IA (scan de tickets, recettes). Elle n’est pas encore ouverte.',
+        'Une offre clé en main est en préparation : gratuite pour l’essentiel, avec un abonnement à 2€/mois pour les fonctionnalités IA (scan de tickets, recettes). Elle n’est pas encore ouverte.',
     },
     {
       question: 'Mes données partent-elles ailleurs ?',

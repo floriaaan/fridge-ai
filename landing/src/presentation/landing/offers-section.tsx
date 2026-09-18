@@ -93,6 +93,9 @@ export function OffersSection({ content }: { content: LandingContent }) {
                       <p className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
                         {index > 0 && <SparklesIcon aria-hidden className="size-5 text-soon-on-dark" />}
                         {tier.name}
+                        {tier.price && (
+                          <span className="text-sm font-semibold text-soon-on-dark">{tier.price}</span>
+                        )}
                       </p>
                       <p className="mt-1.5 text-[15px] text-white/80">{tier.description}</p>
                     </div>

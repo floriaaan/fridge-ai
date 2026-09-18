@@ -66,7 +66,11 @@ export const landingContentEn: LandingContent = {
       perks: ['Hosted and backed up for you', 'Automatic updates', 'Your own account, one shared household'],
       tiers: [
         { name: 'Free', description: 'Inventory, expiry dates, shared shopping list.' },
-        { name: 'AI plan', description: 'Receipts in one photo and recipes with what’s left.' },
+        {
+          name: 'AI plan',
+          description: 'Receipts in one photo and recipes with what’s left.',
+          price: '€2/month',
+        },
       ],
       cta: { label: 'Opening soon', href: null },
     },
@@ -98,7 +102,7 @@ export const landingContentEn: LandingContent = {
     {
       question: 'What if I don’t want to run a server?',
       answer:
-        'A hosted plan is in the works: free for the essentials, with a subscription for the AI features (receipt scanning, recipes). It isn’t open yet.',
+        'A hosted plan is in the works: free for the essentials, with a €2/month subscription for the AI features (receipt scanning, recipes). It isn’t open yet.',
     },
     {
       question: 'Does my data go anywhere else?',

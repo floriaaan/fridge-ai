@@ -146,7 +146,7 @@ export class FakeFridgeConnector implements FridgeConnector {
   private aiSettings: AiSettings = {
     ...fakeAiSettings,
     availableProviders: [...fakeAiSettings.availableProviders],
-    lockedProviders: [...fakeAiSettings.lockedProviders],
+    access: { ...fakeAiSettings.access },
   }
   private haLink: HaLink = { ...fakeUnconfiguredHaLink }
   private readonly aiLatencyMs: number

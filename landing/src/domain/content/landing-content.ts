@@ -26,8 +26,8 @@ export interface Offer {
 }
 
 export interface HostedOffer extends Offer {
-  /** Free core first, then the AI subscription. No prices until pricing is decided. */
-  tiers: { name: string; description: string }[]
+  /** Free core first, then the AI subscription. `price` is unset for the free tier. */
+  tiers: { name: string; description: string; price?: string }[]
 }
 
 export interface SelfHostedOffer extends Offer {

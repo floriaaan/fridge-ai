@@ -58,10 +58,16 @@ export default await Env.create(new URL('../', import.meta.url), {
   OLLAMA_VISION_MODEL: Env.schema.string.optional(),
   OLLAMA_TEXT_MODEL: Env.schema.string.optional(),
 
-  // Official SaaS instance: cloud AI providers (Gemini, OpenAI) are billed to
-  // us, so they sit behind a subscription. Self-hosted instances leave this
-  // false and pay their own API bills.
-  SAAS_MODE: Env.schema.boolean.optional(),
+  // Official SaaS instance only (`INSTANCE_MODE=hosted`): monthly AI call
+  // quota per household, free vs. subscriber (cf. docs/adr/0014). Ignored on
+  // self-hosted instances, which are never capped.
+  AI_QUOTA_FREE: Env.schema.number.optional(),
+  AI_QUOTA_SUBSCRIBED: Env.schema.number.optional(),
+
+  // Shared secret RevenueCat sends back as `Authorization: Bearer <secret>`
+  // on every webhook call. Unset on a hosted instance means the webhook
+  // route refuses every request (cf. `revenuecat-webhook.controller.ts`).
+  REVENUECAT_WEBHOOK_SECRET: Env.schema.string.optional(),
 
   // Root directory for locally-stored images (receipts, products) — cf. ADR-0009.
   STORAGE_ROOT: Env.schema.string.optional(),

@@ -84,6 +84,9 @@ services:
       PUBLIC_STATS_ENABLED: ${PUBLIC_STATS_ENABLED:-false}
       INSTANCE_MODE: ${INSTANCE_MODE:-self-hosted}
       INSTANCE_NAME: ${INSTANCE_NAME:-}
+      AI_QUOTA_FREE: ${AI_QUOTA_FREE:-5}
+      AI_QUOTA_SUBSCRIBED: ${AI_QUOTA_SUBSCRIBED:-150}
+      REVENUECAT_WEBHOOK_SECRET: ${REVENUECAT_WEBHOOK_SECRET:-}
     depends_on:
       db:
         condition: service_healthy

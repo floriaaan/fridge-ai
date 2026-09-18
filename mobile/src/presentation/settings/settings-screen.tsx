@@ -19,6 +19,7 @@ import {
   SettingsIcon,
   SparklesIcon,
   TriangleAlertIcon,
+  BadgeCheckIcon,
 } from '../dashboard/dashboard-icons.js'
 import { resetWelcomeSeen } from '../welcome/use-welcome-seen.js'
 import { IdentityCard, RoleBadge } from './identity-card.js'
@@ -282,8 +283,11 @@ export function SettingsScreen() {
           label="Serveur"
           value={
             instance.data
-              ? instance.data.name ?? (instance.data.mode === 'hosted' ? 'Garde-manger hébergé' : 'Garde-manger auto-hébergé')
+              ? instance.data.name ?? (instance.data.mode === 'hosted' ? 'Garde-manger officiel' : 'Garde-manger auto-hébergé')
               : '—'
+          }
+          valueBadge={
+            instance.data?.mode === 'hosted' ? <BadgeCheckIcon size={18} color={palette.chipTeal} /> : undefined
           }
           // No raw URL or version here — that's technical detail, not a
           // setting; "Changer de serveur" is what this card leads to.

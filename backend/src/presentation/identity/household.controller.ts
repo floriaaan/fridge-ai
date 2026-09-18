@@ -148,6 +148,13 @@ export default class HouseholdController {
           return result
         }
 
+        // The removed member may be who paid for the foyer's abonnement —
+        // the store keeps billing them until they cancel there, but the
+        // entitlement they bought ends the moment they're no longer in it.
+        const subscriptions = await ctx.containerResolver.make('settings.subscriptions')
+        const clock = await ctx.containerResolver.make('shared.clock')
+        await subscriptions.revokeForPayer(ctx.params.userId, clock.now())
+
         ctx.response.status(204).send('')
         return result
         // `:userId`, not `:id` — this route names its param differently, so
@@ -172,6 +179,12 @@ export default class HouseholdController {
           ctx.response.status(status).json(body)
           return result
         }
+
+        // Cf. `removeMember` above — leaving is the same entitlement cutoff
+        // as being removed, just self-initiated.
+        const subscriptions = await ctx.containerResolver.make('settings.subscriptions')
+        const clock = await ctx.containerResolver.make('shared.clock')
+        await subscriptions.revokeForPayer(user.id, clock.now())
 
         ctx.response.status(204).send('')
         return result
