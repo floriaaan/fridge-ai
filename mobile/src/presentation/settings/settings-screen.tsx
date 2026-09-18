@@ -275,9 +275,9 @@ export function SettingsScreen() {
       <YStack marginTop="$3" gap="$2">
         <IdentityCard
           testID="settings-instance"
-          bg={palette.cream}
-          labelColor={palette.creamText}
-          chipColor={palette.chipOrange}
+          bg={palette.rosePale}
+          labelColor={palette.rosePaleText}
+          chipColor={palette.chipRose}
           icon={<ServerIcon size={17} color={palette.onDark} />}
           label="Serveur"
           value={

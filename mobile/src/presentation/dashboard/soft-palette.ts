@@ -134,6 +134,8 @@ export interface SoftPalette {
   lavenderText: string
   mintPale: string
   mintPaleText: string
+  rosePale: string
+  rosePaleText: string
   fresh: string
   freshBg: string
   freshText: string
@@ -230,6 +232,8 @@ const light: SoftPalette = {
   lavenderText: '#635B85',
   mintPale: '#E1F3E6',
   mintPaleText: '#3D7A57',
+  rosePale: '#FBE4EC',
+  rosePaleText: '#9C3D63',
   fresh: '#3FAE6B',
   freshBg: '#DFF3E4',
   freshText: '#1F6B44',
@@ -322,6 +326,8 @@ const dark: SoftPalette = {
   lavenderText: '#C0B7E6',
   mintPale: '#152A1D',
   mintPaleText: '#8FD3A9',
+  rosePale: '#2E1620',
+  rosePaleText: '#E2A0BA',
   fresh: '#4FC080',
   freshBg: '#153B25',
   freshText: '#7EDCA5',
