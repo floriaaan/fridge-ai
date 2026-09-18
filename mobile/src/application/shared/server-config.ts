@@ -6,7 +6,7 @@
  * other local flag.
  */
 import Constants from 'expo-constants'
-import { clearSetting, readSetting, writeSetting } from '../../presentation/shared/app-storage.js'
+import { clearSetting, readSetting, writeSetting } from './app-storage.js'
 
 const SERVER_URL_KEY = 'server_url'
 const DEFAULT_URL = process.env.EXPO_PUBLIC_API_URL ?? ''

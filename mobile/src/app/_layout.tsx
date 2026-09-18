@@ -10,7 +10,7 @@ import { queryClient } from '../application/shared/query-client.js'
 import { createConnector } from '../../providers/create-connector.js'
 import { startTelemetry } from '../../providers/start-telemetry.js'
 import { wireTelemetry } from '../../providers/wire-telemetry.js'
-import { loadStoredServerUrl } from '../infrastructure/http/server-config.js'
+import { loadStoredServerUrl } from '../application/shared/server-config.js'
 
 // Module load, not an effect: this only assigns a reference (see
 // `wire-telemetry.ts`) — nothing to defer past the first frame, and every

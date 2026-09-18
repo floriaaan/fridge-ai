@@ -5,7 +5,7 @@
  * shared with Réglages' "Changer de serveur" page.
  */
 import { useSoftPalette } from '../dashboard/soft-palette.js'
-import { setServerUrl } from '../../infrastructure/http/server-config.js'
+import { setServerUrl } from '../../application/shared/server-config.js'
 import { AuthShell } from '../identity/auth-shell.js'
 import { ServerChoiceForm } from '../shared/server-choice-form.js'
 

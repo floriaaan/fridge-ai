@@ -1,7 +1,7 @@
 // mobile/src/presentation/shared/app-storage.test.ts
 import * as SecureStore from 'expo-secure-store'
 import { telemetry } from '../../infrastructure/telemetry/telemetry.js'
-import { configureTelemetry } from '../../application/shared/telemetry.js'
+import { configureTelemetry } from './telemetry.js'
 import { readSetting, writeSetting, clearSetting } from './app-storage.js'
 
 jest.mock('expo-secure-store', () => ({
@@ -10,7 +10,7 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }))
 
-// `app-storage.ts` reaches telemetry through `getTelemetry()` (presentation
+// `app-storage.ts` reaches telemetry through `getTelemetry()` (application
 // may not import `infrastructure/telemetry` directly — the boundary lint
 // enforces it); wiring the real singleton in here is what `providers/wire-telemetry.ts`
 // does for the app itself, so `jest.spyOn(telemetry, ...)` below still spies

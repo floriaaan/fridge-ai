@@ -14,7 +14,7 @@
  */
 import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
-import { getTelemetry } from '../../application/shared/telemetry.js'
+import { getTelemetry } from './telemetry.js'
 
 const IS_WEB = Platform.OS === 'web'
 

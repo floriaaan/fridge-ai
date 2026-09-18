@@ -2,7 +2,7 @@ import { createAuthClient } from 'better-auth/react'
 import { expoClient } from '@better-auth/expo/client'
 import { passkeyClient } from '@better-auth/passkey/client'
 import * as SecureStore from 'expo-secure-store'
-import { getServerUrl, onServerUrlChange } from '../http/server-config.js'
+import { getServerUrl, onServerUrlChange } from '../../application/shared/server-config.js'
 
 function buildClient() {
   return createAuthClient({

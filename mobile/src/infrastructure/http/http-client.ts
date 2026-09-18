@@ -5,7 +5,7 @@ import { authClient } from '../auth/auth-client.js'
 import { queryClient } from '../../application/shared/query-client.js'
 import { showToast } from '../../application/shared/toast.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
-import { getServerUrl } from './server-config.js'
+import { getServerUrl } from '../../application/shared/server-config.js'
 
 const NETWORK_ERROR_MESSAGE = 'Impossible de contacter le serveur.'
 

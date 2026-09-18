@@ -18,7 +18,7 @@ import { ServerChoiceForm } from '../shared/server-choice-form.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { ServerIcon } from '../dashboard/dashboard-icons.js'
 import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
-import { getServerUrl, setServerUrl } from '../../infrastructure/http/server-config.js'
+import { getServerUrl, setServerUrl } from '../../application/shared/server-config.js'
 
 export function ServerInfoScreen() {
   const palette = useSoftPalette()

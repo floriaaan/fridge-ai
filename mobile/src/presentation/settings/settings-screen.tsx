@@ -30,7 +30,7 @@ import { useHouseholdQuery } from '../../application/identity/household.query.js
 import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
 import { useInstanceInfoQuery } from '../../application/instance/instance-info.query.js'
-import { clearServerUrl } from '../../infrastructure/http/server-config.js'
+import { clearServerUrl } from '../../application/shared/server-config.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }

@@ -17,7 +17,7 @@
  * of a tooltip.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { clearSetting, readSetting, writeSetting } from '../shared/app-storage.js'
+import { clearSetting, readSetting, writeSetting } from '../../application/shared/app-storage.js'
 
 const KEY = 'garde-manger.first-run-tour.armed'
 
