@@ -2,7 +2,9 @@ import { test } from '@japa/runner'
 import { fetchWithRetry } from '#infrastructure/settings/fetch-with-retry'
 
 test.group('fetchWithRetry', () => {
-  test('retries once after a network error, then returns the successful response', async ({ assert }) => {
+  test('retries once after a network error, then returns the successful response', async ({
+    assert,
+  }) => {
     const originalFetch = globalThis.fetch
     let calls = 0
     globalThis.fetch = (async () => {
