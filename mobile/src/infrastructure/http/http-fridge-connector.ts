@@ -179,6 +179,19 @@ export class HttpFridgeConnector implements FridgeConnector {
     }
   }
 
+  async linkSocial(provider: 'pocketid' | 'google'): Promise<Result<void, ApiError>> {
+    try {
+      const { error } = await authClient.linkSocial({ provider, callbackURL: '/' })
+      if (error) {
+        return Result.err({ type: error.code ?? 'link_failed', message: error.message ?? 'Connexion impossible.' })
+      }
+      return Result.ok(undefined)
+    } catch (error) {
+      reportFailure('identity.link_social', error)
+      return Result.err({ type: 'link_failed', message: 'Connexion impossible.' })
+    }
+  }
+
   /**
    * Swallows on purpose, like every other identity method here — a failed
    * sign-out must not strand a screen mid-navigation. Whatever went wrong
@@ -321,9 +334,9 @@ export class HttpFridgeConnector implements FridgeConnector {
     }
   }
 
-  async deleteAccount(password: string): Promise<Result<void, ApiError>> {
+  async deleteAccount(password?: string): Promise<Result<void, ApiError>> {
     try {
-      const { error } = await authClient.deleteUser({ password })
+      const { error } = await authClient.deleteUser(password ? { password } : {})
       if (error) {
         return Result.err({ type: error.code ?? 'delete_account_failed', message: error.message ?? 'Suppression du compte impossible.' })
       }

@@ -215,6 +215,10 @@ export class FakeFridgeConnector implements FridgeConnector {
     return Result.ok(this.session)
   }
 
+  async linkSocial(): Promise<Result<void, ApiError>> {
+    return Result.ok(undefined)
+  }
+
   async signOut(): Promise<void> {
     this.session = null
   }
@@ -347,10 +351,7 @@ export class FakeFridgeConnector implements FridgeConnector {
     ]
   }
 
-  async deleteAccount(password: string): Promise<Result<void, ApiError>> {
-    if (!password) {
-      return Result.err({ type: 'invalid_credentials', message: 'Email ou mot de passe invalide.' })
-    }
+  async deleteAccount(_password?: string): Promise<Result<void, ApiError>> {
     if (this.household?.role === 'owner' && this.household.members.length > 1) {
       return Result.err({
         type: 'ownership_transfer_required',

@@ -117,19 +117,18 @@ export const auth = betterAuth({
       updatedAt: 'updated_at',
     },
     /**
-     * Copied verbatim from arr's câblage (cf. docs/phase-0/00-overview,
-     * point "PocketID/better-auth d'arr, complète et fonctionnelle").
-     * better-auth resolves an incoming OIDC identity to an existing user by
-     * email automatically — what's gated by default is whether to link
-     * *implicitly* without an extra verification step. Both default guards
-     * would block it here: 'pocketid' isn't in trustedProviders by default,
-     * and requireLocalEmailVerified defaults to true while this app has no
-     * email-verification flow at all.
+     * `trustedProviders`/`requireLocalEmailVerified` stay at better-auth's
+     * safe defaults (empty / true) on purpose: this app has no email
+     * verification, so trusting them would auto-merge an OAuth sign-in onto
+     * *any* pre-existing unverified password account with a matching email —
+     * account takeover with no proof of ownership. Defaults only block that
+     * *implicit* merge during a fresh sign-in; explicit linking (the
+     * authenticated `authClient.linkSocial()` call from the account screen)
+     * bypasses both checks entirely, since the caller already holds a valid
+     * session for the account being linked.
      */
     accountLinking: {
       enabled: true,
-      trustedProviders: ['pocketid', 'google'],
-      requireLocalEmailVerified: false,
     },
   },
   ...(googleConfigured
