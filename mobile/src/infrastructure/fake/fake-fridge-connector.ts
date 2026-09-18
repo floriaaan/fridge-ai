@@ -17,6 +17,7 @@ import type { FridgeConnector } from '../../domain/interfaces/fridge-connector.j
 import type { Session } from '../../domain/identity/session.js'
 import type { Household } from '../../domain/identity/household.js'
 import type { AuthMethod } from '../../domain/identity/auth-method.js'
+import type { LinkedAccount } from '../../domain/identity/linked-account.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
 import type { ShoppingItem, CreateShoppingItemInput, UpdateShoppingItemInput } from '../../domain/shopping-list/shopping-item.js'
 import type { Recipe } from '../../domain/recipe/recipe.js'
@@ -30,6 +31,7 @@ import type { Receipt, ImportReceiptInput } from '../../domain/receipt/receipt.j
 import type { FridgeScanDraft, ImportProductsItemInput } from '../../domain/fridge/fridge-scan-draft.js'
 import type { AiSettings, AiProvider } from '../../domain/settings/ai-settings.js'
 import type { HaLink, HaTodoEntity, SaveHaConnectionInput, BindHaListInput } from '../../domain/home-assistant/ha-link.js'
+import type { InstanceInfo } from '../../domain/instance/instance-info.js'
 
 /**
  * How long the fake pretends the AI is thinking, in milliseconds.
@@ -141,7 +143,11 @@ export class FakeFridgeConnector implements FridgeConnector {
   private recipes: Recipe[] = fakeRecipes.map((r) => ({ ...r }))
   private generatedRecipes: Recipe[] = []
   private nextRecipeId = 1
-  private aiSettings: AiSettings = { ...fakeAiSettings, availableProviders: [...fakeAiSettings.availableProviders] }
+  private aiSettings: AiSettings = {
+    ...fakeAiSettings,
+    availableProviders: [...fakeAiSettings.availableProviders],
+    lockedProviders: [...fakeAiSettings.lockedProviders],
+  }
   private haLink: HaLink = { ...fakeUnconfiguredHaLink }
   private readonly aiLatencyMs: number
 
@@ -163,6 +169,12 @@ export class FakeFridgeConnector implements FridgeConnector {
   private pretendToThink(): Promise<void> {
     if (this.aiLatencyMs <= 0) return Promise.resolve()
     return new Promise((resolve) => setTimeout(resolve, this.aiLatencyMs))
+  }
+
+  /** Fixture answers for a URL ending in `/valid`, `null` (server not recognized) for anything else — see server-choice-screen.test.tsx. */
+  async getInstanceInfo(url: string): Promise<InstanceInfo | null> {
+    if (!url.includes('valid')) return null
+    return { mode: 'self-hosted', name: 'Garde-manger de test', version: '0.0.0' }
   }
 
   async getSession(): Promise<Session | null> {
@@ -290,6 +302,62 @@ export class FakeFridgeConnector implements FridgeConnector {
     // backend — an owner deleting the foyer, a member being removed from it —
     // leaves `GET /households/mine` answering null for this account, and the
     // gate that decides where a foyer-less user lands reads exactly that.
+    this.household = null
+    return Result.ok(undefined)
+  }
+
+  async transferHouseholdOwnership(newOwnerId: string): Promise<Result<void, ApiError>> {
+    if (this.household?.role !== 'owner') {
+      return Result.err({ type: 'not_owner', message: 'Seul le propriétaire du foyer peut faire cette action.' })
+    }
+    if (newOwnerId === (this.session?.user.id ?? 'fake-user-1')) {
+      return Result.err({ type: 'already_owner', message: 'Cette personne est déjà propriétaire du foyer.' })
+    }
+    const target = this.household.members.find((m) => m.userId === newOwnerId)
+    if (!target) return Result.err({ type: 'not_a_member', message: "Cet utilisateur n'est pas membre du foyer." })
+
+    for (const member of this.household.members) {
+      member.role = member.userId === newOwnerId ? 'owner' : 'member'
+    }
+    this.household.role = 'member'
+    delete this.household.inviteCode
+    return Result.ok(undefined)
+  }
+
+  async updateAccountName(name: string): Promise<Result<void, ApiError>> {
+    const trimmed = name.trim()
+    if (trimmed.length === 0) {
+      return Result.err({ type: 'validation_failed', message: 'Le nom ne peut pas être vide.' })
+    }
+    if (this.session) this.session = { user: { ...this.session.user, name: trimmed } }
+    return Result.ok(undefined)
+  }
+
+  async changeAccountPassword(currentPassword: string, newPassword: string): Promise<Result<void, ApiError>> {
+    if (!currentPassword || !newPassword) {
+      return Result.err({ type: 'invalid_credentials', message: 'Email ou mot de passe invalide.' })
+    }
+    return Result.ok(undefined)
+  }
+
+  async getLinkedAccounts(): Promise<LinkedAccount[]> {
+    return [
+      { provider: 'password', createdAt: new Date().toISOString() },
+      { provider: 'pocketid', createdAt: new Date().toISOString() },
+    ]
+  }
+
+  async deleteAccount(password: string): Promise<Result<void, ApiError>> {
+    if (!password) {
+      return Result.err({ type: 'invalid_credentials', message: 'Email ou mot de passe invalide.' })
+    }
+    if (this.household?.role === 'owner' && this.household.members.length > 1) {
+      return Result.err({
+        type: 'ownership_transfer_required',
+        message: 'Transférez la propriété du foyer avant de supprimer votre compte.',
+      })
+    }
+    this.session = null
     this.household = null
     return Result.ok(undefined)
   }

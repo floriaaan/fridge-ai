@@ -68,4 +68,28 @@ test.group('Household', () => {
     household.regenerateInviteCode(newCodeResult.value)
     assert.equal(household.inviteCode.value, 'BBBB2222')
   })
+
+  test('transferOwnership() hands the owner role to another member', ({ assert }) => {
+    const household = buildHousehold()
+    household.addMember('m_bob', 'u_bob', new Date())
+    const result = household.transferOwnership('u_bob')
+    assert.isTrue(result.ok)
+    assert.equal(household.ownerId, 'u_bob')
+    assert.equal(household.members.find((m) => m.userId === 'u_bob')?.role, 'owner')
+    assert.equal(household.members.find((m) => m.userId === 'u_owner')?.role, 'member')
+  })
+
+  test('transferOwnership() rejects transferring to the current owner', ({ assert }) => {
+    const household = buildHousehold()
+    const result = household.transferOwnership('u_owner')
+    assert.isFalse(result.ok)
+    if (!result.ok) assert.equal(result.error, 'already_owner')
+  })
+
+  test('transferOwnership() rejects a userId that is not a member', ({ assert }) => {
+    const household = buildHousehold()
+    const result = household.transferOwnership('u_unknown')
+    assert.isFalse(result.ok)
+    if (!result.ok) assert.equal(result.error, 'not_a_member')
+  })
 })

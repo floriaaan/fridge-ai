@@ -34,20 +34,34 @@ export default await Env.create(new URL('../', import.meta.url), {
   POCKETID_ISSUER_URL: Env.schema.string.optional({ format: 'url', tld: false }),
   POCKETID_CLIENT_ID: Env.schema.string.optional(),
   POCKETID_CLIENT_SECRET: Env.schema.string.optional(),
+
+  // Google OAuth (Google Cloud Console credentials) — same on/off-by-presence
+  // pattern as PocketID above.
+  GOOGLE_CLIENT_ID: Env.schema.string.optional(),
+  GOOGLE_CLIENT_SECRET: Env.schema.string.optional(),
+
   DISABLE_PASSWORD_LOGIN: Env.schema.boolean.optional(),
 
   // Frontend/app origin(s) the client actually calls the API from — used by
   // better-auth's trustedOrigins check (cf. instance.ts), comma-separated.
   CORS_ORIGIN: Env.schema.string.optional(),
 
-  // AI provider (settings, cf. docs/adr/0007) — optional, EnvAiSettingsProvider
-  // falls back to a hardcoded default if unset.
-  AI_PROVIDER: Env.schema.enum.optional(['gemini', 'openai', 'ollama'] as const),
+  // AI providers (settings, cf. docs/adr/0007) — comma-separated whitelist of
+  // what this instance exposes, in order; the first entry is the default a
+  // household gets before anyone picks. Unset means "all of them". Validated
+  // by `parseAllowedProviders`, not by the schema, so the error names the
+  // offending value.
+  AI_PROVIDER: Env.schema.string.optional(),
   GEMINI_API_KEY: Env.schema.string.optional(),
   OPENAI_API_KEY: Env.schema.string.optional(),
   OLLAMA_BASE_URL: Env.schema.string.optional({ format: 'url', tld: false }),
   OLLAMA_VISION_MODEL: Env.schema.string.optional(),
   OLLAMA_TEXT_MODEL: Env.schema.string.optional(),
+
+  // Official SaaS instance: cloud AI providers (Gemini, OpenAI) are billed to
+  // us, so they sit behind a subscription. Self-hosted instances leave this
+  // false and pay their own API bills.
+  SAAS_MODE: Env.schema.boolean.optional(),
 
   // Root directory for locally-stored images (receipts, products) — cf. ADR-0009.
   STORAGE_ROOT: Env.schema.string.optional(),
@@ -78,4 +92,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Off by default: on a one-household instance even aggregates describe
   // that household.
   PUBLIC_STATS_ENABLED: Env.schema.boolean.optional(),
+
+  // GET /api/public/instance — lets the mobile app tell a self-hosted
+  // backend apart from the (not yet open) hosted offering, cf. onboarding.
+  INSTANCE_MODE: Env.schema.enum.optional(['hosted', 'self-hosted'] as const),
+  INSTANCE_NAME: Env.schema.string.optional(),
 })

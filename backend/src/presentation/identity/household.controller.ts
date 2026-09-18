@@ -2,7 +2,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { requireAuthenticatedUser } from '#presentation/shared/auth-context'
 import { serializeError } from '#presentation/shared/error-serializer'
 import { traceAction } from '#presentation/shared/trace-action'
-import { createHouseholdValidator, joinHouseholdValidator } from './household.validator.js'
+import {
+  createHouseholdValidator,
+  joinHouseholdValidator,
+  transferHouseholdOwnershipValidator,
+} from './household.validator.js'
 import { toHouseholdDto } from './household.dto.js'
 import { CreateHousehold } from '#application/identity/create-household.use-case'
 import { JoinHousehold } from '#application/identity/join-household.use-case'
@@ -11,6 +15,7 @@ import { RegenerateInviteCode } from '#application/identity/regenerate-invite-co
 import { RemoveHouseholdMember } from '#application/identity/remove-household-member.use-case'
 import { LeaveHousehold } from '#application/identity/leave-household.use-case'
 import { DeleteHousehold } from '#application/identity/delete-household.use-case'
+import { TransferHouseholdOwnership } from '#application/identity/transfer-household-ownership.use-case'
 
 export default class HouseholdController {
   async mine(ctx: HttpContext) {
@@ -172,6 +177,33 @@ export default class HouseholdController {
         return result
       },
       { isError: (r) => !r.ok },
+    )
+  }
+
+  async transferOwnership(ctx: HttpContext) {
+    const user = requireAuthenticatedUser(ctx)
+    return traceAction(
+      ctx,
+      'identity',
+      TransferHouseholdOwnership,
+      async () => {
+        const payload = await ctx.request.validateUsing(transferHouseholdOwnershipValidator)
+        const households = await ctx.containerResolver.make('identity.households')
+
+        const result = await new TransferHouseholdOwnership(households).execute({
+          userId: user.id,
+          newOwnerId: payload.newOwnerId,
+        })
+        if (!result.ok) {
+          const { status, body } = serializeError(result.error)
+          ctx.response.status(status).json(body)
+          return result
+        }
+
+        ctx.response.status(204).send('')
+        return result
+      },
+      { isError: (r) => !r.ok, entityId: () => ctx.request.input('newOwnerId') },
     )
   }
 

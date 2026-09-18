@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
-import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
+import Constants from 'expo-constants'
+import { Text, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
-import { Chip } from '../shared/chip.js'
 import { ActionSheet, type ActionSheetOption } from '../shared/action-sheet.js'
 import { PillButton } from '../shared/pill-button.js'
 import { useHint } from '../shared/hint-bubble.js'
@@ -16,21 +15,22 @@ import {
   HomeIcon,
   LogOutIcon,
   RefreshIcon,
+  ServerIcon,
   SettingsIcon,
   SparklesIcon,
   TriangleAlertIcon,
-  UserIcon,
 } from '../dashboard/dashboard-icons.js'
 import { resetWelcomeSeen } from '../welcome/use-welcome-seen.js'
 import { IdentityCard, RoleBadge } from './identity-card.js'
-import { MemberAvatars } from '../shared/member-avatars.js'
+import { initials } from '../shared/member-avatars.js'
 import { AuthButton } from '../identity/auth-button.js'
 import { ROLE_LABELS } from '../identity/role-labels.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useHouseholdQuery } from '../../application/identity/household.query.js'
 import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
-import { useSetActiveAiProviderMutation } from '../../application/settings/set-active-ai-provider.mutation.js'
+import { useInstanceInfoQuery } from '../../application/instance/instance-info.query.js'
+import { clearServerUrl } from '../../application/shared/server-config.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
 
 const PROVIDER_LABELS: Record<AiProvider, string> = { gemini: 'Gemini', openai: 'OpenAI', ollama: 'Ollama' }
@@ -68,9 +68,7 @@ export function SettingsScreen() {
   const household = useHouseholdQuery()
   const signOut = useSignOutMutation()
   const settings = useAiSettingsQuery()
-  const setProvider = useSetActiveAiProviderMutation()
-  const queryClient = useQueryClient()
-  const [providerError, setProviderError] = useState<string | null>(null)
+  const instance = useInstanceInfoQuery()
   const [confirmingSignOut, setConfirmingSignOut] = useState(false)
   const [debugMenuOpen, setDebugMenuOpen] = useState(false)
   const [hint, showHint] = useHint()
@@ -78,30 +76,23 @@ export function SettingsScreen() {
     () => session.refetch(),
     () => household.refetch(),
     () => settings.refetch(),
+    () => instance.refetch(),
   )
 
-  async function handleSelectProvider(provider: AiProvider) {
-    if (settings.data?.activeProvider === provider) {
-      return
-    }
-    setProviderError(null)
-    const result = await setProvider.mutateAsync(provider)
-    if (!result.ok) {
-      setProviderError(result.error.message)
-      return
-    }
-    queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
-  }
-
-  // Clears the device flag and previews the result immediately rather than
-  // asking whoever is testing it to force-quit and relaunch — the whole
-  // point of a dev tool is not costing more than the thing it's checking.
-  // Also signs out: `/welcome` finishes onto `/(auth)/sign-up`, and
-  // `(auth)/_layout.tsx` redirects straight to the tabs whenever a session
-  // exists — previewing the onboarding flow while still signed in bounced
-  // off that gate before this reached `/welcome` at all. Best-effort: a
-  // sign-out failure here shouldn't block the one thing this button is for.
-  async function handleResetOnboarding() {
+  // Clears every device-local first-run flag and previews the result
+  // immediately rather than asking whoever is testing it to force-quit and
+  // relaunch — the whole point of a dev tool is not costing more than the
+  // thing it's checking. Also signs out: `/welcome` finishes onto
+  // `/(auth)/sign-up`, and `(auth)/_layout.tsx` redirects straight to the
+  // tabs whenever a session exists — previewing the onboarding flow while
+  // still signed in bounced off that gate before this reached `/welcome` at
+  // all. Best-effort: a sign-out failure here shouldn't block the one thing
+  // this button is for.
+  //
+  // Clears the chosen server too, not just the welcome flag — a reset that
+  // still landed on `/server-choice` pre-picked with the last real server
+  // wasn't previewing first launch, it was previewing "second launch".
+  async function handleResetAppState() {
     setDebugMenuOpen(false)
     try {
       await signOut.mutateAsync(undefined)
@@ -110,6 +101,7 @@ export function SettingsScreen() {
       // Preview it anyway — see comment above.
     }
     await resetWelcomeSeen()
+    await clearServerUrl()
     router.replace('/welcome')
   }
 
@@ -127,7 +119,6 @@ export function SettingsScreen() {
   const signOutError = signOut.error ? 'Une erreur est survenue lors de la déconnexion.' : null
   const members = household.data?.members ?? []
   const memberSummary = members.length > 0 ? `${members.length} membre${members.length > 1 ? 's' : ''}` : undefined
-  const memberNames = members.map((member) => member.name)
   const roleLabel = household.data ? ROLE_LABELS[household.data.role] : null
   const householdSpokenLabel = [
     'Foyer',
@@ -138,13 +129,6 @@ export function SettingsScreen() {
   ]
     .filter(Boolean)
     .join('. ')
-  const availableProviders = settings.data?.availableProviders ?? []
-  // The gate is `availableProviders`, never `source`. `source` only records
-  // whether anyone has picked yet (`env-ai-settings-provider.ts`: a stored row
-  // wins, env is the first-boot fallback), so reading it as "the administrator
-  // configured this" described a lock that does not exist — the foyer can
-  // change the provider whenever more than one has credentials.
-  const canChooseProvider = availableProviders.length > 1
 
   // Every row closes the sheet on its own press — a debug action fires once
   // and gets out of the way, the same recipe `ActionSheet`'s real callers use.
@@ -200,15 +184,15 @@ export function SettingsScreen() {
       },
     },
     {
-      // Not `destructive`: it touches no household data, only a local device
-      // flag — the red treatment is reserved for a row that can hurt the
+      // Not `destructive`: it touches no household data, only local device
+      // flags — the red treatment is reserved for a row that can hurt the
       // foyer's shared state, which this can't.
-      testID: 'debug-reset-onboarding',
-      label: 'Réinitialiser l’onboarding',
+      testID: 'debug-reset-app-state',
+      label: 'Réinitialiser l’état de l’app',
       icon: (color) => <RefreshIcon size={16} color={color} />,
       tint: palette.navCardViolet,
       onPress: () => {
-        void handleResetOnboarding()
+        void handleResetAppState()
       },
     },
   ]
@@ -226,15 +210,21 @@ export function SettingsScreen() {
     >
       <YStack gap="$3" marginTop="$5">
         <IdentityCard
+          testID="settings-account"
           bg={palette.cream}
           labelColor={palette.creamText}
           chipColor={palette.chipOrange}
-          icon={<UserIcon size={18} color={palette.onDark} />}
+          icon={
+            <Text fontSize={14} fontWeight="800" color={palette.onDark}>
+              {initials(session.data?.user.name || '?')}
+            </Text>
+          }
           label="Compte"
           value={session.data?.user.name || '—'}
           secondary={session.data?.user.email}
           corner="a"
           palette={palette}
+          onPress={() => router.push('/account')}
         />
         <IdentityCard
           testID="settings-household"
@@ -252,7 +242,6 @@ export function SettingsScreen() {
             household.isError ? 'Tire pour réessayer.' : (memberSummary ?? 'Personne d’autre pour l’instant')
           }
           trailing={roleLabel ? <RoleBadge label={roleLabel} palette={palette} /> : null}
-          footer={memberNames.length > 0 ? <MemberAvatars names={memberNames} palette={palette} /> : null}
           corner="b"
           palette={palette}
           onPress={() => router.push('/household')}
@@ -265,9 +254,6 @@ export function SettingsScreen() {
       </YStack>
 
       <YStack marginTop="$3" gap="$2">
-        {/* Same card language as the Foyer button above (2026-09-09 ask): a
-            static `IdentityCard` — no `onPress`, same as the Compte card —
-            rather than a bare label + chips floating on the page background. */}
         <IdentityCard
           testID="settings-ai-provider"
           bg={palette.lavender}
@@ -282,53 +268,29 @@ export function SettingsScreen() {
           secondary="Lit tes tickets de caisse et invente tes recettes."
           corner="a"
           palette={palette}
-          footer={
-            <YStack gap="$2">
-              {canChooseProvider ? (
-                <XStack gap="$3" flexWrap="wrap">
-                  {availableProviders.map((provider) => (
-                    <Chip
-                      key={provider}
-                      testID={`ai-provider-${provider}`}
-                      label={PROVIDER_LABELS[provider]}
-                      selected={settings.data?.activeProvider === provider}
-                      onPress={() => handleSelectProvider(provider)}
-                      palette={palette}
-                    />
-                  ))}
-                </XStack>
-              ) : null}
-              {setProvider.isPending ? (
-                // The mutation had no visible state at all: on a slow connection a
-                // tap on "Ollama" produced nothing until the invalidation landed.
-                <Text fontSize={12} fontWeight="600" color={palette.lavenderText} accessibilityLiveRegion="polite">
-                  Changement en cours…
-                </Text>
-              ) : null}
-              {settings.data && availableProviders.length === 0 ? (
-                // `activeProvider` can name a provider whose key is gone — the picker
-                // then drew an empty row and no selection, explaining nothing.
-                <Text fontSize={13} color={palette.expiredText}>
-                  Aucun fournisseur n’est configuré sur ce serveur.
-                </Text>
-              ) : null}
-              {!settings.isPending && !settings.data ? (
-                <Text fontSize={13} color={palette.expiredText}>
-                  Impossible de charger les réglages.
-                </Text>
-              ) : null}
-              {providerError ? (
-                <Text fontSize={13} color={palette.expiredText} accessibilityLiveRegion="polite">
-                  {providerError}
-                </Text>
-              ) : null}
-              {settings.data?.models.vision ? (
-                <Text testID="settings-ai-models" fontSize={12} fontWeight="600" color={palette.lavenderText}>
-                  Vision : {settings.data.models.vision} · Texte : {settings.data.models.text}
-                </Text>
-              ) : null}
-            </YStack>
+          onPress={() => router.push('/ai-provider')}
+        />
+      </YStack>
+
+      <YStack marginTop="$3" gap="$2">
+        <IdentityCard
+          testID="settings-instance"
+          bg={palette.cream}
+          labelColor={palette.creamText}
+          chipColor={palette.chipOrange}
+          icon={<ServerIcon size={17} color={palette.onDark} />}
+          label="Serveur"
+          value={
+            instance.data
+              ? instance.data.name ?? (instance.data.mode === 'hosted' ? 'Garde-manger hébergé' : 'Garde-manger auto-hébergé')
+              : '—'
           }
+          // No raw URL or version here — that's technical detail, not a
+          // setting; "Changer de serveur" is what this card leads to.
+          secondary={instance.data ? 'Connecté à ce serveur.' : 'Impossible de contacter ce serveur.'}
+          corner="b"
+          palette={palette}
+          onPress={() => router.push('/server-info')}
         />
       </YStack>
 
@@ -359,6 +321,10 @@ export function SettingsScreen() {
         </YStack>
       ) : null}
 
+      {/* One consistent $8 rhythm between every section on the page (Serveur
+          above, this, the version line below) — the version line used to sit
+          between Serveur and Debug at its own $5, which broke that rhythm and
+          read as a stray fact dropped mid-list rather than the page's close. */}
       <YStack marginTop="$8" gap="$2">
         <AuthButton
           testID="sign-out"
@@ -377,6 +343,12 @@ export function SettingsScreen() {
             {signOutError}
           </Text>
         ) : null}
+      </YStack>
+
+      <YStack marginTop="$8" alignItems="center">
+        <Text fontSize={12} fontWeight="600" color={palette.inkSecondary}>
+          Garde-manger · v{Constants.expoConfig?.version ?? '—'}
+        </Text>
       </YStack>
 
       <ActionSheet

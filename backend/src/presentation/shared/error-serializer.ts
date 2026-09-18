@@ -15,6 +15,7 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   not_a_member: 404,
   owner_cannot_leave: 409,
   provider_not_configured: 422,
+  subscription_required: 402,
   product_not_found: 404,
   image_not_found: 404,
   receipt_not_found: 404,
@@ -32,6 +33,7 @@ const STRING_ERROR_STATUS: Record<string, number> = {
   link_unreadable: 409,
   token_required: 422,
   invalid_direction: 422,
+  already_owner: 409,
 }
 
 const STRING_ERROR_MESSAGES: Record<string, string> = {
@@ -44,6 +46,7 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   not_a_member: "Cet utilisateur n'est pas membre du foyer.",
   owner_cannot_leave: 'Le propriétaire doit supprimer le foyer plutôt que le quitter.',
   provider_not_configured: 'Ce provider IA ne dispose pas des identifiants nécessaires.',
+  subscription_required: 'Les modèles IA cloud nécessitent un abonnement actif.',
   product_not_found: 'Produit introuvable.',
   image_not_found: 'Image introuvable.',
   receipt_not_found: 'Ticket introuvable.',
@@ -61,6 +64,7 @@ const STRING_ERROR_MESSAGES: Record<string, string> = {
   link_unreadable: 'La connexion enregistrée est illisible — reconfigurez-la.',
   token_required: 'Un jeton est requis pour la première connexion.',
   invalid_direction: 'Sens de synchronisation invalide.',
+  already_owner: 'Cette personne est déjà propriétaire du foyer.',
 }
 
 function isValidationError(error: unknown): error is ValidationError {

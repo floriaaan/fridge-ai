@@ -13,7 +13,7 @@
  * flow is longest. Read-and-clear, so a code is offered once and never
  * re-pre-fills a field the user has already cleared on purpose.
  */
-import { clearSetting, readSetting, writeSetting } from '../shared/app-storage.js'
+import { clearSetting, readSetting, writeSetting } from '../../application/shared/app-storage.js'
 import { normalizeInviteCode, isCompleteInviteCode } from '../../domain/identity/invite-code.js'
 
 const KEY = 'garde-manger.pending-invite-code'

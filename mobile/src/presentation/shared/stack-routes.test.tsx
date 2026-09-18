@@ -42,6 +42,7 @@ test('a stack screen at the root is reachable from a tab', async () => {
       _layout: () => <Stack screenOptions={{ headerShown: false }} />,
       ...tabGroup,
       settings: () => <Text>Réglages</Text>,
+      account: () => <Text>Mon compte</Text>,
       household: () => <Text>Foyer</Text>,
       'receipts/index': () => <Text>Tickets</Text>,
       'home-assistant': () => <Text>Home Assistant</Text>,
@@ -55,6 +56,8 @@ test('a stack screen at the root is reachable from a tab', async () => {
   }
 
   await go(() => router.push('/settings'), '/settings')
+  await go(() => router.push('/account'), '/account')
+  await go(() => router.back(), '/settings')
   await go(() => router.push('/household'), '/household')
   await go(() => router.back(), '/settings')
   await go(() => router.push('/receipts'), '/receipts')

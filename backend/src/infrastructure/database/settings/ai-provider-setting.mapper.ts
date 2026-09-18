@@ -3,6 +3,7 @@ import type AiProviderSettingModel from './ai-provider-setting.lucid.js'
 
 export function toDomain(row: AiProviderSettingModel): AiProviderSettings {
   return AiProviderSettings.reconstruct(row.id, {
+    householdId: row.householdId,
     activeProvider: row.activeProvider,
     updatedBy: row.updatedBy,
     updatedAt: row.updatedAt.toJSDate(),

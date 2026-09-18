@@ -54,6 +54,8 @@ services:
       POCKETID_ISSUER_URL: ${POCKETID_ISSUER_URL:-}
       POCKETID_CLIENT_ID: ${POCKETID_CLIENT_ID:-}
       POCKETID_CLIENT_SECRET: ${POCKETID_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       DISABLE_PASSWORD_LOGIN: ${DISABLE_PASSWORD_LOGIN:-false}
       # AI (receipt scan, recipes) — cf. docs/adr/0007. Unset keys simply
       # leave that provider out of the available list.
@@ -82,6 +84,8 @@ services:
       TELEMETRY_MAX_BODY_BYTES: ${TELEMETRY_MAX_BODY_BYTES:-262144}
       TELEMETRY_RATE_LIMIT_PER_MINUTE: ${TELEMETRY_RATE_LIMIT_PER_MINUTE:-60}
       PUBLIC_STATS_ENABLED: ${PUBLIC_STATS_ENABLED:-false}
+      INSTANCE_MODE: ${INSTANCE_MODE:-self-hosted}
+      INSTANCE_NAME: ${INSTANCE_NAME:-}
     depends_on:
       db:
         condition: service_healthy

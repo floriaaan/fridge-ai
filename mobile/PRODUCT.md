@@ -32,7 +32,7 @@ Self-hosted (Docker Compose, auth via instance PocketID perso de l'utilisateur +
 - Aucun appel direct du mobile vers un service externe (OpenFoodFacts, providers IA) — tout transite par le backend.
 - Code-barres + lookup OpenFoodFacts en prefill à la création d'un produit.
 - Intégration Home Assistant livrée (todo-entity-picker inclus). Nice-to-have post-MVP toujours non construit : fridge-scan (photo du frigo entier, scan actuel = code-barres unitaire), statistiques (gaspillage/catégories).
-- Explicitement hors scope v1 : multi-foyer, permissions fines au-delà owner/member, transfert de propriété de foyer, partage de recettes inter-foyers.
+- Explicitement hors scope v1 : multi-foyer, permissions fines au-delà owner/member, partage de recettes inter-foyers. Transfert de propriété de foyer livré (Foyer + suppression de compte).
 
 ## Brand Commitments
 

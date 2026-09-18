@@ -261,7 +261,7 @@ export default class ProductController {
         const resolveExtraction = await ctx.containerResolver.make(
           'settings.resolveFridgeScanExtractionPort',
         )
-        const extraction = await resolveExtraction()
+        const extraction = await resolveExtraction(ctx.household.id)
 
         const result = await new ScanFridge(extraction).execute({ image: buffer })
         if (!result.ok) {

@@ -10,6 +10,7 @@ import { queryClient } from '../application/shared/query-client.js'
 import { createConnector } from '../../providers/create-connector.js'
 import { startTelemetry } from '../../providers/start-telemetry.js'
 import { wireTelemetry } from '../../providers/wire-telemetry.js'
+import { loadStoredServerUrl } from '../application/shared/server-config.js'
 
 // Module load, not an effect: this only assigns a reference (see
 // `wire-telemetry.ts`) — nothing to defer past the first frame, and every
@@ -29,6 +30,16 @@ export default function RootLayout() {
   // EXPO_PUBLIC_TELEMETRY_ENABLED is "true", and it opens no connection —
   // the first export happens 15s later, batched.
   useEffect(() => startTelemetry(), [])
+
+  // Blocks the first render on the chosen server URL (SecureStore, falling
+  // back to EXPO_PUBLIC_API_URL) — auth-client and http-client both read it
+  // lazily, but a session check fired before this resolves would still race
+  // against the default URL on a device that chose a different server.
+  const [serverReady, setServerReady] = useState(false)
+  useEffect(() => {
+    loadStoredServerUrl().then(() => setServerReady(true))
+  }, [])
+  if (!serverReady) return null
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -53,6 +64,7 @@ export default function RootLayout() {
                   the one thing that decides whether "/" ever redirects here
                   at all. */}
                 <Stack.Screen name="welcome" />
+                <Stack.Screen name="server-choice" />
                 <Stack.Screen name="(auth)" />
                 {/* Between `(auth)` and `(tabs)`, and a sibling of both: an
                   account with no foyer is signed in but has no screen inside
@@ -63,6 +75,7 @@ export default function RootLayout() {
                 <Stack.Screen name="join" />
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="settings" />
+                <Stack.Screen name="account" />
                 <Stack.Screen name="household" />
                 <Stack.Screen name="receipts" />
                 <Stack.Screen name="home-assistant" options={{ presentation: 'modal' }} />

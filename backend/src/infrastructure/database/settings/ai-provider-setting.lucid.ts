@@ -8,6 +8,9 @@ export default class AiProviderSettingModel extends BaseModel {
   @column({ isPrimary: true })
   declare id: string
 
+  @column({ columnName: 'household_id' })
+  declare householdId: string
+
   @column({ columnName: 'active_provider' })
   declare activeProvider: AiProvider
 

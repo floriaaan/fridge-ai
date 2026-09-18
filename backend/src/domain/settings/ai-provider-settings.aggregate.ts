@@ -2,21 +2,22 @@ import { AggregateRoot } from '#domain/shared/aggregate-root'
 import type { AiProvider } from './ai-provider.vo.js'
 
 interface AiProviderSettingsProps {
+  householdId: string
   activeProvider: AiProvider
   updatedBy: string | null
   updatedAt: Date
 }
 
 /**
- * Singleton (one row ever, enforced by the repository's upsert, cf.
- * docs/phase-0/03-schema-base-de-donnees.md — same convention as `Household`
- * not enforcing "one household per user" in the aggregate either, cf. ADR-0003).
+ * One row per household (was a singleton until 2026-09-18, cf.
+ * docs/adr/0007) — uniqueness on `household_id` is a DB constraint, the
+ * repository's `find(householdId)` reads it.
  * `changeProvider` returns `void`, not `Result<void>` as the domain doc's
  * sketch suggested — every `AiProvider` value is valid at this aggregate's
- * level; whether the caller is an owner (application concern) or the
- * provider has credentials configured (`AiSettingsProvider`'s concern, not
- * this aggregate's) are both checked one layer up, in
- * `SetActiveAiProvider`.
+ * level; whether the caller is an owner (application concern), whether the
+ * provider has credentials, and whether it is paywalled
+ * (`AiSettingsProvider`'s concern, not this aggregate's) are all checked one
+ * layer up, in `SetActiveAiProvider`.
  */
 export class AiProviderSettings extends AggregateRoot<string> {
   private props: AiProviderSettingsProps
@@ -26,8 +27,14 @@ export class AiProviderSettings extends AggregateRoot<string> {
     this.props = props
   }
 
-  static seedFromEnv(id: string, defaultProvider: AiProvider, now: Date): AiProviderSettings {
+  static seedFromEnv(
+    id: string,
+    householdId: string,
+    defaultProvider: AiProvider,
+    now: Date,
+  ): AiProviderSettings {
     return new AiProviderSettings(id, {
+      householdId,
       activeProvider: defaultProvider,
       updatedBy: null,
       updatedAt: now,
@@ -36,6 +43,10 @@ export class AiProviderSettings extends AggregateRoot<string> {
 
   static reconstruct(id: string, props: AiProviderSettingsProps): AiProviderSettings {
     return new AiProviderSettings(id, props)
+  }
+
+  get householdId(): string {
+    return this.props.householdId
   }
 
   get activeProvider(): AiProvider {
@@ -51,6 +62,6 @@ export class AiProviderSettings extends AggregateRoot<string> {
   }
 
   changeProvider(provider: AiProvider, changedBy: string, now: Date): void {
-    this.props = { activeProvider: provider, updatedBy: changedBy, updatedAt: now }
+    this.props = { ...this.props, activeProvider: provider, updatedBy: changedBy, updatedAt: now }
   }
 }

@@ -7,6 +7,8 @@ export interface AiSettings {
   activeProvider: AiProvider
   source: 'database' | 'environment'
   availableProviders: AiProvider[]
+  /** Configured on the server but behind a subscription this foyer lacks. */
+  lockedProviders: AiProvider[]
   /** The active provider's vision/text model — `''` when unset (Ollama only). */
   models: { vision: string; text: string }
 }

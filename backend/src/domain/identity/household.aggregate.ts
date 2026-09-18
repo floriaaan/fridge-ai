@@ -94,4 +94,42 @@ export class Household extends AggregateRoot<string> {
     this.props.members.splice(index, 1)
     return Result.ok(undefined)
   }
+
+  /**
+   * Hands the "owner" role to another current member — the current owner
+   * stays in the foyer, as a member. Used both from the Foyer screen's own
+   * "Transférer la propriété" action and, as a required first step, from
+   * account deletion when the owner isn't the household's only member
+   * (cf. `better-auth/instance.ts`'s `deleteUser.beforeDelete`).
+   */
+  transferOwnership(newOwnerId: string): ResultType<void, 'not_a_member' | 'already_owner'> {
+    if (newOwnerId === this.props.ownerId) {
+      return Result.err('already_owner')
+    }
+    const target = this.props.members.find((m) => m.userId === newOwnerId)
+    if (!target) {
+      return Result.err('not_a_member')
+    }
+    this.props.members = this.props.members.map((member) => {
+      if (member.userId === this.props.ownerId) {
+        return HouseholdMember.create(member.id, {
+          userId: member.userId,
+          householdId: member.householdId,
+          role: 'member',
+          joinedAt: member.joinedAt,
+        })
+      }
+      if (member.userId === newOwnerId) {
+        return HouseholdMember.create(member.id, {
+          userId: member.userId,
+          householdId: member.householdId,
+          role: 'owner',
+          joinedAt: member.joinedAt,
+        })
+      }
+      return member
+    })
+    this.props.ownerId = newOwnerId
+    return Result.ok(undefined)
+  }
 }

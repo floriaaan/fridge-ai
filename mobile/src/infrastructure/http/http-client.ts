@@ -5,8 +5,7 @@ import { authClient } from '../auth/auth-client.js'
 import { queryClient } from '../../application/shared/query-client.js'
 import { showToast } from '../../application/shared/toast.js'
 import type { ApiError } from '../../domain/shared/api-error.js'
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL as string
+import { getServerUrl } from '../../application/shared/server-config.js'
 
 const NETWORK_ERROR_MESSAGE = 'Impossible de contacter le serveur.'
 
@@ -72,11 +71,12 @@ async function tracedFetch(
   init: RequestInit,
   context?: ActionContext,
 ): Promise<{ response: Response; span: ReturnType<typeof telemetry.startClientSpan> }> {
+  const apiUrl = getServerUrl()
   const span = telemetry.startClientSpan(context?.action ?? `${method} ${path}`, {
     'http.request.method': method,
     // The path, never the query string: it is where ids and search terms live.
     'url.path': path.split('?')[0],
-    'server.address': API_URL,
+    'server.address': apiUrl,
     ...context?.attributes,
   })
 
@@ -102,7 +102,7 @@ async function tracedFetch(
   }
 
   try {
-    const response = await fetch(`${API_URL}${path}`, { ...init, headers })
+    const response = await fetch(`${apiUrl}${path}`, { ...init, headers })
     span?.end({ attributes: { 'http.response.status_code': response.status } })
     return { response, span }
   } catch (error) {
