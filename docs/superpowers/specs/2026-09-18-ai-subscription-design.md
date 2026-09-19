@@ -1,3 +1,5 @@
+> Superseded pour le paiement par [ADR-0015](../../adr/0015-paiement-stripe-sans-stores.md) (Stripe au lieu de RevenueCat).
+
 # Abonnement IA sur l'instance officielle — design
 
 Statut : **à valider** · 2026-09-18

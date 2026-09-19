@@ -9,13 +9,12 @@
     "build": "node ace build",
     "dev": "NODE_OPTIONS=--import=./instrumentation.ts node ace serve --hmr",
     "dev:no-otel": "node ace serve --hmr",
-    "dev:hosted": "PORT=3334 NETWORK_URL=http://192.168.1.82:3334 INSTANCE_MODE=hosted node ace serve --hmr",
+    "dev:hosted": "PORT=3334 NETWORK_URL=http://192.168.1.12:3334 INSTANCE_MODE=hosted node ace serve --hmr",
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "boundaries": "depcruise --config .dependency-cruiser.cjs src",
-    "simulate:revenuecat": "node bin/simulate-revenuecat-webhook.js"
+    "boundaries": "depcruise --config .dependency-cruiser.cjs src"
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",

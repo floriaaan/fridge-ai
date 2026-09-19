@@ -86,6 +86,7 @@ export interface LandingUi {
     navLabel: string
     navApp: string
     navProject: string
+    navLegal: string
     links: {
       features: string
       start: string

@@ -3,6 +3,7 @@ import HouseholdSubscriptionModel from '#infrastructure/database/settings/househ
 import type {
   HouseholdSubscription,
   SubscriptionPort,
+  SubscriptionUpsert,
 } from '#domain/settings/interfaces/subscription-port.interface'
 
 /**
@@ -20,26 +21,29 @@ export class LucidSubscriptionAdapter implements SubscriptionPort {
   async find(householdId: string): Promise<HouseholdSubscription | null> {
     const row = await HouseholdSubscriptionModel.find(householdId)
     if (!row) return null
-    return { payerUserId: row.payerUserId, expiresAt: row.expiresAt.toJSDate() }
+    return {
+      payerUserId: row.payerUserId,
+      stripeCustomerId: row.stripeCustomerId,
+      stripeSubscriptionId: row.stripeSubscriptionId,
+      expiresAt: row.expiresAt.toJSDate(),
+    }
   }
 
-  async revokeForPayer(userId: string, now: Date): Promise<void> {
+  async revokeForPayer(userId: string, now: Date): Promise<string[]> {
+    const rows = await HouseholdSubscriptionModel.query().where('payer_user_id', userId)
     await HouseholdSubscriptionModel.query()
       .where('payer_user_id', userId)
       .update({ expiresAt: DateTime.fromJSDate(now) })
+    return rows.flatMap((row) => (row.stripeSubscriptionId ? [row.stripeSubscriptionId] : []))
   }
 
-  async upsert(params: {
-    householdId: string
-    payerUserId: string | null
-    store: 'app_store' | 'play_store'
-    expiresAt: Date
-  }): Promise<void> {
+  async upsert(params: SubscriptionUpsert): Promise<void> {
     await HouseholdSubscriptionModel.updateOrCreate(
       { householdId: params.householdId },
       {
         payerUserId: params.payerUserId,
-        store: params.store,
+        stripeCustomerId: params.stripeCustomerId,
+        stripeSubscriptionId: params.stripeSubscriptionId,
         expiresAt: DateTime.fromJSDate(params.expiresAt),
       },
     )

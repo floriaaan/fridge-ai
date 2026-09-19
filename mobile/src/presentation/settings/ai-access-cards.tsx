@@ -13,6 +13,7 @@ import { useAiSubscribe } from '../../application/settings/use-ai-subscribe.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import type { AiAccess } from '../../domain/settings/ai-settings.js'
 
+const TERMS_OF_SALE_URL = 'https://gardemanger.floriaaan.fr/cgv#retractation'
 const SETUP_GUIDE_URL = 'https://github.com/floriaaan/fridge-ai/blob/main/README.fr.md#ia-scan-de-tickets-recettes'
 
 export function AiSetupGuideCard({ palette }: { palette: SoftPalette }) {
@@ -148,7 +149,21 @@ export function SubscriptionPaywall({
           </Text>
         ) : null}
         <Text fontSize={11} fontWeight="500" color={palette.onDarkSecondary}>
-          Résiliable à tout moment depuis le store.
+          Paiement sécurisé par Stripe. Résiliable à tout moment depuis l’application.
+        </Text>
+        <Text testID="subscription-withdrawal-notice" fontSize={11} fontWeight="500" color={palette.onDarkSecondary}>
+          En t’abonnant, tu demandes l’accès immédiat au service et tu renonces à ton droit de rétractation une fois le
+          service pleinement exécuté.{' '}
+          <Text
+            fontSize={11}
+            fontWeight="700"
+            color={palette.onDark}
+            textDecorationLine="underline"
+            accessibilityRole="link"
+            onPress={() => Linking.openURL(TERMS_OF_SALE_URL)}
+          >
+            Voir les CGV
+          </Text>
         </Text>
       </YStack>
     </YStack>

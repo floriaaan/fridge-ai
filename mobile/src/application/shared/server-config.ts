@@ -24,7 +24,7 @@ function localOfficialUrlForTesting(): string {
     url.port = '3334'
     return url.toString().replace(/\/$/, '')
   } catch {
-    return 'http://192.168.1.82:3334'
+    return 'http://192.168.1.12:3334'
   }
 }
 

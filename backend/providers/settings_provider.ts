@@ -2,6 +2,7 @@ import type { ApplicationService } from '@adonisjs/core/types'
 import type { AiProviderSettingsRepository } from '#domain/settings/interfaces/ai-provider-settings-repository.interface'
 import type { AiSettingsProvider } from '#domain/settings/interfaces/ai-settings-provider.interface'
 import type { SubscriptionPort } from '#domain/settings/interfaces/subscription-port.interface'
+import type { BillingPort } from '#domain/settings/interfaces/billing-port.interface'
 import type { AiQuotaPort } from '#domain/settings/interfaces/ai-quota-port.interface'
 import type { ReceiptExtractionPort } from '#domain/receipt/interfaces/receipt-extraction-port.interface'
 import type { RecipeGenerationPort } from '#domain/recipe/interfaces/recipe-generation-port.interface'
@@ -21,6 +22,11 @@ export default class SettingsProvider {
       const { LucidSubscriptionAdapter } =
         await import('#infrastructure/settings/lucid-subscription.adapter')
       return new LucidSubscriptionAdapter()
+    })
+
+    this.app.container.singleton('settings.billing', async () => {
+      const { StripeBillingAdapter } = await import('#infrastructure/settings/stripe-billing.adapter')
+      return new StripeBillingAdapter()
     })
 
     this.app.container.singleton('settings.aiQuota', async () => {
@@ -75,6 +81,7 @@ declare module '@adonisjs/core/types' {
     'settings.aiProviderSettingsRepository': AiProviderSettingsRepository
     'settings.aiSettingsProvider': AiSettingsProvider
     'settings.subscriptions': SubscriptionPort
+    'settings.billing': BillingPort
     'settings.aiQuota': AiQuotaPort
     'settings.resolveReceiptExtractionPort': (
       householdId: string | null,

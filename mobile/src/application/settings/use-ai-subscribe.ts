@@ -1,37 +1,48 @@
 import { useState } from 'react'
+import * as WebBrowser from 'expo-web-browser'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAiSettingsQuery } from './ai-settings.query.js'
-import { useHouseholdQuery } from '../identity/household.query.js'
-import { useSessionQuery } from '../identity/session.query.js'
-import { initPurchases, logInHousehold, purchaseAiPlan } from './ai-purchases.js'
+import { useConnector } from '../shared/connector-context.js'
+import type { Result } from '../../domain/shared/result.js'
+import type { ApiError } from '../../domain/shared/api-error.js'
 
-/** The subscribe flow every paywall shares; `canSubscribe` is true only on the official instance, on the free plan. */
+/**
+ * The subscribe/manage flow every paywall shares (ADR 0015): the backend hands
+ * back a Stripe-hosted page, opened in the system browser. `canSubscribe` is
+ * true only on the official instance, on the free plan.
+ */
 export function useAiSubscribe() {
   const settings = useAiSettingsQuery()
-  const household = useHouseholdQuery()
-  const session = useSessionQuery()
+  const connector = useConnector()
   const queryClient = useQueryClient()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const canSubscribe = settings.data?.access.plan === 'free'
 
-  async function subscribe() {
-    if (!household.data || !session.data) return
+  async function openStripePage(start: () => Promise<Result<{ url: string }, ApiError>>) {
     setError(null)
     setPending(true)
-    await initPurchases()
-    await logInHousehold(household.data.id, session.data.user.id)
-    const result = await purchaseAiPlan()
-    setPending(false)
-    if (result.ok) {
-      queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
-    } else if (result.reason === 'unavailable') {
-      setError('Abonnement indisponible depuis cette version de l’app (build de développement requis).')
-    } else if (result.reason === 'error') {
-      setError(result.message ?? 'Échec de l’abonnement.')
+    const result = await start()
+    if (!result.ok) {
+      setPending(false)
+      setError(result.error.message || 'Échec de l’ouverture de la page de paiement.')
+      return
     }
+    // Resolves once the user closes the browser: Stripe redirects to a web page, not back into the app.
+    await WebBrowser.openBrowserAsync(result.value.url)
+    setPending(false)
+    const refresh = () => queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
+    refresh()
+    // The Stripe webhook that flips the plan can land a moment after the browser closes.
+    setTimeout(refresh, 3000)
   }
 
-  return { canSubscribe, subscribe, pending, error }
+  return {
+    canSubscribe,
+    subscribe: () => openStripePage(() => connector.startSubscriptionCheckout()),
+    manage: () => openStripePage(() => connector.openBillingPortal()),
+    pending,
+    error,
+  }
 }

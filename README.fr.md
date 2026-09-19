@@ -100,7 +100,7 @@ Le fournisseur actif se change ensuite à chaud depuis les réglages de l’app 
 
 Une instance auto-hébergée n'est jamais plafonnée sur l'usage IA. Seule l'instance
 officielle hébergée (`INSTANCE_MODE=hosted`) applique un quota mensuel par foyer,
-relevé par un abonnement dans l'app ([ADR 0014](docs/adr/0014-abonnement-ia-par-foyer-via-revenuecat.md)).
+relevé par un abonnement dans l'app ([ADR 0014](docs/adr/0014-abonnement-ia-par-foyer-via-revenuecat.md), [ADR 0015](docs/adr/0015-paiement-stripe-sans-stores.md)).
 
 ### Connexion via PocketID (optionnel)
 

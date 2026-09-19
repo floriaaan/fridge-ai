@@ -283,6 +283,18 @@ export class FakeFridgeConnector implements FridgeConnector {
     return `FAKE${String(this.nextInviteCode++).padStart(4, '0')}`
   }
 
+  async renameHousehold(name: string): Promise<Result<Household, ApiError>> {
+    if (this.household?.role !== 'owner') {
+      return Result.err({ type: 'forbidden', message: 'Seul le propriétaire du foyer peut le renommer.' })
+    }
+    const trimmed = name.trim()
+    if (trimmed.length === 0 || trimmed.length > 80) {
+      return Result.err({ type: 'validation_failed', message: 'Le nom du foyer doit faire entre 1 et 80 caractères.' })
+    }
+    this.household.name = trimmed
+    return Result.ok(this.household)
+  }
+
   async regenerateInviteCode(): Promise<Result<string, ApiError>> {
     if (this.household?.role !== 'owner') {
       return Result.err({ type: 'forbidden', message: 'Seul le propriétaire du foyer peut régénérer le code.' })
@@ -745,6 +757,14 @@ export class FakeFridgeConnector implements FridgeConnector {
     }
     this.aiSettings = { ...this.aiSettings, activeProvider: provider }
     return Result.ok(this.aiSettings)
+  }
+
+  async startSubscriptionCheckout(): Promise<Result<{ url: string }, ApiError>> {
+    return Result.ok({ url: 'https://checkout.stripe.com/fake' })
+  }
+
+  async openBillingPortal(): Promise<Result<{ url: string }, ApiError>> {
+    return Result.ok({ url: 'https://billing.stripe.com/fake' })
   }
 
   async getHaLink(): Promise<HaLink | null> {

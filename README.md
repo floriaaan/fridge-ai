@@ -100,7 +100,7 @@ The active provider can then be switched at runtime from the app's settings ([AD
 
 Self-hosted instances are never rate-limited on AI usage. Only the official hosted
 instance (`INSTANCE_MODE=hosted`) applies a per-household monthly quota, raised by an
-in-app subscription ([ADR 0014](docs/adr/0014-abonnement-ia-par-foyer-via-revenuecat.md)).
+in-app subscription ([ADR 0014](docs/adr/0014-abonnement-ia-par-foyer-via-revenuecat.md), [ADR 0015](docs/adr/0015-paiement-stripe-sans-stores.md)).
 
 ### Sign-in via PocketID (optional)
 

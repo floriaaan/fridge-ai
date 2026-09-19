@@ -10,8 +10,11 @@ export default class HouseholdSubscriptionModel extends BaseModel {
   @column({ columnName: 'payer_user_id' })
   declare payerUserId: string | null
 
-  @column()
-  declare store: 'app_store' | 'play_store'
+  @column({ columnName: 'stripe_customer_id' })
+  declare stripeCustomerId: string | null
+
+  @column({ columnName: 'stripe_subscription_id' })
+  declare stripeSubscriptionId: string | null
 
   @column.dateTime({ columnName: 'expires_at' })
   declare expiresAt: DateTime

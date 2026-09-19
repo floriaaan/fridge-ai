@@ -3,6 +3,7 @@
  * self-hosted → not applicable (nothing to buy, AI is unlimited on your own
  * server); free → the paywall; subscriber → what is active and until when.
  */
+import { Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { Text, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
@@ -60,8 +61,24 @@ export function SubscriptionScreen() {
             <Text fontSize={13} color={palette.inkSecondary}>
               L’IA est débloquée pour tout le foyer
               {access.expiresAt ? ` jusqu’au ${new Date(access.expiresAt).toLocaleDateString('fr-FR')}` : ''}.
-              Gère ou résilie depuis ton compte App Store / Google Play.
+              Seule la personne qui a souscrit peut modifier ou résilier l’abonnement.
             </Text>
+            <Pressable
+              onPress={subscription.manage}
+              disabled={subscription.pending}
+              testID="subscription-manage"
+              accessibilityRole="button"
+              style={{ opacity: subscription.pending ? 0.7 : 1 }}
+            >
+              <Text fontSize={13} fontWeight="700" color={palette.lavenderText}>
+                {subscription.pending ? 'Un instant…' : 'Gérer l’abonnement'}
+              </Text>
+            </Pressable>
+            {subscription.error ? (
+              <Text fontSize={12} fontWeight="600" color={palette.expiredText} accessibilityLiveRegion="polite">
+                {subscription.error}
+              </Text>
+            ) : null}
           </YStack>
         ) : null}
 

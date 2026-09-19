@@ -228,6 +228,33 @@ export function SettingsScreen() {
           onPress={() => router.push('/account')}
         />
         <IdentityCard
+          testID="settings-subscription"
+          bg={palette.accentLime}
+          labelColor={palette.accentLimeText}
+          chipColor={palette.brandDeep}
+          icon={<BadgeCheckIcon size={18} color={palette.onDark} />}
+          label="Abonnement"
+          value={
+            settings.data?.access.plan === 'subscriber'
+              ? 'Actif'
+              : settings.data?.access.plan === 'free'
+                ? 'Offre gratuite'
+                : settings.data
+                  ? 'Non applicable'
+                  : '—'
+          }
+          secondary={
+            settings.data?.access.plan === 'self-hosted'
+              ? 'Serveur auto-hébergé : IA sans limite.'
+              : settings.data?.access.plan === 'subscriber'
+                ? 'IA pour tout le foyer.'
+                : 'Un quota d’IA gratuit chaque mois.'
+          }
+          corner="b"
+          palette={palette}
+          onPress={() => router.push('/subscription')}
+        />
+        <IdentityCard
           testID="settings-household"
           bg={palette.mintPale}
           labelColor={palette.mintPaleText}
@@ -243,7 +270,7 @@ export function SettingsScreen() {
             household.isError ? 'Tire pour réessayer.' : (memberSummary ?? 'Personne d’autre pour l’instant')
           }
           trailing={roleLabel ? <RoleBadge label={roleLabel} palette={palette} /> : null}
-          corner="b"
+          corner="a"
           palette={palette}
           onPress={() => router.push('/household')}
           // The card is a Pressable, so RN collapses its children into this
@@ -276,36 +303,6 @@ export function SettingsScreen() {
           corner="a"
           palette={palette}
           onPress={() => router.push('/ai-provider')}
-        />
-      </YStack>
-
-      <YStack marginTop="$3" gap="$2">
-        <IdentityCard
-          testID="settings-subscription"
-          bg={palette.cream}
-          labelColor={palette.creamText}
-          chipColor={palette.chipOrange}
-          icon={<BadgeCheckIcon size={18} color={palette.onDark} />}
-          label="Abonnement"
-          value={
-            settings.data?.access.plan === 'subscriber'
-              ? 'Actif'
-              : settings.data?.access.plan === 'free'
-                ? 'Offre gratuite'
-                : settings.data
-                  ? 'Non applicable'
-                  : '—'
-          }
-          secondary={
-            settings.data?.access.plan === 'self-hosted'
-              ? 'Serveur auto-hébergé : IA sans limite.'
-              : settings.data?.access.plan === 'subscriber'
-                ? 'IA pour tout le foyer.'
-                : 'Un quota d’IA gratuit chaque mois.'
-          }
-          corner="b"
-          palette={palette}
-          onPress={() => router.push('/subscription')}
         />
       </YStack>
 

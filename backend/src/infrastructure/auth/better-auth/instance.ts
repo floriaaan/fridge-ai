@@ -94,9 +94,13 @@ export const auth = betterAuth({
         // Cf. `household.controller.ts`'s `leave`/`removeMember` — deleting
         // the account is one more way to stop being in the foyer you paid
         // for.
-        const subscriptions = await app.container.make('settings.subscriptions')
-        const clock = await app.container.make('shared.clock')
-        await subscriptions.revokeForPayer(user.id, clock.now())
+        const { RevokePayerSubscriptions } =
+          await import('#application/settings/revoke-payer-subscriptions.use-case')
+        await new RevokePayerSubscriptions(
+          await app.container.make('settings.subscriptions'),
+          await app.container.make('settings.billing'),
+          await app.container.make('shared.clock'),
+        ).execute({ userId: user.id })
       },
     },
   },

@@ -64,10 +64,15 @@ export default await Env.create(new URL('../', import.meta.url), {
   AI_QUOTA_FREE: Env.schema.number.optional(),
   AI_QUOTA_SUBSCRIBED: Env.schema.number.optional(),
 
-  // Shared secret RevenueCat sends back as `Authorization: Bearer <secret>`
-  // on every webhook call. Unset on a hosted instance means the webhook
-  // route refuses every request (cf. `revenuecat-webhook.controller.ts`).
-  REVENUECAT_WEBHOOK_SECRET: Env.schema.string.optional(),
+  // Stripe billing for the hosted subscription (docs/adr/0015). The webhook
+  // secret (`whsec_…`) verifies `POST /api/webhooks/stripe`; unset on a hosted
+  // instance means that route refuses every request. `STRIPE_RETURN_URL` is
+  // where Checkout / the billing portal send the user back to (defaults to
+  // `APP_URL`).
+  STRIPE_SECRET_KEY: Env.schema.string.optional(),
+  STRIPE_WEBHOOK_SECRET: Env.schema.string.optional(),
+  STRIPE_PRICE_ID: Env.schema.string.optional(),
+  STRIPE_RETURN_URL: Env.schema.string.optional({ format: 'url', tld: false }),
 
   // Root directory for locally-stored images (receipts, products) — cf. ADR-0009.
   STORAGE_ROOT: Env.schema.string.optional(),

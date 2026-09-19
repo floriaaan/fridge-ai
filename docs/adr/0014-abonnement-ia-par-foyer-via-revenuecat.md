@@ -1,3 +1,5 @@
+> **Partiellement remplacé par [ADR-0015](0015-paiement-stripe-sans-stores.md)** : le paiement passe par Stripe, plus par RevenueCat / les stores. Scope par foyer, quotas et point de contrôle au registre restent valables.
+
 # ADR-0014 — Abonnement IA par foyer via RevenueCat, quota au registre de providers
 
 ## Contexte
