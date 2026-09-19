@@ -310,12 +310,7 @@ export function HouseholdDashboard({
                     actually measures just re-opens the vertical-centering
                     gap the previous pass tried to close by growing the
                     text past its own scale instead. */}
-                <Image
-                  source={mascotIllustration}
-                  style={{ width: 44, height: 44 }}
-                  resizeMode="contain"
-                  accessibilityLabel=""
-                />
+                <Image source={mascotIllustration} style={{ width: 44, height: 44 }} resizeMode="contain" accessibilityLabel="" />
                 {/* The foyer, on the foyer's home screen. The one thing that
                     makes this product not a personal fridge tracker — several
                     people on one shelf — used to appear nowhere here, while
