@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Animated, Easing, Platform, Pressable } from 'react-native'
+import { AccessibilityInfo, Animated, Easing, Platform, Pressable } from 'react-native'
 import { Text, XStack, YStack } from './tamagui-typed.js'
 import type { SoftPalette } from '../dashboard/soft-palette.js'
 import { IS_ANDROID, materialRoles, surfaceShadow } from './material.js'
@@ -99,6 +99,10 @@ export function HintBubble({ hint, palette }: { hint: Hint | null; palette: Soft
 
   useEffect(() => {
     if (hint) {
+      // `accessibilityLiveRegion` is Android-only (web maps it to aria-live): VoiceOver needs an explicit announcement.
+      if (Platform.OS === 'ios') {
+        AccessibilityInfo.announceForAccessibility([hint.message, hint.description].filter(Boolean).join('. '))
+      }
       Animated.timing(progress, {
         toValue: 1,
         duration: reduceMotion ? 0 : 220,

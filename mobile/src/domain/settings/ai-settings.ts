@@ -10,6 +10,8 @@ export interface AiAccess {
   limit: number | null
   resetsAt: string | null
   expiresAt: string | null
+  /** Cancelled: access runs until `expiresAt`, then drops to free. */
+  cancelsAtPeriodEnd?: boolean
 }
 
 /** Mirrors `AiSettingsDto` (= backend's `EffectiveAiSettings`) field-for-field. */

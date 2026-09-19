@@ -61,7 +61,14 @@ export class EnvAiSettingsProvider implements AiSettingsProvider {
 
   private async resolveAccess(householdId: string | null, hosted: boolean): Promise<AiAccess> {
     if (!hosted) {
-      return { plan: 'self-hosted', used: 0, limit: null, resetsAt: null, expiresAt: null }
+      return {
+        plan: 'self-hosted',
+        used: 0,
+        limit: null,
+        resetsAt: null,
+        expiresAt: null,
+        cancelsAtPeriodEnd: false,
+      }
     }
 
     const now = this.clock.now()
@@ -78,7 +85,14 @@ export class EnvAiSettingsProvider implements AiSettingsProvider {
       subscribed && householdId ? this.subscriptions.find(householdId) : Promise.resolve(null),
     ])
 
-    return { plan, used, limit, resetsAt, expiresAt: subscription?.expiresAt ?? null }
+    return {
+      plan,
+      used,
+      limit,
+      resetsAt,
+      expiresAt: subscription?.expiresAt ?? null,
+      cancelsAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
+    }
   }
 
   private modelsFor(provider: AiProvider): { vision: string; text: string } {

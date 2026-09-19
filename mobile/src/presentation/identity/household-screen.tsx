@@ -37,7 +37,6 @@ import { useHouseholdQuery } from '../../application/identity/household.query.js
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useRenameHouseholdMutation } from '../../application/identity/rename-household.mutation.js'
 import { AuthField } from './auth-field.js'
-import { AuthButton } from './auth-button.js'
 import { useRegenerateInviteCodeMutation } from '../../application/identity/regenerate-invite-code.mutation.js'
 import { useRemoveHouseholdMemberMutation } from '../../application/identity/remove-household-member.mutation.js'
 import { useLeaveHouseholdMutation } from '../../application/identity/leave-household.mutation.js'
@@ -425,7 +424,7 @@ function HouseholdNameEditor({
         testID="household-rename-save"
         label="Renommer"
         pending={pending}
-        disabled={name.trim() === initialName}
+        disabled={!name.trim() || name.trim() === initialName}
         onPress={() => onSave(name.trim())}
       />
     </YStack>

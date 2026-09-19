@@ -11,6 +11,8 @@ export interface StripeSubscriptionEvent {
     status: string
     /** Unix seconds. `null` when Stripe did not send one. */
     currentPeriodEnd: number | null
+    /** Cancelled, but still entitled until `currentPeriodEnd`. */
+    cancelAtPeriodEnd: boolean
     metadata: Record<string, string>
   }
 }
@@ -35,21 +37,29 @@ const ENTITLED_STATUSES = new Set(['active', 'trialing', 'past_due'])
  * Unknown households (deleted after purchase), foreign events and event
  * types we do not act on are silent no-ops: Stripe only cares about the 200.
  */
-export class HandleStripeWebhook implements UseCase<StripeSubscriptionEvent, void> {
+/** What the handler did with an event — logged by the controller. */
+export type StripeWebhookOutcome =
+  | 'ignored_event_type'
+  | 'missing_household_metadata'
+  | 'unknown_household'
+  | 'stale_subscription_ignored'
+  | 'entitlement_updated'
+
+export class HandleStripeWebhook implements UseCase<StripeSubscriptionEvent, StripeWebhookOutcome> {
   constructor(
     private readonly subscriptions: SubscriptionPort,
     private readonly households: HouseholdRepository,
     private readonly clock: Clock,
   ) {}
 
-  async execute(event: StripeSubscriptionEvent): Promise<void> {
-    if (!SUBSCRIPTION_EVENTS.has(event.type)) return
+  async execute(event: StripeSubscriptionEvent): Promise<StripeWebhookOutcome> {
+    if (!SUBSCRIPTION_EVENTS.has(event.type)) return 'ignored_event_type'
     const { subscription } = event
 
     const householdId = subscription.metadata.household_id
-    if (!householdId) return
+    if (!householdId) return 'missing_household_metadata'
     const household = await this.households.findById(householdId)
-    if (!household) return
+    if (!household) return 'unknown_household'
 
     const now = this.clock.now()
     const entitled = ENTITLED_STATUSES.has(subscription.status) && subscription.currentPeriodEnd !== null
@@ -65,7 +75,7 @@ export class HandleStripeWebhook implements UseCase<StripeSubscriptionEvent, voi
       existing.stripeSubscriptionId !== subscription.id &&
       existing.expiresAt.getTime() > now.getTime()
     ) {
-      return
+      return 'stale_subscription_ignored'
     }
 
     await this.subscriptions.upsert({
@@ -74,6 +84,8 @@ export class HandleStripeWebhook implements UseCase<StripeSubscriptionEvent, voi
       stripeCustomerId: subscription.customer,
       stripeSubscriptionId: subscription.id,
       expiresAt,
+      cancelAtPeriodEnd: entitled && subscription.cancelAtPeriodEnd,
     })
+    return 'entitlement_updated'
   }
 }

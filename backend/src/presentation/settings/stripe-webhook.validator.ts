@@ -13,6 +13,8 @@ export const stripeWebhookValidator = vine.compile(
         id: vine.string(),
         customer: vine.string(),
         status: vine.string(),
+        cancel_at_period_end: vine.boolean().optional(),
+        cancel_at: vine.number().nullable().optional(),
         current_period_end: vine.number().nullable().optional(),
         items: vine
           .object({

@@ -4,12 +4,16 @@
  * server / session. Not gated by `__DEV__`: it is precisely the tool a
  * release build needs when the server URL is wrong.
  */
+import { useState } from 'react'
 import { Platform } from 'react-native'
 import { router } from 'expo-router'
 import { Text, YStack } from '../shared/tamagui-typed.js'
+import { ActionSheet } from '../shared/action-sheet.js'
+import { SettingsIcon, TriangleAlertIcon } from '../dashboard/dashboard-icons.js'
 import { AppShell } from '../shared/app-shell.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { PillButton } from '../shared/pill-button.js'
+import { BootSplash } from '../shared/boot-splash.js'
 import { useSoftPalette } from '../dashboard/soft-palette.js'
 import { useSessionQuery } from '../../application/identity/session.query.js'
 import { useSignOutMutation } from '../../application/identity/sign-out.mutation.js'
@@ -30,6 +34,9 @@ export function DebugScreen() {
   const session = useSessionQuery()
   const signOut = useSignOutMutation()
   const hasSeenWelcome = useHasSeenWelcome()
+  const [confirming, setConfirming] = useState(false)
+  // Previewing the splash has no way back on purpose: reload the app to leave it.
+  const [showSplash, setShowSplash] = useState(false)
 
   const rows: [string, string][] = [
     ['Version', APP_VERSION],
@@ -57,10 +64,12 @@ export function DebugScreen() {
     queryClient.clear()
   }
 
+  if (showSplash) return <BootSplash />
+
   return (
     <AppShell
       nav={{ kind: 'stack' }}
-      header={<ScreenHeader palette={palette} icon={() => null} title="Debug" onBack={() => router.back()} />}
+      header={<ScreenHeader palette={palette} icon={(color) => <SettingsIcon size={19} color={color} />} title="Debug" onBack={() => router.back()} />}
     >
       <YStack testID="debug-info" gap="$2" marginTop="$5">
         {rows.map(([label, value]) => (
@@ -73,8 +82,40 @@ export function DebugScreen() {
             </Text>
           </YStack>
         ))}
-        <PillButton testID="debug-clear-state" label="Réinitialiser l’application" palette={palette} onPress={() => void clearState()} />
+        <PillButton
+          testID="debug-show-splash"
+          tone="quiet"
+          label="Voir le splash"
+          palette={palette}
+          onPress={() => setShowSplash(true)}
+        />
+        <PillButton
+          testID="debug-clear-state"
+          tone="quiet"
+          label="Réinitialiser l’application"
+          palette={palette}
+          onPress={() => setConfirming(true)}
+        />
       </YStack>
+      <ActionSheet
+        visible={confirming}
+        title="Réinitialiser l’application ?"
+        description="Tu seras déconnecté, l’adresse du serveur et l’accueil seront remis à zéro sur cet appareil."
+        options={[
+          {
+            testID: 'debug-clear-state-confirm',
+            label: 'Réinitialiser',
+            icon: (color) => <TriangleAlertIcon size={18} color={color} />,
+            tint: palette.expiredBg,
+            destructive: true,
+            onPress: () => {
+              setConfirming(false)
+              void clearState()
+            },
+          },
+        ]}
+        onClose={() => setConfirming(false)}
+      />
     </AppShell>
   )
 }

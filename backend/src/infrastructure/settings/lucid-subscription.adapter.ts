@@ -26,6 +26,7 @@ export class LucidSubscriptionAdapter implements SubscriptionPort {
       stripeCustomerId: row.stripeCustomerId,
       stripeSubscriptionId: row.stripeSubscriptionId,
       expiresAt: row.expiresAt.toJSDate(),
+      cancelAtPeriodEnd: row.cancelAtPeriodEnd,
     }
   }
 
@@ -45,6 +46,7 @@ export class LucidSubscriptionAdapter implements SubscriptionPort {
         stripeCustomerId: params.stripeCustomerId,
         stripeSubscriptionId: params.stripeSubscriptionId,
         expiresAt: DateTime.fromJSDate(params.expiresAt),
+        cancelAtPeriodEnd: params.cancelAtPeriodEnd,
       },
     )
   }

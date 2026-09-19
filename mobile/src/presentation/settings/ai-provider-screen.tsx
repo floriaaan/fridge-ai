@@ -13,14 +13,15 @@ import { useQueryClient } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { Text, XStack, YStack } from '../shared/tamagui-typed.js'
 import { AppShell } from '../shared/app-shell.js'
+import { usePullToRefresh } from '../shared/pull-to-refresh.js'
 import { ScreenHeader } from '../shared/screen-header.js'
 import { RadioCard } from '../shared/radio-card.js'
-import { useSoftPalette } from '../dashboard/soft-palette.js'
+import { useSoftPalette, type SoftPalette } from '../dashboard/soft-palette.js'
 import { CameraIcon, ChefHatIcon, ReceiptIcon, SparklesIcon } from '../dashboard/dashboard-icons.js'
 import { GeminiIcon } from './gemini-icon.js'
 import { OpenAiIcon } from './openai-icon.js'
 import { OllamaIcon } from './ollama-icon.js'
-import { AiSetupGuideCard } from './ai-access-cards.js'
+import { AiQuotaHint, AiSetupGuideCard } from './ai-access-cards.js'
 import { useAiSettingsQuery } from '../../application/settings/ai-settings.query.js'
 import { useSetActiveAiProviderMutation } from '../../application/settings/set-active-ai-provider.mutation.js'
 import type { AiProvider } from '../../domain/settings/ai-settings.js'
@@ -36,9 +37,9 @@ const PROVIDER_DESCRIPTIONS: Record<AiProvider, string> = {
 }
 
 const AI_FEATURES = [
-  { title: 'Scan de tickets', description: 'Prends ton ticket en photo : les produits arrivent dans le frigo avec leur date.', tone: 'mint', Icon: ReceiptIcon },
-  { title: 'Scan du frigo', description: 'Photographie ton frigo pour repérer d’un coup ce qu’il contient.', tone: 'lavender', Icon: CameraIcon },
-  { title: 'Recettes', description: 'Des idées de repas à partir de ce qui va bientôt périmer.', tone: 'cream', Icon: ChefHatIcon },
+  { title: 'Scan de tickets', description: 'Prends ton ticket en photo : les produits arrivent dans le frigo avec leur date.', chip: (p: SoftPalette) => p.chipTeal, Icon: ReceiptIcon },
+  { title: 'Scan du frigo', description: 'Photographie ton frigo pour repérer d’un coup ce qu’il contient.', chip: (p: SoftPalette) => p.chipViolet, Icon: CameraIcon },
+  { title: 'Recettes', description: 'Des idées de repas à partir de ce qui va bientôt périmer.', chip: (p: SoftPalette) => p.chipOrange, Icon: ChefHatIcon },
 ] as const
 
 function ProviderIcon({ provider, color }: { provider: AiProvider; color: string }) {
@@ -55,6 +56,7 @@ function ProviderIcon({ provider, color }: { provider: AiProvider; color: string
 export function AiProviderScreen() {
   const palette = useSoftPalette()
   const settings = useAiSettingsQuery()
+  const refresh = usePullToRefresh(() => settings.refetch())
   const setProvider = useSetActiveAiProviderMutation()
   const queryClient = useQueryClient()
   const [providerError, setProviderError] = useState<string | null>(null)
@@ -78,6 +80,7 @@ export function AiProviderScreen() {
   return (
     <AppShell
       nav={{ kind: 'stack' }}
+      refresh={refresh}
       header={
         <ScreenHeader
           palette={palette}
@@ -92,40 +95,24 @@ export function AiProviderScreen() {
           Lit tes tickets de caisse et invente tes recettes.
         </Text>
 
-        <YStack testID="ai-features" gap="$2.5" marginTop="$3">
-          {AI_FEATURES.map((feature, index) => {
-            const tone = {
-              mint: { bg: palette.mintPale, text: palette.mintPaleText, chip: palette.chipTeal },
-              lavender: { bg: palette.lavender, text: palette.lavenderText, chip: palette.chipViolet },
-              cream: { bg: palette.cream, text: palette.creamText, chip: palette.chipOrange },
-            }[feature.tone]
-            return (
-              <XStack
-                key={feature.title}
-                alignItems="center"
-                gap="$3"
-                padding="$3.5"
-                backgroundColor={tone.bg}
-                style={
-                  index % 2 === 0
-                    ? { borderTopLeftRadius: 26, borderTopRightRadius: 14, borderBottomRightRadius: 26, borderBottomLeftRadius: 14 }
-                    : { borderTopLeftRadius: 14, borderTopRightRadius: 26, borderBottomRightRadius: 14, borderBottomLeftRadius: 26 }
-                }
-              >
-                <YStack width={44} height={44} borderRadius={16} backgroundColor={tone.chip} alignItems="center" justifyContent="center">
-                  <feature.Icon size={22} color={palette.onDark} />
-                </YStack>
-                <YStack flex={1}>
-                  <Text fontSize={15} fontWeight="800" color={palette.ink}>
-                    {feature.title}
-                  </Text>
-                  <Text fontSize={13} fontWeight="500" color={tone.text}>
-                    {feature.description}
-                  </Text>
-                </YStack>
-              </XStack>
-            )
-          })}
+        {settings.data ? <AiQuotaHint access={settings.data.access} palette={palette} /> : null}
+
+        <YStack testID="ai-features" gap="$5" marginTop="$4">
+          {AI_FEATURES.map((feature) => (
+            <XStack key={feature.title} alignItems="center" gap="$3">
+              <YStack width={44} height={44} borderRadius={16} backgroundColor={feature.chip(palette)} alignItems="center" justifyContent="center">
+                <feature.Icon size={22} color={palette.onDark} />
+              </YStack>
+              <YStack flex={1}>
+                <Text fontSize={15} fontWeight="800" color={palette.ink}>
+                  {feature.title}
+                </Text>
+                <Text fontSize={13} fontWeight="500" color={palette.inkSecondary}>
+                  {feature.description}
+                </Text>
+              </YStack>
+            </XStack>
+          ))}
           <XStack alignItems="center" gap="$2" paddingHorizontal="$1">
             <SparklesIcon size={14} color={palette.lavenderText} />
             <Text flex={1} fontSize={12} fontWeight="600" color={palette.inkSecondary}>
@@ -169,16 +156,19 @@ export function AiProviderScreen() {
           // still say which one reads the tickets. Hidden on the official
           // instance: the provider is Garde-manger's business, not the foyer's.
           <YStack marginTop="$2">
-            <RadioCard
-              testID="ai-provider-active"
-              label={PROVIDER_LABELS[settings.data.activeProvider]}
-              description={PROVIDER_DESCRIPTIONS[settings.data.activeProvider]}
-              selected
-              onPress={() => {}}
-              icon={(color) => <ProviderIcon provider={settings.data!.activeProvider} color={color} />}
-              iconTint={PROVIDER_TINTS[settings.data.activeProvider]}
-              palette={palette}
-            />
+            <XStack testID="ai-provider-active" alignItems="center" gap="$3">
+              <YStack width={36} height={36} borderRadius={12} backgroundColor={PROVIDER_TINTS[settings.data.activeProvider]} alignItems="center" justifyContent="center">
+                <ProviderIcon provider={settings.data.activeProvider} color={palette.onDark} />
+              </YStack>
+              <YStack flex={1}>
+                <Text fontSize={14} fontWeight="700" color={palette.ink}>
+                  {PROVIDER_LABELS[settings.data.activeProvider]}
+                </Text>
+                <Text fontSize={12} color={palette.inkSecondary}>
+                  {PROVIDER_DESCRIPTIONS[settings.data.activeProvider]}
+                </Text>
+              </YStack>
+            </XStack>
           </YStack>
         ) : null}
 

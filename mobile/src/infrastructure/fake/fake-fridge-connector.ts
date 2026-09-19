@@ -174,7 +174,7 @@ export class FakeFridgeConnector implements FridgeConnector {
   /** Fixture answers for a URL ending in `/valid`, `null` (server not recognized) for anything else — see server-choice-screen.test.tsx. */
   async getInstanceInfo(url: string): Promise<InstanceInfo | null> {
     if (!url.includes('valid')) return null
-    return { mode: 'self-hosted', name: 'Garde-manger de test', version: '0.0.0' }
+    return { mode: 'hosted', name: 'Garde-manger de test', version: '0.0.0' }
   }
 
   async getSession(): Promise<Session | null> {

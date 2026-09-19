@@ -16,6 +16,9 @@ export default class HouseholdSubscriptionModel extends BaseModel {
   @column({ columnName: 'stripe_subscription_id' })
   declare stripeSubscriptionId: string | null
 
+  @column({ columnName: 'cancel_at_period_end' })
+  declare cancelAtPeriodEnd: boolean
+
   @column.dateTime({ columnName: 'expires_at' })
   declare expiresAt: DateTime
 

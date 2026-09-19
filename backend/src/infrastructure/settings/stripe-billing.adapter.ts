@@ -54,7 +54,7 @@ export class StripeBillingAdapter implements BillingPort {
   }
 
   private returnUrl(): string {
-    return env.get('STRIPE_RETURN_URL', env.get('APP_URL'))
+    return env.get('STRIPE_RETURN_URL', `${env.get('APP_URL')}/api/settings/subscription/return`)
   }
 
   private headers() {

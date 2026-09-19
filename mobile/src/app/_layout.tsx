@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { ConfettiHost } from '../presentation/shared/confetti.js'
 import { ThemeProvider } from '../presentation/shared/theme-provider.js'
 import { ToastHost } from '../presentation/shared/toast.js'
 import { ErrorBoundary } from '../presentation/shared/error-boundary.js'
@@ -85,6 +86,7 @@ export default function RootLayout() {
           </ConnectorProvider>
         </QueryClientProvider>
         <ToastHost />
+        <ConfettiHost />
       </ThemeProvider>
     </GestureHandlerRootView>
   )

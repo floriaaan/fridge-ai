@@ -16,4 +16,6 @@ export interface AiAccess {
   resetsAt: Date | null
   /** Set only for `plan: 'subscriber'`. */
   expiresAt: Date | null
+  /** Set only for `plan: 'subscriber'`: cancelled, access runs until `expiresAt`. */
+  cancelsAtPeriodEnd: boolean
 }

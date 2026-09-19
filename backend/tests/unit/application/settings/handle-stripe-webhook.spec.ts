@@ -71,6 +71,7 @@ function event(
       customer: 'cus_1',
       status: 'active',
       currentPeriodEnd: PERIOD_END,
+      cancelAtPeriodEnd: false,
       metadata: { household_id: 'h_1', payer_user_id: 'u_payer' },
       ...overrides,
     },
@@ -95,8 +96,19 @@ test.group('HandleStripeWebhook', () => {
         stripeCustomerId: 'cus_1',
         stripeSubscriptionId: 'sub_1',
         expiresAt: new Date(PERIOD_END * 1000),
+        cancelAtPeriodEnd: false,
       },
     ])
+  })
+
+  test('flags a cancellation scheduled for period end, access kept until then', async ({ assert }) => {
+    const subscriptions = new FakeSubscriptionPort()
+    await useCase(subscriptions).execute(
+      event('customer.subscription.updated', { cancelAtPeriodEnd: true }),
+    )
+
+    assert.isTrue(subscriptions.upserts[0]!.cancelAtPeriodEnd)
+    assert.equal(subscriptions.upserts[0]!.expiresAt.getTime(), PERIOD_END * 1000)
   })
 
   test('keeps access on past_due while Stripe retries the card', async ({ assert }) => {
@@ -125,6 +137,7 @@ test.group('HandleStripeWebhook', () => {
       stripeCustomerId: 'cus_1',
       stripeSubscriptionId: 'sub_new',
       expiresAt: new Date(PERIOD_END * 1000),
+      cancelAtPeriodEnd: false,
     })
     await useCase(subscriptions).execute(
       event('customer.subscription.deleted', { id: 'sub_old', status: 'canceled' }),

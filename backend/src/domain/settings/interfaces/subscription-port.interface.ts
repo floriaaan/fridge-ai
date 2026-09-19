@@ -4,6 +4,8 @@ export interface HouseholdSubscription {
   stripeCustomerId: string | null
   stripeSubscriptionId: string | null
   expiresAt: Date
+  /** Cancelled in Stripe, access runs until `expiresAt`. */
+  cancelAtPeriodEnd: boolean
 }
 
 export interface SubscriptionUpsert {
@@ -12,6 +14,7 @@ export interface SubscriptionUpsert {
   stripeCustomerId: string
   stripeSubscriptionId: string
   expiresAt: Date
+  cancelAtPeriodEnd: boolean
 }
 
 export interface SubscriptionPort {

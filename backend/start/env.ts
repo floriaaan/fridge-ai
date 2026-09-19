@@ -68,7 +68,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   // secret (`whsec_…`) verifies `POST /api/webhooks/stripe`; unset on a hosted
   // instance means that route refuses every request. `STRIPE_RETURN_URL` is
   // where Checkout / the billing portal send the user back to (defaults to
-  // `APP_URL`).
+  // `APP_URL` + `/api/settings/subscription/return`, which bounces into the app).
   STRIPE_SECRET_KEY: Env.schema.string.optional(),
   STRIPE_WEBHOOK_SECRET: Env.schema.string.optional(),
   STRIPE_PRICE_ID: Env.schema.string.optional(),
